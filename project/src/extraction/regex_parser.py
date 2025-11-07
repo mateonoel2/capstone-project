@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-import PyPDF2
+import pypdf
 
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
@@ -24,7 +24,7 @@ class RegexParser(BaseParser):
     def _extract_text_from_pdf(self, file_path: Path) -> str:
         text = ""
         with open(file_path, "rb") as file:
-            pdf_reader = PyPDF2.PdfReader(file)
+            pdf_reader = pypdf.PdfReader(file)
             for page in pdf_reader.pages[:3]:
                 text += page.extract_text()
         return text

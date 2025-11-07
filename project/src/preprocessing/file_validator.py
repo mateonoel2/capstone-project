@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, List
 
-import PyPDF2
+import pypdf
 
 
 class FileValidator:
@@ -18,7 +18,7 @@ class FileValidator:
 
         try:
             with open(file_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = pypdf.PdfReader(file)
                 if len(pdf_reader.pages) == 0:
                     return False
                 first_page = pdf_reader.pages[0]

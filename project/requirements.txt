@@ -10,7 +10,7 @@ sentence-transformers>=2.2.0
 torch>=2.0.0
 ipython>=8.0.0
 requests>=2.31.0
-PyPDF2>=3.0.1
+pypdf>=3.0.1
 PyYAML>=6.0.0
 pytest>=8.4.2
 
