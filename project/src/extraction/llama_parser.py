@@ -18,7 +18,7 @@ class LlamaParser(BaseParser):
         self,
         llama_api_key: str = None,
         anthropic_api_key: str = None,
-        model: str = "claude-3-5-sonnet-20241022",
+        model: str = "claude-3-5-haiku-latest",
         separator: str = "\n---\n",
     ):
         self.llama_api_key = llama_api_key or os.environ.get("LLAMA_CLOUD_API_KEY")
