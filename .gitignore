@@ -1,0 +1,37 @@
+# LaTeX build files
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.bbl
+*.blg
+*.fdb_latexmk
+*.synctex.gz
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+venv/
+.venv/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# Data files
+data/
+
+# macOS
+.DS_Store
+
+# VS Code / Cursor
+.vscode/*
+!.vscode/settings.json
