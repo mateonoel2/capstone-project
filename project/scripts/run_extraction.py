@@ -8,8 +8,6 @@ sys.path.insert(0, str(project_root))
 from dotenv import load_dotenv
 
 from src.experiments.experiment_runner import ExperimentRunner
-from src.extraction.llama_parser import LlamaParser
-from src.extraction.regex_parser import RegexParser
 from src.utils.file_utils import get_pdf_files
 
 
@@ -27,7 +25,7 @@ def main():
     parser.add_argument(
         "--input-dir",
         type=str,
-        default="data/raw/bank_statements",
+        default="data/processed/pdfs/bank_statements",
         help="Directory containing bank statement files",
     )
     parser.add_argument(
@@ -51,16 +49,23 @@ def main():
 
     if args.parser == "llama":
         print("\nRunning LlamaParse extraction...")
+        from src.extraction.llama_parser import LlamaParser
+
         llama_parser = LlamaParser()
         experiment.run_experiment(llama_parser, pdf_files, "llama_parser")
 
     elif args.parser == "regex":
         print("\nRunning Regex extraction...")
+        from src.extraction.regex_parser import RegexParser
+
         regex_parser = RegexParser()
         experiment.run_experiment(regex_parser, pdf_files, "regex_parser")
 
     elif args.parser == "all":
         print("\nRunning comparison of all parsers...")
+        from src.extraction.llama_parser import LlamaParser
+        from src.extraction.regex_parser import RegexParser
+
         parsers = {"llama_parser": LlamaParser(), "regex_parser": RegexParser()}
         experiment.compare_parsers(parsers, pdf_files)
 

@@ -12,13 +12,17 @@ class RegexParser(BaseParser):
     def __init__(self):
         self.clabe_pattern = re.compile(r"\b\d{18}\b")
         self.bank_patterns = {
-            "BBVA": re.compile(r"BBVA|Bancomer", re.IGNORECASE),
-            "Santander": re.compile(r"Santander", re.IGNORECASE),
-            "Banamex": re.compile(r"Banamex|Citibanamex", re.IGNORECASE),
-            "Banorte": re.compile(r"Banorte", re.IGNORECASE),
+            "BBVA MEXICO": re.compile(r"BBVA|Bancomer", re.IGNORECASE),
+            "SANTANDER": re.compile(r"Santander", re.IGNORECASE),
+            "BANAMEX": re.compile(r"Banamex|Citibanamex", re.IGNORECASE),
+            "BANORTE": re.compile(r"Banorte", re.IGNORECASE),
             "HSBC": re.compile(r"HSBC", re.IGNORECASE),
-            "Scotiabank": re.compile(r"Scotiabank", re.IGNORECASE),
-            "Inbursa": re.compile(r"Inbursa", re.IGNORECASE),
+            "SCOTIABANK": re.compile(r"Scotiabank", re.IGNORECASE),
+            "AFIRME": re.compile(r"Afirme", re.IGNORECASE),
+            "BAJIO": re.compile(r"Bajío|Bajio", re.IGNORECASE),
+            "BANREGIO": re.compile(r"Banregio", re.IGNORECASE),
+            "MIFEL": re.compile(r"Mifel", re.IGNORECASE),
+            "BMONEX": re.compile(r"Bmonex|Monex", re.IGNORECASE),
         }
 
     def _extract_text_from_pdf(self, file_path: Path) -> str:

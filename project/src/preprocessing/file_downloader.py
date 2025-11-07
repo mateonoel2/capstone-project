@@ -41,7 +41,7 @@ class FileDownloader:
     @staticmethod
     def detect_file_type_from_content(filepath: Path) -> Optional[str]:
         with open(filepath, "rb") as f:
-            header = f.read(12)
+            header = f.read(32)
 
         if header.startswith(b"%PDF"):
             return ".pdf"
@@ -57,6 +57,14 @@ class FileDownloader:
             return ".bmp"
         elif header.startswith(b"II*\x00") or header.startswith(b"MM\x00*"):
             return ".tiff"
+        elif b"ftyp" in header[4:12] and (b"heic" in header or b"heif" in header):
+            return ".heic"
+        elif header.startswith(b"PK\x03\x04"):
+            if b"xl/" in header or b"word/" in header:
+                return "skip_office"
+            return "skip_zip"
+        elif header.startswith(b"MZ"):
+            return "skip_exe"
         else:
             return None
 
@@ -153,23 +161,39 @@ class FileDownloader:
                 if success:
                     detected_ext = self.detect_file_type_from_content(temp_path)
 
-                    if detected_ext:
+                    if detected_ext and detected_ext.startswith("skip_"):
+                        temp_path.unlink()
+                        file_type = detected_ext.replace("skip_", "")
+                        print(f"  ⊘ Skipped: unsupported file type ({file_type})")
+                        df.at[idx, "download_status"] = f"skipped_{file_type}"
+                        skipped_count += 1
+                    elif detected_ext:
                         final_filename = f"row{row_num:03d}_{safe_nickname}{detected_ext}"
                         print(f"  → Detected file type: {detected_ext}")
+                        final_path = self.output_dir / final_filename
+                        temp_path.rename(final_path)
+                        print(f"  ✓ Saved as: {final_filename}")
+                        df.at[idx, "downloaded_file"] = final_filename
+                        df.at[idx, "download_status"] = "success"
+                        downloaded_count += 1
                     elif url_extension:
                         final_filename = final_filename_with_url_ext
                         print(f"  → Using URL extension: {url_extension}")
+                        final_path = self.output_dir / final_filename
+                        temp_path.rename(final_path)
+                        print(f"  ✓ Saved as: {final_filename}")
+                        df.at[idx, "downloaded_file"] = final_filename
+                        df.at[idx, "download_status"] = "success"
+                        downloaded_count += 1
                     else:
                         final_filename = f"row{row_num:03d}_{safe_nickname}.bin"
                         print("  ⚠ Could not detect file type, saving as .bin")
-
-                    final_path = self.output_dir / final_filename
-                    temp_path.rename(final_path)
-                    print(f"  ✓ Saved as: {final_filename}")
-
-                    df.at[idx, "downloaded_file"] = final_filename
-                    df.at[idx, "download_status"] = "success"
-                    downloaded_count += 1
+                        final_path = self.output_dir / final_filename
+                        temp_path.rename(final_path)
+                        print(f"  ✓ Saved as: {final_filename}")
+                        df.at[idx, "downloaded_file"] = final_filename
+                        df.at[idx, "download_status"] = "unknown_type"
+                        downloaded_count += 1
                 else:
                     if temp_path.exists():
                         temp_path.unlink()
