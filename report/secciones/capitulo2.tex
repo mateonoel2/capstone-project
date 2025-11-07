@@ -1,0 +1,363 @@
+\chapter{DATOS Y PRIVACIDAD}
+
+\section{Análisis de datos}
+
+\subsection{Inventario de Fuentes de datos}
+
+Para este proyecto se tienen datos reales de la plataforma Cometa, específicamente con un backup de su base de datos operacional almacenada en Airtable. El dataset comprende 316 registros de cuentas bancarias de instituciones educativas, recolectados entre septiembre de 2024 y abril de 2025. De estos registros, 308 cuentan con documentos de carátulas bancarias asociados, lo que representa una cobertura del 97.5\%.
+
+Las fuentes de datos se organizan en tres categorías principales: primero, la base de datos en Airtable contiene 21 campos por registro con información estructurada de titulares, CLABEs, documentos de identificación (RFC/CURP), estados de validación y metadatos. Segundo, los documentos de carátulas bancarias (308 archivos distribuidos en 220 PDFs, 35 JPGs, 34 PNGs y 19 en otros formatos) se encuentran almacenados en Google Drive, proporcionando la información visual necesaria para validar las cuentas. Finalmente, los metadatos de gestión incluyen fechas de creación, estados de procesamiento, identificadores de carpetas y logs que permiten rastrear el flujo completo de cada registro.
+
+\subsection{Diccionario de datos y tamaños de bases de datos}
+
+La Tabla~\ref{tab:diccionario_datos} presenta la estructura completa del dataset con 21 campos de información bancaria, institucional y de gestión.
+
+\begin{table}[htbp]
+\centering
+\caption{Diccionario de datos del dataset de cuentas bancarias}
+\label{tab:diccionario_datos}
+\scriptsize
+\begin{tabular}{|p{3cm}|p{2cm}|p{5cm}|p{4cm}|}
+\hline
+\textbf{Campo} & \textbf{Tipo} & \textbf{Descripción} & \textbf{Ejemplo} \\
+\hline
+Nickname & String & Nombre descriptivo de la cuenta & CUENTA COLEGIATURAS \\
+\hline
+Owner & String & Titular de la cuenta bancaria & [NOMBRE\_TITULAR] \\
+\hline
+CLABE & String (18) & Clave Bancaria Estandarizada & [18 dígitos] \\
+\hline
+Currency & String & Moneda de la cuenta & MXN \\
+\hline
+document\_type & String & Tipo de documento de identificación & RFC, CURP \\
+\hline
+document\_number & String & Número del documento & [RFC/CURP] \\
+\hline
+banco & String & Nombre de la institución bancaria & BBVA MEXICO, BANORTE \\
+\hline
+school\_id & String & Identificador del colegio & SCH\#\#\# - [Nombre Colegio] \\
+\hline
+account\_type & String & Tipo de cuenta & CB (Cuenta Bancaria) \\
+\hline
+validation & String & Estado de validación & Completo, Incompleto \\
+\hline
+Colegio & String & Nombre completo del colegio & SCH\#\#\# - [Nombre Colegio] \\
+\hline
+school\_id (from Colegio) & UUID & Identificador único del colegio & [UUID] \\
+\hline
+Caratula & String & Nombre y URL del documento bancario & [archivo].pdf (https://...) \\
+\hline
+bank\_id & String & Identificador del banco (opcional) & (vacío) \\
+\hline
+drive\_folder\_id & String & ID de carpeta en Google Drive & [ID\_CARPETA] \\
+\hline
+created\_at & String & Fecha de creación & MM/DD/YYYY HH:MMam/pm \\
+\hline
+downloaded\_file & String & Nombre del archivo descargado localmente & row\#\#\#\_[nombre].ext \\
+\hline
+download\_status & String & Estado de descarga & success, no\_url \\
+\hline
+\end{tabular}
+\end{table}
+
+En términos de volumen, el dataset completo ocupa aproximadamente entre 150 y 200 MB, incluyendo tanto los datos estructurados como los documentos asociados. Un hallazgo interesante es la distribución de instituciones bancarias: de los 179 registros con banco identificado, BBVA concentra el 29\% de las cuentas, seguido por Banorte (16\%), Santander (15\%), Banamex (13\%), Scotiabank (9\%), Bajío (7\%), HSBC (3\%) y otros bancos (8\%). Es importante notar que el 56\% de los registros no tienen el campo de banco completado, lo que representa un área de oportunidad para mejorar la calidad del dataset. Esta distribución refleja las preferencias del sector educativo mexicano al momento de elegir instituciones financieras para gestionar sus operaciones.
+
+\subsection{Evaluación de Calidad}
+
+El análisis de completitud del dataset revela un panorama mixto. Mientras que el 97.5\% de los registros cuentan con carátula bancaria asociada, existen desafíos importantes en otros campos. El campo de banco presenta un 56\% de valores nulos, lo que dificulta el análisis por institución financiera. Los campos de identificación del colegio (school\_id) muestran un 4.4\% de valores faltantes, y las fechas de creación están ausentes en el 18.4\% de los registros. La Tabla~\ref{tab:valores_nulos} detalla el porcentaje de valores faltantes para los campos más relevantes del dataset.
+
+\begin{table}[htbp]
+\centering
+\caption{Análisis de valores nulos en el dataset}
+\label{tab:valores_nulos}
+\begin{tabular}{|l|r|p{7cm}|}
+\hline
+\textbf{Campo} & \textbf{\% Nulos} & \textbf{Observaciones} \\
+\hline
+Nickname & 0.6\% & 2 registros sin nickname \\
+\hline
+Owner & 0.6\% & 2 registros sin titular \\
+\hline
+CLABE & 0.6\% & 2 registros sin CLABE \\
+\hline
+Currency & 1.3\% & 4 registros sin moneda especificada \\
+\hline
+document\_type & 1.3\% & 4 registros sin tipo de documento \\
+\hline
+document\_number & 0.6\% & 2 registros sin número de documento \\
+\hline
+banco & 56.3\% & 178 registros sin banco identificado \\
+\hline
+school\_id & 4.4\% & 14 registros sin identificador de colegio \\
+\hline
+account\_type & 1.3\% & 4 registros sin tipo de cuenta \\
+\hline
+Caratula & 2.5\% & 8 registros sin documento adjunto \\
+\hline
+drive\_folder\_id & 10.1\% & 32 registros sin carpeta de Drive \\
+\hline
+created\_at & 18.4\% & 58 registros sin fecha de creación \\
+\hline
+downloaded\_file & 2.5\% & Correlacionado con Caratula \\
+\hline
+download\_status & 0\% & Todos tienen estado (success/no\_url) \\
+\hline
+bank\_id & 100\% & Campo no utilizado en el sistema \\
+\hline
+\end{tabular}
+\end{table}
+
+En cuanto a duplicados, se identificaron 29 CLABEs repetidas que afectan a 66 registros (20.9\% del total), y titulares duplicados en aproximadamente 36\% de los casos (114 registros). Sin embargo, estos duplicados son legítimos: corresponden a instituciones educativas que mantienen múltiples cuentas bancarias segregadas por concepto, como colegiaturas, inscripciones o facturación. Este patrón es común en el sector y refleja la estructura operativa de los colegios, donde una misma cuenta puede estar registrada múltiples veces para diferentes propósitos administrativos.
+
+El análisis también reveló algunas anomalías que requieren atención antes de entrenar modelos de machine learning. Se encontró un registro con CLABE en formato incorrecto (marcado como ``CLABE incorrecta'' en el campo de validación), varios números de cuenta con caracteres especiales (apóstrofes, comillas, espacios embebidos), 8 documentos que no pudieron descargarse (2.5\% del total, marcados como ``no\_url''), formatos de fecha inconsistentes que necesitan normalización, y el alto porcentaje de campos de banco sin completar (56.3\%). 
+
+Si bien el análisis evidenció ciertas anomalías en los registros, el dataset presenta características favorables para el proyecto: cobertura geográfica nacional que abarca múltiples estados de México, alta disponibilidad de documentos con 97.5\% de carátulas descargadas exitosamente, y 43.4\% de cuentas marcadas como ``Completo'' en su validación. Aunque el 56.3\% de los registros están marcados como ``Incompleto'', esto se debe principalmente a la falta del campo de banco, no a la ausencia de documentación. Esto indica que se cuenta con un dataset robusto y representativo para entrenar los modelos de extracción automática, especialmente considerando que los documentos de carátulas bancarias (que son la fuente principal para el entrenamiento) tienen una cobertura casi completa.
+
+\section{Cumplimiento de Privacidad de Datos}
+
+\subsection{Marco legal aplicable}
+
+Dado que el proyecto maneja información financiera y personal sensible, debe cumplir con un marco regulatorio estricto. En primer lugar, la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) establece los principios fundamentales para el tratamiento de datos personales en México, incluyendo los derechos ARCO (Acceso, Rectificación, Cancelación y Oposición) que deben garantizarse a los titulares. Adicionalmente, los Lineamientos del Aviso de Privacidad publicados por el INAI (Instituto Nacional de Transparencia, Acceso a la Información y Protección de Datos Personales) especifican cómo debe informarse a los usuarios sobre el uso de sus datos. Finalmente, al tratarse de información bancaria, también aplican los Estándares de seguridad establecidos por la CNBV (Comisión Nacional Bancaria y de Valores), que regulan el manejo de información financiera sensible en el sector.
+
+\subsection{Identificación de Información Personal Identificable (PII)}
+
+El dataset contiene múltiples categorías de información personal identificable (PII) \cite{nist_pii} que requieren protección especial. Los campos más sensibles, por un lado, incluyen las CLABEs (números de cuenta bancaria de 18 dígitos), los números de documento (RFC/CURP) y los nombres de los titulares de las cuentas. Estos datos críticos requieren medidas de seguridad robustas como tokenización y encriptación. Por otro lado, campos de sensibilidad media como los identificadores de colegios y nombres de instituciones requieren pseudonimización para proteger la privacidad sin perder la utilidad de los datos. La Tabla~\ref{tab:clasificacion_pii} presenta la clasificación completa de PII por nivel de sensibilidad y las medidas de protección requeridas para cada categoría.
+
+\begin{table}[htbp]
+\centering
+\caption{Clasificación de PII por nivel de sensibilidad}
+\label{tab:clasificacion_pii}
+\scriptsize
+\begin{tabular}{|l|l|l|p{4.5cm}|}
+\hline
+\textbf{Campo} & \textbf{Categoría} & \textbf{Riesgo} & \textbf{Medidas requeridas} \\
+\hline
+\multicolumn{4}{|c|}{\textbf{PII Directa (Alta sensibilidad)}} \\
+\hline
+Owner & Nombre completo & Alto & Anonimización, encriptación \\
+\hline
+CLABE & Datos financieros & Crítico & Tokenización, encriptación en reposo \\
+\hline
+document\_number & Identificador fiscal/personal & Crítico & Enmascaramiento, acceso restringido \\
+\hline
+Caratula (URL) & Documento bancario & Crítico & Control de acceso, encriptación \\
+\hline
+\multicolumn{4}{|c|}{\textbf{PII Indirecta (Sensibilidad media)}} \\
+\hline
+Nickname & Identificador descriptivo & Medio & Revisar caso por caso \\
+\hline
+school\_id & Afiliación institucional & Medio & Pseudonimización \\
+\hline
+Colegio & Nombre de institución & Medio & Puede revelar ubicación \\
+\hline
+banco & Institución financiera & Bajo & Dato semi-público \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Metadatos sensibles}} \\
+\hline
+drive\_folder\_id & Ubicación de documentos & Medio & Control de acceso, auditoría \\
+\hline
+downloaded\_file & Ruta de archivo local & Bajo & Protección del sistema de archivos \\
+\hline
+created\_at & Timestamp de actividad & Bajo & Análisis de patrones \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Mapa de flujo de datos (Data Flow Map)}
+
+Garantizar la privacidad desde el diseño, es fundamental mapear el flujo completo de los datos a través del sistema. La Figura~\ref{fig:data_flow} ilustra este recorrido en cinco etapas principales. Primero, los datos se originan en Airtable y Google Drive, donde Cometa almacena la información operacional. Luego pasan por una etapa de procesamiento que incluye descarga, parsing y anonimización propuesta. Posteriormente se almacenan en reposo, tanto los datos estructurados como los documentos originales. En la cuarta etapa, los datos se utilizan para entrenar y validar los modelos de machine learning. Finalmente, se aplica una política de retención de 5 años (por cumplimiento fiscal) seguida de eliminación segura y cada etapa incorpora puntos de control de privacidad específicos.
+
+\begin{figure}[htbp]
+\centering
+\small
+\begin{tabular}{|p{13cm}|}
+\hline
+\textbf{1. ORIGEN: Fuentes de Datos} \\
+\textbullet\ Airtable: 316 registros con titulares, CLABEs, RFC/CURP, metadatos \\
+\textbullet\ Google Drive: 308 documentos (PDFs, JPGs, PNGs) \\
+\textit{Control de privacidad: Acceso restringido a equipo de soporte} \\
+\hline
+\end{tabular}
+
+\vspace{0.3cm}
+\centerline{$\downarrow$}
+\vspace{0.3cm}
+
+\begin{tabular}{|p{13cm}|}
+\hline
+\textbf{2. PROCESAMIENTO: Transformación y Anonimización} \\
+\textbullet\ Descarga y consolidación de documentos \\
+\textbullet\ Parsing y extracción de campos clave (Owner, CLABE, banco) \\
+\textbullet\ Tokenización de CLABEs, enmascaramiento RFC/CURP, pseudonimización \\
+\textit{Control de privacidad: Anonimización obligatoria antes de ML} \\
+\hline
+\end{tabular}
+
+\vspace{0.3cm}
+\centerline{$\downarrow$}
+\vspace{0.3cm}
+
+\begin{tabular}{|p{13cm}|}
+\hline
+\textbf{3. ALMACENAMIENTO: Datos en Reposo} \\
+\textbullet\ Datos estructurados y documentos originales \\
+\textbullet\ Modelos entrenados (futuro) \\
+\textit{Control de privacidad: Encriptación de disco, servidores en México (LFPDPPP)} \\
+\hline
+\end{tabular}
+
+\vspace{0.3cm}
+\centerline{$\downarrow$}
+\vspace{0.3cm}
+
+\begin{tabular}{|p{13cm}|}
+\hline
+\textbf{4. USO: Entrenamiento y Validación} \\
+\textbullet\ Entrenamiento de modelos (equipo ML/IA con datos anonimizados) \\
+\textbullet\ Validación y testing (equipo QA) \\
+\textbullet\ API de producción (futuro: inferencia en tiempo real) \\
+\textit{Control de privacidad: Acceso basado en roles (RBAC), auditoría} \\
+\hline
+\end{tabular}
+
+\vspace{0.3cm}
+\centerline{$\downarrow$}
+\vspace{0.3cm}
+
+\begin{tabular}{|p{13cm}|}
+\hline
+\textbf{5. RETENCIÓN Y ELIMINACIÓN} \\
+\textbullet\ Política de retención: 5 años (cumplimiento fiscal) \\
+\textbullet\ Eliminación segura: borrado criptográfico \\
+\textbullet\ Derecho al olvido: proceso de eliminación en 20 días hábiles (LFPDPPP) \\
+\textit{Control de privacidad: Logs de acceso y auditoría de modificaciones} \\
+\hline
+\end{tabular}
+
+\caption{Mapa de flujo de datos del sistema de validación de cuentas bancarias}
+\label{fig:data_flow}
+\end{figure}
+
+\subsection{Privacidad desde el diseño}
+
+El tratamiento de la información sensible se realiza siguiendo principios de seguridad, confidencialidad y uso responsable de los datos personales. El enfoque se orienta a garantizar que la información se procese de manera controlada y se mantenga protegida durante todo su ciclo de vida.
+
+En primer lugar, se aplica el principio de minimización de datos, de modo que solo se recopilan los campos estrictamente necesarios para la validación bancaria. No se almacenan datos adicionales más allá de los requeridos por el proceso operativo, siguiendo las prácticas de tratamiento de información personal descritas por el NIST para PII \cite{nist_pii}.
+
+Asimismo, en segundo lugar, se cumple con la limitación de propósito, garantizando que los datos recopilados se utilicen exclusivamente para la validación de cuentas bancarias y no se compartan con terceros sin consentimiento explícito del titular, tal como lo establece el artículo 12 de la LFPDPPP \cite{lfpdppp}.
+
+En tercer lugar, previo a proceder el entrenamiento de los modelos de aprendizaje automático, se implementan técnicas de anonimización que reducen el riesgo de exposición de datos personales. Entre ellas destacan: la tokenización de CLABEs, que sustituye los números de cuenta por identificadores únicos no reversibles, el enmascaramiento de RFC y CURP, mediante ocultación parcial de caracteres, la pseudonimización de nombres, reemplazándolos por identificadores genéricos.
+
+En cuarto lugar, la seguridad de la información garantiza la encriptación tanto en tránsito como en reposo. En la transmisión de datos, se emplea el protocolo HTTPS/TLS, especialmente en las descargas desde Google Drive. En el almacenamiento, reposo, se utiliza encriptación de disco para archivos sensibles y encriptación a nivel de campo en la base de datos para CLABEs y RFC/CURP
+
+Por último, quinto lugar, se aplican mecanimos de control de acceso basados en el modelo RBAC (Role-Based Access Control), junto con auditorías periódicas de accedos a detos sensibles y autentificación multifactor para los usuarios que requieren acceso a los sistemas que contienen información crítica \cite{nist_pii}.
+
+\subsubsection{Anonimización en el entrenamiento de modelos de \textit{Document Understanding}}
+
+El marco anterior se aplica directamente en el entrenamiento de modelos de \textit{Document Understanding} \cite{google_docunderstanding}, donde se ejecuta un proceso de anonimización estructurada de documentos diseñado para eliminar o transformar toda la información personal identificable antes de su uso en tareas de aprendizaje automático.
+
+El procedimiento sigue la siguiente secuencia:
+
+\begin{verbatim}
+Documento original → Extracción de texto → Identificación de PII 
+                   → Reemplazo por tokens
+
+Ejemplo:
+"Titular: [NOMBRE COMPLETO]"
+"RFC: [13 CARACTERES ALFANUMÉRICOS]"
+"CLABE: [18 DÍGITOS NUMÉRICOS]"
+
+Se transforma en:
+"Titular: [NOMBRE_PERSONA]"
+"RFC: [RFC_ID]"
+"CLABE: [CLABE_18_DIGITOS]"
+\end{verbatim}
+
+\noindent Este proceso preserva la estructura y formato del documento manteniendo patrones de formato (18 dígitos para CLABE, 13 para RFC), posición espacial y elementos visuales (tablas, logos). Adicionalmente, se generan datos sintéticos mediante documentos de entrenamiento con información ficticia pero realista, usando nombres, RFCs y CLABEs generados algorítmicamente que mantienen la distribución estadística del dataset original.
+
+La implementación de este proceso se respalda con medidas de seguridad estructuradas en tres niveles complementarios que abarcan aspectos técnivos, operativos y organizacionales. En el nivel de aplicación, se realizan procesos de validación de entrada, sanitización de archivos y registro de auditoría para todas las operaciones que involucran información personal identificable.
+El nivel de infraestructura comprende el almacenamiento de datos en servidores ubicados en México, en cumplimiento con la LFPDPPP, además de respaldos cifrados y segmentación de red para aislar los entornos críticos. 
+Por último, el nivel organizacional, considera la capacitación continua del personal, la firma de acuerdos de confidencialidad y la implementación de procedimientos de respuesta ante incidentes
+
+
+\subsubsection{Requerimientos relacionados con la privacidad de datos}
+
+Las medidas descritas en el inicio de esta sección, constituyen las base operativa del enfoque de privacidad desde el diseño aplicado en el proyecto. Cada acción implementada corresponde a un requerimiento técnico que orienta el manejo de la información sensible dentro del sistema.
+
+La siguiente tabla presenta la formalización de estos requerimientos de privacidad, los cuales aseguran que las medidas adoptadas puedan verificarse y mantenerse.
+
+\begin{table}[H]
+    \centering
+    \caption{Requerimientos relacionados con la privacidad de datos}
+    \label{tab:requerimientos_privacidad}
+    \scriptsize
+    \begin{tabular}{|p{1.2cm}|p{6cm}|p{3cm}|}
+    \hline
+    \textbf{Código} & \textbf{Descripción} & \textbf{Tipo} \\ \hline
+    R-01 & Cifrado de CLABE, RFC y CURP en tránsito y en reposo mediante estándares de seguridad avanzados (AES-256 o equivalentes). & No funcional \\ \hline
+    R-02 & Implementación de control de acceso basado en roles (RBAC) y auditoría de sesiones para limitar el acceso a datos sensibles. & Funcional \\ \hline
+    R-03 & Gestión del consentimiento informado de los titulares de los datos, permitiendo su revocación en cualquier momento. & Funcional \\ \hline
+    R-04 & Aplicación de anonimización y seudonimización automática antes del entrenamiento de modelos de aprendizaje automático. & No funcional \\ \hline
+    R-05 & Eliminación segura de los datos personales una vez cumplido el propósito del tratamiento, siguiendo procedimientos internos de borrado. & No funcional \\ \hline
+    \end{tabular}
+\end{table}
+
+
+\subsubsection{Historias de usuarios relacionadas con la privacidad de datos}
+
+La siguiente sección presenta historias de usuario que reflejan cómo los diferentes actores del sistema interactúan con los mecanismos de protección de datos personales, en cumplimiento con los principios de confidencialidad, minimización y control de acceso establecidos en el diseño del sistema.  
+Estas historias permiten traducir los requerimientos legales y técnicos de privacidad en funcionalidades específicas dentro de la arquitectura del proyecto.
+
+\begin{itemize}
+    \item \textbf{HU-01: Control de acceso y confidencialidad.}  
+    Como administrador del sistema, quiero que los usuarios solo puedan acceder a la información necesaria según su rol, para garantizar que los datos sensibles, como CLABEs y RFCs, estén protegidos mediante control de acceso basado en roles (RBAC) y se cumpla el principio de mínimo privilegio.
+
+    \item \textbf{HU-02: Anonimización previa al entrenamiento.}  
+    Como científico de datos, quiero que el sistema anonimice automáticamente los documentos antes de iniciar el entrenamiento de los modelos de \textit{Document Understanding}, para evitar que información personal identificable (PII) sea expuesta durante el procesamiento o aprendizaje del modelo.
+
+    \item \textbf{HU-03: Consentimiento y trazabilidad.}  
+    Como titular de los datos, quiero poder otorgar y revocar mi consentimiento para el uso de mi información en procesos de validación o análisis, para mantener el control sobre mis datos personales y asegurar que el tratamiento se realice conforme a la LFPDPPP.
+\end{itemize}
+
+\subsection{Evaluación de riesgos de privacidad}
+
+La evaluación de riesgos de privacidad tiene como propósito identificar los posibles eventos que podrían afectar la confidencialidad, integridad o disponibilidad de los datos personales tratados por el sistema. Este análisis permite estimar la propabilidad de ocurrencia y el impacto de cada riesgo, con el fin de priorizar las medidas de mitigación más adecuadas.
+
+La siguiente tabla resumen los principales riesgos identificados durante el diseño y desarrollo del sistema, junto con el nivel de probabilidad, el impacto potencial y las acciones preventivas implementadas para reducir su efecto.
+
+\begin{table}[htbp]
+\centering
+\caption{Evaluación de riesgos de privacidad}
+\label{tab:riesgos_privacidad}
+\scriptsize
+\begin{tabular}{|p{4cm}|l|l|p{5cm}|}
+\hline
+\textbf{Riesgo} & \textbf{Probabilidad} & \textbf{Impacto} & \textbf{Mitigación} \\
+\hline
+Fuga de CLABEs en dataset de entrenamiento & Media & Crítico & Tokenización obligatoria antes de ML \\
+\hline
+Acceso no autorizado a documentos bancarios & Baja & Alto & Encriptación + control de acceso estricto \\
+\hline
+Re-identificación a partir de datos anonimizados & Baja & Alto & Uso de k-anonimato y differential privacy \\
+\hline
+Pérdida de datos por fallo de hardware & Media & Medio & Backups encriptados redundantes \\
+\hline
+Uso indebido por personal interno & Baja & Alto & Auditoría de accesos + principio de mínimo privilegio \\
+\hline
+\end{tabular}
+\end{table}
+
+El análisis evidencia que los riesgos de mayor criticidad se relacionan con la posible fuga de CLABs en los datasets de entrenamiento y con la reidentificación de datos anonimizados, ambos mitigados mediante técnicas de tonkenización y privacidad diferencial.
+
+Asimismo, el control de accesos y la encriptación minimizan la probabilidad de accesos no autorizados o pérdidas de la información, mientras que las auditorías internas y los respaldos cifrados garantizan la trazabilidad y la continuidad operativa. 
+
+En conjunto, estas acciones refuerzan las protección de datos personales y aseguran que el sistema mantenga un equilibrio entre seguridad, eficiencia y cumplimiento normativo.
+
+
+\subsection{Cumplimiento y auditoría}
+
+El aviso de privacidad debe informar a colegios y titulares sobre datos recopilados y su finalidad, uso de IA para procesamiento automatizado, derechos ARCO (Acceso, Rectificación, Cancelación, Oposición) y periodo de retención. Se requiere consentimiento informado explícito para procesamiento automatizado de documentos bancarios, almacenamiento temporal de carátulas y uso de datos anonimizados para entrenamiento de modelos.
+
+Las auditorías periódicas incluyen revisión trimestral de accesos a datos sensibles, evaluación anual de medidas de seguridad y pruebas de penetración semestrales. El derecho al olvido se implementa mediante proceso documentado con plazo de respuesta de 20 días hábiles (según LFPDPPP) y eliminación en todos los sistemas (producción, backups, modelos).
+
+
