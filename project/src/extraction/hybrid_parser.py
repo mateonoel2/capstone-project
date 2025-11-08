@@ -73,7 +73,8 @@ Responde SOLO con un JSON válido en este formato exacto:
     "bank_name": "nombre del banco"
 }}
 
-Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "000000000000000000" para account_number.
+Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
+y "000000000000000000" para account_number.
 """
 
         try:

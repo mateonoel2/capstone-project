@@ -29,7 +29,10 @@ def main():
             "all",
         ],
         default="pdfplumber",
-        help="Parser to use: regex, pdfplumber, layoutlm, hybrid, claude, claude_vision, claude_ocr, or all",
+        help=(
+            "Parser to use: regex, pdfplumber, layoutlm, hybrid, claude, "
+            "claude_vision, claude_ocr, or all"
+        ),
     )
     parser.add_argument(
         "--input-dir",

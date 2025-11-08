@@ -70,11 +70,14 @@ class ClaudeVisionParser(BaseParser):
         content.append(
             {
                 "type": "text",
-                "text": """Analiza esta carátula bancaria mexicana y extrae la siguiente información:
+                "text": """Analiza esta carátula bancaria mexicana y extrae la
+siguiente información:
 
 1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa)
-2. CLABE: Número de 18 dígitos (CLABE interbancaria). IMPORTANTE: debe ser exactamente 18 dígitos numéricos consecutivos.
-3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX, BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
+2. CLABE: Número de 18 dígitos (CLABE interbancaria).
+   IMPORTANTE: debe ser exactamente 18 dígitos numéricos consecutivos.
+3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
+   BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
 Responde SOLO con un JSON válido en este formato exacto, sin texto adicional:
 {
@@ -83,7 +86,8 @@ Responde SOLO con un JSON válido en este formato exacto, sin texto adicional:
     "bank_name": "nombre del banco en mayúsculas"
 }
 
-Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "000000000000000000" para account_number.
+Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
+y "000000000000000000" para account_number.
 NO inventes información. Solo extrae lo que está claramente visible en el documento.""",
             }
         )

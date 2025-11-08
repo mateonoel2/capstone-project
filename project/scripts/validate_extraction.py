@@ -146,7 +146,8 @@ def main():
 
         for detail in details:
             print(
-                f"{detail['file']:<30} {detail['owner']:<7} {detail['clabe']:<7} {detail['bank']:<7}"
+                f"{detail['file']:<30} {detail['owner']:<7} "
+                f"{detail['clabe']:<7} {detail['bank']:<7}"
             )
 
         print("\n\nFIELD COMPARISONS (showing first 50 chars):")
@@ -208,12 +209,14 @@ def main():
     print(f"{'-' * 100}")
     for _, row in summary_df.iterrows():
         print(
-            f"{row['Parser']:<15} {row['Owner']:<20} {row['CLABE']:<20} {row['Bank']:<20} {row['Average']:<10}"
+            f"{row['Parser']:<15} {row['Owner']:<20} {row['CLABE']:<20} "
+            f"{row['Bank']:<20} {row['Average']:<10}"
         )
 
     print(f"\n{'=' * 100}")
     print(
-        f"WINNER: {summary_df.iloc[0]['Parser']} with {summary_df.iloc[0]['Average']} average accuracy"
+        f"WINNER: {summary_df.iloc[0]['Parser']} with "
+        f"{summary_df.iloc[0]['Average']} average accuracy"
     )
     print(f"{'=' * 100}\n")
 
