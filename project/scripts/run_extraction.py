@@ -18,9 +18,9 @@ def main():
     parser.add_argument(
         "--parser",
         type=str,
-        choices=["llama", "regex", "all"],
-        default="llama",
-        help="Parser to use: llama, regex, or all",
+        choices=["regex", "pdfplumber", "layoutlm", "hybrid", "all"],
+        default="pdfplumber",
+        help="Parser to use: regex, pdfplumber, layoutlm, hybrid, or all",
     )
     parser.add_argument(
         "--input-dir",
@@ -47,26 +47,47 @@ def main():
 
     experiment = ExperimentRunner(experiment_name="bank_extraction", output_dir=output_dir)
 
-    if args.parser == "llama":
-        print("\nRunning LlamaParse extraction...")
-        from src.extraction.llama_parser import LlamaParser
-
-        llama_parser = LlamaParser()
-        experiment.run_experiment(llama_parser, pdf_files, "llama_parser")
-
-    elif args.parser == "regex":
+    if args.parser == "regex":
         print("\nRunning Regex extraction...")
         from src.extraction.regex_parser import RegexParser
 
         regex_parser = RegexParser()
         experiment.run_experiment(regex_parser, pdf_files, "regex_parser")
 
+    elif args.parser == "pdfplumber":
+        print("\nRunning PDFPlumber extraction...")
+        from src.extraction.pdfplumber_parser import PDFPlumberParser
+
+        pdfplumber_parser = PDFPlumberParser()
+        experiment.run_experiment(pdfplumber_parser, pdf_files, "pdfplumber_parser")
+
+    elif args.parser == "layoutlm":
+        print("\nRunning LayoutLM extraction...")
+        from src.extraction.layoutlm_parser import LayoutLMParser
+
+        layoutlm_parser = LayoutLMParser()
+        experiment.run_experiment(layoutlm_parser, pdf_files, "layoutlm_parser")
+
+    elif args.parser == "hybrid":
+        print("\nRunning Hybrid (PDFPlumber + Ollama) extraction...")
+        from src.extraction.hybrid_parser import HybridParser
+
+        hybrid_parser = HybridParser()
+        experiment.run_experiment(hybrid_parser, pdf_files, "hybrid_parser")
+
     elif args.parser == "all":
         print("\nRunning comparison of all parsers...")
-        from src.extraction.llama_parser import LlamaParser
+        from src.extraction.hybrid_parser import HybridParser
+        from src.extraction.layoutlm_parser import LayoutLMParser
+        from src.extraction.pdfplumber_parser import PDFPlumberParser
         from src.extraction.regex_parser import RegexParser
 
-        parsers = {"llama_parser": LlamaParser(), "regex_parser": RegexParser()}
+        parsers = {
+            "regex_parser": RegexParser(),
+            "pdfplumber_parser": PDFPlumberParser(),
+            "layoutlm_parser": LayoutLMParser(),
+            "hybrid_parser": HybridParser(),
+        }
         experiment.compare_parsers(parsers, pdf_files)
 
     print("\n✓ Extraction complete!")

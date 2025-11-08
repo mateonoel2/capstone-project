@@ -13,4 +13,9 @@ requests>=2.31.0
 pypdf>=3.0.1
 PyYAML>=6.0.0
 pytest>=8.4.2
+pdfplumber>=0.10.0
+transformers>=4.35.0
+Pillow>=10.0.0
+ollama>=0.1.0
+pdf2image>=1.16.0
 
