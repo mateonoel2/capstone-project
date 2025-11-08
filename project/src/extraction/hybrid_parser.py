@@ -14,7 +14,7 @@ class HybridParser(BaseParser):
     def __init__(self, model: str = "llama3.2", fallback_to_regex: bool = True):
         self.model = model
         self.fallback_to_regex = fallback_to_regex
-        
+
         self.clabe_pattern = re.compile(r"\b\d{18}\b")
         self.clabe_with_spaces_pattern = re.compile(
             r"\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b"
@@ -40,7 +40,7 @@ class HybridParser(BaseParser):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
-                
+
                 tables = page.extract_tables()
                 for table in tables:
                     for row in table:
@@ -66,23 +66,23 @@ Responde SOLO con un JSON válido en este formato exacto:
 
 Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "000000000000000000" para account_number.
 """
-        
+
         try:
             response = ollama.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.1}
+                options={"temperature": 0.1},
             )
-            
-            response_text = response['message']['content']
-            
-            json_match = re.search(r'\{[^}]+\}', response_text, re.DOTALL)
+
+            response_text = response["message"]["content"]
+
+            json_match = re.search(r"\{[^}]+\}", response_text, re.DOTALL)
             if json_match:
                 result = json.loads(json_match.group())
                 return result
-            
+
             return {}
-            
+
         except Exception as e:
             print(f"Error calling Ollama: {e}")
             return {}
@@ -91,12 +91,12 @@ Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "00000000
         matches = self.clabe_pattern.findall(text)
         if matches:
             return matches[0]
-        
+
         matches_with_spaces = self.clabe_with_spaces_pattern.findall(text)
         if matches_with_spaces:
             clabe = re.sub(r"[\s\-]", "", matches_with_spaces[0])
             return clabe
-        
+
         return None
 
     def _extract_bank_name_regex(self, text: str) -> Optional[str]:
@@ -113,18 +113,18 @@ Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "00000000
                     potential_owner = lines[i + 1].strip()
                     if potential_owner and len(potential_owner) > 3:
                         return potential_owner
-        
+
         owner_patterns = [
             r"Titular[:\s]+([A-ZÑÁÉÍÓÚ\s\.]+)",
             r"Cliente[:\s]+([A-ZÑÁÉÍÓÚ\s\.]+)",
             r"Nombre[:\s]+([A-ZÑÁÉÍÓÚ\s\.]+)",
         ]
-        
+
         for pattern in owner_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-        
+
         return None
 
     def _validate_clabe(self, clabe: str) -> bool:
@@ -134,28 +134,27 @@ Si no encuentras algún campo, usa "Unknown" para owner y bank_name, y "00000000
 
     def parse_file(self, file_path: Path) -> BankAccount:
         text = self._extract_text_with_pdfplumber(file_path)
-        
+
         ollama_result = self._extract_with_ollama(text)
-        
+
         owner = ollama_result.get("owner", "Unknown")
         account_number = ollama_result.get("account_number", "000000000000000000")
         bank_name = ollama_result.get("bank_name", "Unknown")
-        
+
         if self.fallback_to_regex:
             if not self._validate_clabe(account_number):
                 regex_clabe = self._extract_clabe_regex(text)
                 if regex_clabe:
                     account_number = regex_clabe
-            
+
             if bank_name == "Unknown" or not bank_name:
                 regex_bank = self._extract_bank_name_regex(text)
                 if regex_bank:
                     bank_name = regex_bank
-            
+
             if owner == "Unknown" or not owner:
                 regex_owner = self._extract_owner_regex(text)
                 if regex_owner:
                     owner = regex_owner
-        
-        return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
 
+        return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)

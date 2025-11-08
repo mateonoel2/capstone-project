@@ -18,9 +18,18 @@ def main():
     parser.add_argument(
         "--parser",
         type=str,
-        choices=["regex", "pdfplumber", "layoutlm", "hybrid", "all"],
+        choices=[
+            "regex",
+            "pdfplumber",
+            "layoutlm",
+            "hybrid",
+            "claude",
+            "claude_vision",
+            "claude_ocr",
+            "all",
+        ],
         default="pdfplumber",
-        help="Parser to use: regex, pdfplumber, layoutlm, hybrid, or all",
+        help="Parser to use: regex, pdfplumber, layoutlm, hybrid, claude, claude_vision, claude_ocr, or all",
     )
     parser.add_argument(
         "--input-dir",
@@ -75,18 +84,37 @@ def main():
         hybrid_parser = HybridParser()
         experiment.run_experiment(hybrid_parser, pdf_files, "hybrid_parser")
 
+    elif args.parser == "claude":
+        print("\nRunning Claude (Haiku) extraction...")
+        from src.extraction.claude_parser import ClaudeParser
+
+        claude_parser = ClaudeParser()
+        experiment.run_experiment(claude_parser, pdf_files, "claude_parser")
+
+    elif args.parser == "claude_vision":
+        print("\nRunning Claude Vision (Haiku) extraction...")
+        from src.extraction.claude_vision_parser import ClaudeVisionParser
+
+        claude_vision_parser = ClaudeVisionParser()
+        experiment.run_experiment(claude_vision_parser, pdf_files, "claude_vision_parser")
+
+    elif args.parser == "claude_ocr":
+        print("\nRunning Claude with OCR (Tesseract + Haiku) extraction...")
+        from src.extraction.claude_ocr_parser import ClaudeOCRParser
+
+        claude_ocr_parser = ClaudeOCRParser()
+        experiment.run_experiment(claude_ocr_parser, pdf_files, "claude_ocr_parser")
+
     elif args.parser == "all":
         print("\nRunning comparison of all parsers...")
-        from src.extraction.hybrid_parser import HybridParser
-        from src.extraction.layoutlm_parser import LayoutLMParser
+        from src.extraction.claude_parser import ClaudeParser
         from src.extraction.pdfplumber_parser import PDFPlumberParser
         from src.extraction.regex_parser import RegexParser
 
         parsers = {
             "regex_parser": RegexParser(),
             "pdfplumber_parser": PDFPlumberParser(),
-            "layoutlm_parser": LayoutLMParser(),
-            "hybrid_parser": HybridParser(),
+            "claude_parser": ClaudeParser(),
         }
         experiment.compare_parsers(parsers, pdf_files)
 
