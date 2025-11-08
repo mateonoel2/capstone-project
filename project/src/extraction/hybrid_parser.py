@@ -8,12 +8,17 @@ import pdfplumber
 
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
+from src.preprocessing.ocr_processor import OCRProcessor
 
 
 class HybridParser(BaseParser):
-    def __init__(self, model: str = "llama3.2", fallback_to_regex: bool = True):
+    def __init__(
+        self, model: str = "llama3.2", fallback_to_regex: bool = True, use_ocr_fallback: bool = True
+    ):
         self.model = model
         self.fallback_to_regex = fallback_to_regex
+        self.use_ocr_fallback = use_ocr_fallback
+        self.ocr = OCRProcessor() if use_ocr_fallback else None
 
         self.clabe_pattern = re.compile(r"\b\d{18}\b")
         self.clabe_with_spaces_pattern = re.compile(
@@ -46,6 +51,10 @@ class HybridParser(BaseParser):
                     for row in table:
                         if row:
                             text += " ".join([cell or "" for cell in row]) + "\n"
+
+        if not text.strip() and self.use_ocr_fallback and self.ocr:
+            text = self.ocr.process_pdf(file_path, preserve_layout=True)
+
         return text
 
     def _extract_with_ollama(self, text: str) -> dict:
