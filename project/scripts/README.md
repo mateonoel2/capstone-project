@@ -66,6 +66,43 @@ python scripts/process_accounts.py
 
 ---
 
+## API Server
+
+### `run_api.py`
+
+Run the FastAPI server for PDF extraction
+
+```bash
+python scripts/run_api.py
+```
+
+**Endpoints:**
+
+- `POST /extraction/pdf` - Upload a PDF and extract bank account information
+- `GET /health` - Health check
+- `GET /docs` - Interactive API documentation
+
+**Usage example:**
+
+```bash
+curl -X POST "http://localhost:8000/extraction/pdf" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@path/to/statement.pdf"
+```
+
+**Response:**
+
+```json
+{
+  "owner": "JOHN DOE",
+  "bank_name": "BBVA MEXICO",
+  "account_number": "012180015788025831"
+}
+```
+
+---
+
 ## Other Scripts
 
 ### `run_extraction.py`
