@@ -1,44 +1,25 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ExtractionLog } from "@/lib/api";
+import { ExtractionLog, PaginationMeta } from "@/lib/api";
 import { Input } from "@/components/ui/input";
-import { Search, AlertCircle, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, AlertCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ExtractionTableProps {
   logs: ExtractionLog[];
+  pagination: PaginationMeta;
+  onPageChange: (page: number) => void;
 }
 
-export function ExtractionTable({ logs }: ExtractionTableProps) {
+export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<keyof ExtractionLog>("timestamp");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  const filteredAndSortedLogs = useMemo(() => {
-    let filtered = logs.filter((log) =>
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) =>
       log.filename.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    filtered.sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [logs, searchTerm, sortField, sortDirection]);
-
-  const handleSort = (field: keyof ExtractionLog) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("desc");
-    }
-  };
+  }, [logs, searchTerm]);
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -93,16 +74,10 @@ export function ExtractionTable({ logs }: ExtractionTableProps) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th
-                className="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort("filename")}
-              >
+              <th className="px-4 py-3 text-left font-medium text-gray-700">
                 Filename
               </th>
-              <th
-                className="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort("timestamp")}
-              >
+              <th className="px-4 py-3 text-left font-medium text-gray-700">
                 Date
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -117,7 +92,7 @@ export function ExtractionTable({ logs }: ExtractionTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filteredAndSortedLogs.map((log) => (
+            {filteredLogs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-900">{log.filename}</td>
                 <td className="px-4 py-3 text-gray-600">
@@ -149,8 +124,36 @@ export function ExtractionTable({ logs }: ExtractionTableProps) {
         </table>
       </div>
 
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Showing {((pagination.page - 1) * pagination.page_size) + 1} to {Math.min(pagination.page * pagination.page_size, pagination.total)} of {pagination.total} extractions
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(pagination.page - 1)}
+            disabled={pagination.page === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+
       <div className="text-sm text-gray-600">
-        Showing {filteredAndSortedLogs.length} of {logs.length} extractions
+            Page {pagination.page} of {pagination.total_pages}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(pagination.page + 1)}
+            disabled={pagination.page === pagination.total_pages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

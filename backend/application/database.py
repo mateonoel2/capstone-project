@@ -1,31 +1,9 @@
-from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-Base = declarative_base()
-
-
-class ExtractionLog(Base):
-    __tablename__ = "extraction_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    filename = Column(String, nullable=False)
-
-    extracted_owner = Column(String, default="")
-    extracted_bank_name = Column(String, default="")
-    extracted_account_number = Column(String, default="")
-
-    final_owner = Column(String, default="")
-    final_bank_name = Column(String, default="")
-    final_account_number = Column(String, default="")
-
-    owner_corrected = Column(Boolean, default=False)
-    bank_name_corrected = Column(Boolean, default=False)
-    account_number_corrected = Column(Boolean, default=False)
+from application.modules.extraction.entities import Base
 
 
 def get_database_path() -> Path:

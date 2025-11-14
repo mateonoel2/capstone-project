@@ -1,27 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExtractionTable } from "@/components/extraction-table";
-import { getMetrics, getExtractionLogs, Metrics, ExtractionLog } from "@/lib/api";
+import { getMetrics, getExtractionLogs, Metrics, ExtractionLog, PaginationMeta } from "@/lib/api";
 import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [logs, setLogs] = useState<ExtractionLog[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    page_size: 50,
+    total_pages: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchLogs = useCallback(async (page: number) => {
+    try {
+      const logsResponse = await getExtractionLogs(page, 50);
+      setLogs(logsResponse.logs);
+      setPagination(logsResponse.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load logs");
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [metricsData, logsData] = await Promise.all([
+        const [metricsData] = await Promise.all([
           getMetrics(),
-          getExtractionLogs(),
+          fetchLogs(1),
         ]);
         setMetrics(metricsData);
-        setLogs(logsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -30,7 +45,13 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [fetchLogs]);
+
+  const handlePageChange = async (newPage: number) => {
+    setIsLoading(true);
+    await fetchLogs(newPage);
+    setIsLoading(false);
+  };
 
   if (isLoading) {
     return (
@@ -239,7 +260,11 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ExtractionTable logs={logs} />
+            <ExtractionTable 
+              logs={logs} 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
           </CardContent>
         </Card>
       </div>

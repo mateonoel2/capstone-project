@@ -46,6 +46,18 @@ export interface Metrics {
   account_number_accuracy: number;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PaginatedLogsResponse {
+  logs: ExtractionLog[];
+  pagination: PaginationMeta;
+}
+
 export async function extractFromPDF(file: File): Promise<ExtractionResult> {
   const formData = new FormData();
   formData.append("file", file);
@@ -91,15 +103,14 @@ export async function getBanks(): Promise<Bank[]> {
   return data.banks;
 }
 
-export async function getExtractionLogs(): Promise<ExtractionLog[]> {
-  const response = await fetch(`${API_BASE_URL}/extraction/logs`);
+export async function getExtractionLogs(page: number = 1, pageSize: number = 50): Promise<PaginatedLogsResponse> {
+  const response = await fetch(`${API_BASE_URL}/extraction/logs?page=${page}&page_size=${pageSize}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch extraction logs");
   }
 
-  const data = await response.json();
-  return data.logs;
+  return response.json();
 }
 
 export async function getMetrics(): Promise<Metrics> {

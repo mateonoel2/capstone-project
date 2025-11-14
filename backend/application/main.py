@@ -1,4 +1,5 @@
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent
@@ -8,15 +9,23 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from application.api.extraction import router as extraction_router
+from application.api.extraction.routes import router as extraction_router
 from application.database import init_db
 
 load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="Bank Statement Extraction API",
     description="Extract bank account information from PDF statements",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -28,11 +37,6 @@ app.add_middleware(
 )
 
 app.include_router(extraction_router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    init_db()
 
 
 @app.get("/")
@@ -47,4 +51,3 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
-
