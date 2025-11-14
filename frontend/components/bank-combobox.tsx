@@ -6,18 +6,11 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import { Bank } from "@/lib/api";
 
 interface BankComboboxProps {
@@ -29,6 +22,20 @@ interface BankComboboxProps {
 
 export function BankCombobox({ banks, value, onChange, className }: BankComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+
+  const filteredBanks = React.useMemo(() => {
+    if (!search) return banks;
+    return banks.filter((bank) =>
+      bank.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [banks, search]);
+
+  const handleSelect = (bankName: string) => {
+    onChange(bankName);
+    setOpen(false);
+    setSearch("");
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -44,34 +51,45 @@ export function BankCombobox({ banks, value, onChange, className }: BankCombobox
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput placeholder="Search bank..." />
-          <CommandList>
-            <CommandEmpty>No bank found.</CommandEmpty>
-            <CommandGroup>
-              {banks.map((bank) => (
-                <CommandItem
-                  key={bank.code}
-                  value={bank.name}
-                  onSelect={() => {
-                    onChange(bank.name);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
+        <div className="flex flex-col">
+          <div className="border-b p-2">
+            <Input
+              placeholder="Search bank..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto">
+            {filteredBanks.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No bank found.
+              </div>
+            ) : (
+              <div className="p-1">
+                {filteredBanks.map((bank) => (
+                  <button
+                    key={bank.code}
+                    onClick={() => handleSelect(bank.name)}
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      value === bank.name ? "opacity-100" : "opacity-0"
+                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
+                      value === bank.name && "bg-accent text-accent-foreground"
                     )}
-                  />
-                  {bank.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === bank.name ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {bank.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
 }
-
