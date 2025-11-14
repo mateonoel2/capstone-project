@@ -25,7 +25,7 @@ El sistema está diseñado para experimentar con diferentes técnicas y evaluar 
 ## 📁 Estructura del Proyecto
 
 ```
-project/
+backend/
 ├── config/                      # Archivos de configuración
 │   └── extraction_config.yaml
 ├── data/                        # Datos del proyecto
@@ -77,7 +77,7 @@ source venv/bin/activate  # En Windows: venv\Scripts\activate
 3. Instalar dependencias:
 
 ```bash
-cd project
+cd backend
 pip install -r requirements.txt
 ```
 

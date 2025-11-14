@@ -7,7 +7,7 @@ The complete dashboard with metrics and analytics is now fully functional!
 ## Backend Endpoints
 
 ### 1. GET /extraction/logs
-**Location**: `project/application/api/extraction.py`
+**Location**: `backend/application/api/extraction.py`
 
 Returns all extraction logs from the database:
 - Sorted by timestamp (newest first)
@@ -30,7 +30,7 @@ Returns all extraction logs from the database:
 ```
 
 ### 2. GET /extraction/metrics
-**Location**: `project/application/api/extraction.py`
+**Location**: `backend/application/api/extraction.py`
 
 Calculates and returns accuracy metrics:
 - Total extractions count
@@ -105,7 +105,7 @@ User Action → Backend API → SQLite Database
 ## Files Created/Modified
 
 ### Backend
-- ✅ `project/application/api/extraction.py` - Added `/logs` and `/metrics` endpoints
+- ✅ `backend/application/api/extraction.py` - Added `/logs` and `/metrics` endpoints
 - ✅ Added SQLAlchemy imports and datetime handling
 
 ### Frontend
@@ -142,7 +142,7 @@ User Action → Backend API → SQLite Database
 
 1. **Restart Backend** (to load new endpoints):
 ```bash
-cd project
+cd backend
 python scripts/run_api.py
 ```
 

@@ -93,7 +93,7 @@ capstone-project/
 │   ├── LATEST_UPDATES.md           # Log de actualizaciones
 │   └── WEEKLY_UPDATE_WORKFLOW.md   # Workflow de updates
 │
-├── project/                        # 🚀 Código del backend
+├── backend/                        # 🚀 Código del backend
 │   ├── application/                # API REST + Database
 │   ├── src/                        # Código fuente
 │   │   ├── extraction/             # Parsers (9 implementaciones)

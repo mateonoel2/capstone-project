@@ -44,14 +44,14 @@
 - `frontend/components/sidebar.tsx` - Navigation sidebar
 - `frontend/components/ui/select.tsx` - Select dropdown component
 - `frontend/app/dashboard/page.tsx` - Dashboard page
-- `project/application/constants.py` - Bank dictionary
+- `backend/application/constants.py` - Bank dictionary
 
 ### Modified Files
 - `frontend/app/layout.tsx` - Added sidebar to layout
 - `frontend/app/page.tsx` - Bank select + useEffect for banks
 - `frontend/components/pdf-viewer.tsx` - Zoom and rotate controls
 - `frontend/lib/api.ts` - Added getBanks() function
-- `project/application/api/extraction.py` - Banks endpoint + session fix
+- `backend/application/api/extraction.py` - Banks endpoint + session fix
 
 ## API Endpoints
 
@@ -72,7 +72,7 @@ POST /extraction/submit
 
 ### Backend
 ```bash
-cd project
+cd backend
 python scripts/run_api.py
 ```
 
@@ -89,7 +89,7 @@ npm run dev
 - Select bank from dropdown (91 options)
 
 ## Database
-The SQLite database at `project/data/extractions.db` now properly stores:
+The SQLite database at `backend/data/extractions.db` now properly stores:
 - Original extracted values
 - User corrections
 - Correction flags per field

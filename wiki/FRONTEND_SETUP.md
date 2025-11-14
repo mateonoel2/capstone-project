@@ -9,7 +9,7 @@ This guide will help you set up and run the complete Bank Statement Extraction a
 First, ensure the backend API is running:
 
 ```bash
-cd project
+cd backend
 
 python scripts/run_api.py
 ```
@@ -57,7 +57,7 @@ The frontend will start on http://localhost:3000
 
 The SQLite database is automatically created at:
 ```
-project/data/extractions.db
+backend/data/extractions.db
 ```
 
 It stores:
@@ -90,7 +90,7 @@ CREATE TABLE extraction_logs (
 You can query the database directly using SQLite:
 
 ```bash
-cd project/data
+cd backend/data
 sqlite3 extractions.db
 
 # Example queries:
@@ -103,7 +103,7 @@ SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 10;
 
 ### Backend
 - Python 3.8+
-- All dependencies from `project/requirements.txt`
+- All dependencies from `backend/requirements.txt`
 - ANTHROPIC_API_KEY in `.env` file
 
 ### Frontend
@@ -117,14 +117,14 @@ SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 10;
 **Issue**: Import errors
 ```bash
 # Solution: Ensure you're in the project directory
-cd project
+cd backend
 python -m pip install -r requirements.txt
 ```
 
 **Issue**: Claude API errors
 ```bash
 # Solution: Check your .env file has ANTHROPIC_API_KEY
-cat project/.env | grep ANTHROPIC_API_KEY
+cat backend/.env | grep ANTHROPIC_API_KEY
 ```
 
 ### Frontend Issues
@@ -176,7 +176,7 @@ Both frontend and backend support hot reload:
 
 ### Testing the Flow
 
-1. Use a sample PDF from `project/data/processed/pdfs/test_sample/`
+1. Use a sample PDF from `backend/data/processed/pdfs/test_sample/`
 2. Upload it through the frontend
 3. Verify extraction results
 4. Make a correction to one field
@@ -185,7 +185,7 @@ Both frontend and backend support hot reload:
 
 ```bash
 # Quick database check
-cd project/data
+cd backend/data
 sqlite3 extractions.db "SELECT filename, owner_corrected, bank_name_corrected, account_number_corrected FROM extraction_logs ORDER BY timestamp DESC LIMIT 1;"
 ```
 
@@ -193,7 +193,7 @@ sqlite3 extractions.db "SELECT filename, owner_corrected, bank_name_corrected, a
 
 ### Backend
 ```bash
-cd project
+cd backend
 pip install -r requirements.txt
 python scripts/run_api.py
 # or use gunicorn for production:
@@ -219,8 +219,8 @@ After the extraction page is working, Phase 2 will add:
 ## Support
 
 For issues specific to:
-- **Extraction logic**: Check `project/src/extraction/`
-- **API endpoints**: Check `project/application/api/`
+- **Extraction logic**: Check `backend/src/extraction/`
+- **API endpoints**: Check `backend/application/api/`
 - **Frontend UI**: Check `frontend/components/`
-- **Database**: Check `project/application/database.py`
+- **Database**: Check `backend/application/database.py`
 

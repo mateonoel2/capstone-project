@@ -147,7 +147,7 @@ capstone-project/
 │   ├── next.config.mjs
 │   ├── components.json
 │   └── README.md
-├── project/
+├── backend/
 │   ├── application/
 │   │   ├── database.py             # New - SQLite setup
 │   │   ├── main.py                 # Modified - DB init
@@ -164,7 +164,7 @@ capstone-project/
 
 ### Terminal 1 - Backend
 ```bash
-cd project
+cd backend
 python scripts/run_api.py
 ```
 Backend runs on http://localhost:8000
@@ -187,7 +187,7 @@ Frontend runs on http://localhost:3000
 6. Click "Submit"
 7. Verify in database:
    ```bash
-   cd project/data
+   cd backend/data
    sqlite3 extractions.db
    SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 1;
    ```
