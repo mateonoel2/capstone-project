@@ -24,11 +24,14 @@ export function PDFViewer({ file }: PDFViewerProps) {
   }
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.2, 3.0));
+    setScale((prev) => {
+      if (prev === 0.01) return 0.1;
+      return Math.min(prev + 0.1, 3.0);
+    });
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.2, 0.5));
+    setScale((prev) => Math.max(prev - 0.1, 0.01));
   };
 
   const handleRotate = () => {
@@ -47,10 +50,7 @@ export function PDFViewer({ file }: PDFViewerProps) {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto border rounded-lg bg-gray-50">
         <div className="p-4">
-          <Document
-            file={file}
-            onLoadSuccess={onDocumentLoadSuccess}
-          >
+          <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
             <Page
               pageNumber={pageNumber}
               scale={scale}
@@ -67,7 +67,7 @@ export function PDFViewer({ file }: PDFViewerProps) {
           <div className="flex items-center justify-center gap-2 p-2 bg-gray-100 rounded">
             <button
               onClick={handleZoomOut}
-              disabled={scale <= 0.5}
+              disabled={scale <= 0.01}
               className="px-3 py-2 bg-white border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               title="Zoom Out"
             >
@@ -116,4 +116,3 @@ export function PDFViewer({ file }: PDFViewerProps) {
     </div>
   );
 }
-

@@ -72,22 +72,9 @@ export const useExtractionStore = create<ExtractionState>()(
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         fileName: state.fileName,
-        fileData: state.fileData,
         extracted: state.extracted,
         formData: state.formData,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state?.fileData && state?.fileName) {
-          fetch(state.fileData)
-            .then((res) => res.blob())
-            .then((blob) => {
-              const file = new File([blob], state.fileName!, {
-                type: "application/pdf",
-              });
-              state.file = file;
-            });
-        }
-      },
     }
   )
 );

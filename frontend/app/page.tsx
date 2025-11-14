@@ -179,7 +179,7 @@ export default function Home() {
                         />
                         {extracted && formData.owner !== extracted.owner && (
                           <p className="text-xs text-yellow-600">
-                            Original: {extracted.owner || "(empty)"}
+                            AI extracted: {extracted.owner || "(empty)"}
                           </p>
                         )}
                       </div>
@@ -202,7 +202,7 @@ export default function Home() {
                         {extracted &&
                           formData.bank_name !== extracted.bank_name && (
                             <p className="text-xs text-yellow-600">
-                              Original: {extracted.bank_name || "(empty)"}
+                              AI extracted: {extracted.bank_name || "(empty)"}
                             </p>
                           )}
                       </div>
@@ -227,7 +227,7 @@ export default function Home() {
                           formData.account_number !==
                             extracted.account_number && (
                             <p className="text-xs text-yellow-600">
-                              Original: {extracted.account_number || "(empty)"}
+                              AI extracted: {extracted.account_number || "(empty)"}
                             </p>
                           )}
                       </div>
