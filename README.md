@@ -2,6 +2,10 @@
 
 Proyecto de *capstone* para la extracción automática de información de estados de cuenta bancarios utilizando diferentes enfoques de procesamiento.
 
+
+https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
+
+
 ## Descripción
 
 Este proyecto implementa y compara múltiples métodos para extraer información estructurada de estados de cuenta bancarios en formato PDF, incluyendo:
