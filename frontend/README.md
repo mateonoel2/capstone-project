@@ -1,176 +1,182 @@
-# Bank Statement Extraction Frontend
+# *Frontend* de Extracción de Estados de Cuenta Bancarios
 
-A Next.js frontend application for extracting and verifying bank account information from PDF statements. This application provides a modern, user-friendly interface for uploading PDF bank statements, viewing them side-by-side with extracted data, making corrections, and submitting verified results.
+Una aplicación de *frontend* en *Next.js* para extraer y verificar información de cuentas bancarias desde estados de cuenta en PDF. Esta aplicación proporciona una interfaz moderna y amigable para subir estados de cuenta bancarios en PDF, verlos lado a lado con los datos extraídos, hacer correcciones y enviar resultados verificados.
 
-## Features
+## Características
 
-- **PDF Upload**: Drag-and-drop or click to upload PDF bank statements
-- **Side-by-Side View**: View the PDF document alongside the extraction form
-- **Real-time Extraction**: Automatic extraction using Claude AI when a PDF is uploaded
-- **Data Verification**: Edit and correct extracted information before submission
-- **Change Tracking**: Visual indicators show which fields have been modified from the original extraction
-- **Data Logging**: All extractions and corrections are logged in the backend database for accuracy tracking
+- **Carga de PDF**: Arrastra y suelta o haz clic para subir estados de cuenta bancarios en PDF
+- **Vista Lado a Lado**: Ver el documento PDF junto al formulario de extracción
+- **Extracción en Tiempo Real**: Extracción automática usando *Claude AI* cuando se sube un PDF
+- **Verificación de Datos**: Editar y corregir información extraída antes de enviar
+- **Seguimiento de Cambios**: Indicadores visuales muestran qué campos han sido modificados de la extracción original
+- ***Logging* de Datos**: Todas las extracciones y correcciones se registran en la base de datos del *backend* para seguimiento de precisión
 
-## Technology Stack
+## *Stack* Tecnológico
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui (Radix UI primitives)
-- **PDF Viewer**: react-pdf
-- **Icons**: Lucide React
+- ***Framework***: *Next.js* 15 con *App Router*
+- **Lenguaje**: *TypeScript*
+- **Estilos**: *Tailwind CSS*
+- **Componentes de Interfaz**: *shadcn/ui* (primitivos de *Radix UI*)
+- **Visor de PDF**: *react-pdf*
+- **Iconos**: *Lucide React*
 
-## Prerequisites
+## Prerequisitos
 
-- Node.js 18+ 
-- npm, yarn, or pnpm
-- Backend API running on http://localhost:8000
+- Node.js 18+
+- npm, yarn, o pnpm
+- API del *backend* ejecutándose en http://localhost:8000
 
-## Installation
+## Instalación
 
-1. Navigate to the frontend directory:
+1. Navegar al directorio del *frontend*:
+
 ```bash
 cd frontend
 ```
 
-2. Install dependencies:
+2. Instalar dependencias:
+
 ```bash
 npm install
-# or
+# o
 yarn install
-# or
+# o
 pnpm install
 ```
 
-## Development
+## Desarrollo
 
-Run the development server:
+Ejecutar el servidor de desarrollo:
 
 ```bash
 npm run dev
-# or
+# o
 yarn dev
-# or
+# o
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Abrir [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-## Building for Production
+## Construcción para Producción
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
 frontend/
 ├── app/
-│   ├── layout.tsx          # Root layout with metadata
-│   ├── page.tsx             # Main extraction page
-│   └── globals.css          # Global styles and CSS variables
+│   ├── layout.tsx          # Layout raíz con metadata
+│   ├── page.tsx             # Página principal de extracción
+│   └── globals.css          # Estilos globales y variables CSS
 ├── components/
-│   ├── ui/                  # shadcn/ui components
+│   ├── ui/                  # Componentes shadcn/ui
 │   │   ├── button.tsx
 │   │   ├── card.tsx
 │   │   ├── input.tsx
 │   │   └── label.tsx
-│   ├── file-upload.tsx      # Drag-and-drop file upload component
-│   └── pdf-viewer.tsx       # PDF document viewer
+│   ├── file-upload.tsx      # Componente de carga con arrastrar y soltar
+│   └── pdf-viewer.tsx       # Visor de documentos PDF
 ├── lib/
-│   ├── api.ts               # API client for backend communication
-│   ├── utils.ts             # Utility functions (cn helper)
-│   └── pdf-worker.ts        # PDF.js worker configuration
+│   ├── api.ts               # Cliente de API para comunicación con backend
+│   ├── utils.ts             # Funciones de utilidad (helper cn)
+│   └── pdf-worker.ts        # Configuración del worker de PDF.js
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.ts
 └── next.config.mjs
 ```
 
-## API Integration
+## Integración con la API
 
-The frontend communicates with the backend API using two main endpoints:
+El *frontend* se comunica con la API del *backend* usando dos *endpoints* principales:
 
-### 1. Extract from PDF
-- **Endpoint**: `POST /extraction/pdf`
-- **Purpose**: Upload a PDF and receive extracted data
-- **Response**: `{ owner, bank_name, account_number }`
+### 1. Extraer desde PDF
+- ***Endpoint***: `POST /extraction/pdf`
+- **Propósito**: Subir un PDF y recibir datos extraídos
+- **Respuesta**: `{ owner, bank_name, account_number }`
 
-### 2. Submit Extraction
-- **Endpoint**: `POST /extraction/submit`
-- **Purpose**: Submit verified data with correction tracking
-- **Payload**:
-  ```json
-  {
-    "filename": "statement.pdf",
-    "extracted_owner": "Original Name",
-    "extracted_bank_name": "Original Bank",
-    "extracted_account_number": "123456",
-    "final_owner": "Corrected Name",
-    "final_bank_name": "Corrected Bank",
-    "final_account_number": "123456"
-  }
-  ```
+### 2. Enviar Extracción
+- ***Endpoint***: `POST /extraction/submit`
+- **Propósito**: Enviar datos verificados con seguimiento de correcciones
+- ***Payload***:
 
-## Environment Variables
+```json
+{
+  "filename": "statement.pdf",
+  "extracted_owner": "Original Name",
+  "extracted_bank_name": "Original Bank",
+  "extracted_account_number": "123456",
+  "final_owner": "Corrected Name",
+  "final_bank_name": "Corrected Bank",
+  "final_account_number": "123456"
+}
+```
 
-Create a `.env.local` file to customize the API URL:
+## Variables de Entorno
+
+Crear un archivo `.env.local` para personalizar la URL de la API:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-## Usage Flow
+## Flujo de Uso
 
-1. **Upload**: User uploads a PDF bank statement
-2. **Extract**: Backend automatically extracts owner, bank name, and account number
-3. **Review**: User reviews the extracted data while viewing the PDF
-4. **Correct**: User edits any incorrect fields (highlighted in yellow)
-5. **Submit**: User submits the verified data
-6. **Log**: Backend logs both original and corrected data for accuracy tracking
+1. **Subir**: Usuario sube un estado de cuenta bancario en PDF
+2. **Extraer**: El *backend* automáticamente extrae titular, nombre del banco y número de cuenta
+3. **Revisar**: Usuario revisa los datos extraídos mientras ve el PDF
+4. **Corregir**: Usuario edita cualquier campo incorrecto (resaltado en amarillo)
+5. **Enviar**: Usuario envía los datos verificados
+6. **Registrar**: El *backend* registra tanto los datos originales como los corregidos para seguimiento de precisión
 
-## Visual Indicators
+## Indicadores Visuales
 
-- **Yellow Border**: Field has been modified from the original extraction
-- **Yellow Text**: Shows the original extracted value for comparison
-- **Yellow Banner**: Indicates that changes have been made to the data
-- **Loading States**: Spinners during extraction and submission
-- **Success/Error Messages**: Clear feedback for all operations
+- **Borde Amarillo**: El campo ha sido modificado de la extracción original
+- **Texto Amarillo**: Muestra el valor extraído original para comparación
+- **Banner Amarillo**: Indica que se han hecho cambios a los datos
+- **Estados de Carga**: *Spinners* durante extracción y envío
+- **Mensajes de Éxito/Error**: Retroalimentación clara para todas las operaciones
 
-## Keyboard & Accessibility
+## Teclado y Accesibilidad
 
-- Form inputs are fully keyboard accessible
-- Proper ARIA labels for screen readers
-- Focus states for all interactive elements
-- Semantic HTML structure
+- Los *inputs* del formulario son completamente accesibles por teclado
+- Etiquetas ARIA adecuadas para lectores de pantalla
+- Estados de *focus* para todos los elementos interactivos
+- Estructura HTML semántica
 
-## Future Enhancements (Phase 2)
+## Mejoras Futuras (Fase 2)
 
-- Dashboard page with extraction metrics
-- Accuracy statistics and charts
-- Filterable extraction history
-- Export functionality for logged data
-- User authentication
+- Página de *dashboard* con métricas de extracción
+- Estadísticas de precisión y gráficos
+- Historial de extracción filtrable
+- Funcionalidad de exportación para datos registrados
+- Autenticación de usuarios
 
-## Troubleshooting
+## Solución de Problemas
 
-### PDF Not Loading
-- Ensure react-pdf is properly installed
-- Check browser console for PDF.js worker errors
-- Verify the PDF file is not corrupted
+### PDF No Carga
 
-### API Connection Errors
-- Confirm backend is running on http://localhost:8000
-- Check CORS settings in backend
-- Verify network requests in browser DevTools
+- Asegúrate de que *react-pdf* esté instalado correctamente
+- Verifica la consola del navegador para errores del *worker* de *PDF.js*
+- Verifica que el archivo PDF no esté corrupto
 
-### Build Errors
-- Clear `.next` directory: `rm -rf .next`
-- Delete `node_modules` and reinstall: `rm -rf node_modules && npm install`
-- Check TypeScript errors: `npm run lint`
+### Errores de Conexión con la API
 
-## License
+- Confirma que el *backend* esté ejecutándose en http://localhost:8000
+- Verifica la configuración de CORS en el *backend*
+- Verifica las solicitudes de red en *DevTools* del navegador
 
-Part of the Bank Statement Extraction capstone project.
+### Errores de Construcción
+
+- Limpia el directorio `.next`: `rm -rf .next`
+- Elimina `node_modules` y reinstala: `rm -rf node_modules && npm install`
+- Verifica errores de *TypeScript*: `npm run lint`
+
+## Licencia
+
+Parte del proyecto *capstone* de Extracción de Estados de Cuenta Bancarios.

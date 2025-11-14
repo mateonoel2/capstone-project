@@ -1,18 +1,19 @@
-# Dashboard Implementation - Complete
+# Implementación del *Dashboard* - Completa
 
-## ✅ All Features Implemented
+## Todas las Funcionalidades Implementadas
 
-The complete dashboard with metrics and analytics is now fully functional!
+El *dashboard* completo con métricas y análisis está completamente funcional.
 
-## Backend Endpoints
+## *Endpoints* del *Backend*
 
 ### 1. GET /extraction/logs
-**Location**: `backend/application/api/extraction.py`
+**Ubicación**: `backend/application/api/extraction.py`
 
-Returns all extraction logs from the database:
-- Sorted by timestamp (newest first)
-- All fields: id, timestamp, filename, extracted/final values, correction flags
-- Example response:
+Retorna todos los *logs* de extracción de la base de datos:
+- Ordenados por marca de tiempo (más recientes primero)
+- Todos los campos: id, *timestamp*, *filename*, valores extraídos/finales, *flags* de corrección
+- Ejemplo de respuesta:
+
 ```json
 {
   "logs": [
@@ -30,15 +31,16 @@ Returns all extraction logs from the database:
 ```
 
 ### 2. GET /extraction/metrics
-**Location**: `backend/application/api/extraction.py`
+**Ubicación**: `backend/application/api/extraction.py`
 
-Calculates and returns accuracy metrics:
-- Total extractions count
-- Total corrections made (any field corrected)
-- Overall accuracy rate (% of all fields correct)
-- This week's extraction count
-- Per-field accuracy: owner, bank_name, account_number
-- Example response:
+Calcula y retorna métricas de precisión:
+- Conteo total de extracciones
+- Total de correcciones realizadas (cualquier campo corregido)
+- Tasa de precisión general (% de todos los campos correctos)
+- Conteo de extracciones de esta semana
+- Precisión por campo: *owner*, *bank_name*, *account_number*
+- Ejemplo de respuesta:
+
 ```json
 {
   "total_extractions": 15,
@@ -51,186 +53,187 @@ Calculates and returns accuracy metrics:
 }
 ```
 
-## Frontend Dashboard
+## *Dashboard* del *Frontend*
 
-### Metrics Cards (Top Section)
-**Location**: `frontend/app/dashboard/page.tsx`
+### Tarjetas de Métricas (Sección Superior)
+**Ubicación**: `frontend/app/dashboard/page.tsx`
 
-Four key metric cards displaying:
-1. **Total Extractions** - All time count
-2. **Corrections Made** - Number requiring manual correction
-3. **Accuracy Rate** - Percentage of fields extracted correctly
-4. **This Week** - Extractions in last 7 days
+Cuatro tarjetas de métricas clave mostrando:
+1. **Total de Extracciones** - Conteo histórico
+2. **Correcciones Realizadas** - Número que requirió corrección manual
+3. **Tasa de Precisión** - Porcentaje de campos extraídos correctamente
+4. **Esta Semana** - Extracciones en los últimos 7 días
 
-Features:
-- Real-time data from API
-- Loading states with spinner
-- Error handling with clear messages
-- Auto-refresh on page load
+Características:
+- Datos en tiempo real desde la API
+- Estados de carga con *spinner*
+- Manejo de errores con mensajes claros
+- Auto-actualización al cargar la página
 
-### Field Accuracy Breakdown
-**Location**: `frontend/app/dashboard/page.tsx`
+### Desglose de Precisión por Campo
+**Ubicación**: `frontend/app/dashboard/page.tsx`
 
-Visual progress bars showing accuracy by field:
-- Owner Name accuracy %
-- Bank Name accuracy %
-- Account Number accuracy %
-- Color-coded bars (blue, green, purple)
+Barras de progreso visuales mostrando precisión por campo:
+- Precisión de Nombre del Titular %
+- Precisión de Nombre del Banco %
+- Precisión de Número de Cuenta %
+- Barras codificadas por color (azul, verde, morado)
 
-### Extraction Logs Table
-**Location**: `frontend/components/extraction-table.tsx`
+### Tabla de *Logs* de Extracción
+**Ubicación**: `frontend/components/extraction-table.tsx`
 
-Full-featured table with:
-- All extractions displayed
-- Sortable columns (filename, timestamp)
-- Search/filter by filename
-- Correction indicators:
-  - ✅ Green badge: "Accurate" (no correction)
-  - ⚠️ Yellow badge: "Corrected" (manual edit made)
-- Shows final values for each field
-- Responsive design
+Tabla completa con:
+- Todas las extracciones mostradas
+- Columnas ordenables (*filename*, *timestamp*)
+- Búsqueda/filtro por *filename*
+- Indicadores de corrección:
+  - Insignia verde: "Preciso" (sin corrección)
+  - Insignia amarilla: "Corregido" (edición manual realizada)
+- Muestra valores finales para cada campo
+- Diseño responsivo
 
-## Data Flow
+## Flujo de Datos
 
 ```
-User Action → Backend API → SQLite Database
+Acción del Usuario → API del Backend → Base de Datos SQLite
                 ↓
-         Dashboard Page
+         Página del Dashboard
                 ↓
-   Fetch Metrics & Logs (useEffect)
+   Obtener Métricas y Logs (useEffect)
                 ↓
-      Display Real-Time Data
+      Mostrar Datos en Tiempo Real
 ```
 
-## Files Created/Modified
+## Archivos Creados/Modificados
 
-### Backend
-- ✅ `backend/application/api/extraction.py` - Added `/logs` and `/metrics` endpoints
-- ✅ Added SQLAlchemy imports and datetime handling
+### *Backend*
+- `backend/application/api/extraction.py` - Agregados *endpoints* `/logs` y `/metrics`
+- Agregados *imports* de *SQLAlchemy* y manejo de *datetime*
 
-### Frontend
-- ✅ `frontend/app/dashboard/page.tsx` - Complete dashboard with real data
-- ✅ `frontend/components/extraction-table.tsx` - New table component
-- ✅ `frontend/lib/api.ts` - Added interfaces and fetch functions
+### *Frontend*
+- `frontend/app/dashboard/page.tsx` - *Dashboard* completo con datos reales
+- `frontend/components/extraction-table.tsx` - Nuevo componente de tabla
+- `frontend/lib/api.ts` - Agregadas *interfaces* y funciones de *fetch*
 
-## Features
+## Funcionalidades
 
-### Metrics Calculation
-- **Total Extractions**: Count of all rows in extraction_logs table
-- **Total Corrections**: Count of rows where ANY field was corrected
-- **Accuracy Rate**: `(total_fields - corrected_fields) / total_fields * 100`
-- **This Week**: Count where timestamp >= 7 days ago
-- **Per-Field Accuracy**: `(total - field_corrections) / total * 100`
+### Cálculo de Métricas
+- **Total de Extracciones**: Conteo de todas las filas en la tabla *extraction_logs*
+- **Total de Correcciones**: Conteo de filas donde CUALQUIER campo fue corregido
+- **Tasa de Precisión**: `(total_fields - corrected_fields) / total_fields * 100`
+- **Esta Semana**: Conteo donde *timestamp* >= hace 7 días
+- **Precisión por Campo**: `(total - field_corrections) / total * 100`
 
-### Table Features
-- ✅ Search functionality (filename filter)
-- ✅ Sortable columns
-- ✅ Visual correction badges
-- ✅ Shows final corrected values
-- ✅ Row count display
-- ✅ Empty state message
-- ✅ Responsive design
+### Funcionalidades de la Tabla
+- Funcionalidad de búsqueda (filtro por *filename*)
+- Columnas ordenables
+- Insignias visuales de corrección
+- Muestra valores finales corregidos
+- Visualización del conteo de filas
+- Mensaje de estado vacío
+- Diseño responsivo
 
-### User Experience
-- Loading spinners during data fetch
-- Error messages if API fails
-- Color-coded indicators
-- Clean, modern UI
-- Instant visual feedback
+### Experiencia de Usuario
+- *Spinners* de carga durante la obtención de datos
+- Mensajes de error si la API falla
+- Indicadores codificados por color
+- Interfaz limpia y moderna
+- Retroalimentación visual instantánea
 
-## Testing the Dashboard
+## Probando el *Dashboard*
 
-1. **Restart Backend** (to load new endpoints):
+1. **Reiniciar el *Backend*** (para cargar nuevos *endpoints*):
+
 ```bash
 cd backend
 python scripts/run_api.py
 ```
 
-2. **Frontend should auto-reload**:
+2. **El *Frontend* debería auto-recargarse**:
+
 ```bash
-# Already running from before
+# Ya ejecutándose desde antes
 cd frontend
 npm run dev
 ```
 
-3. **View Dashboard**:
-- Navigate to http://localhost:3000/dashboard
-- Click "Dashboard" in sidebar
+3. **Ver el *Dashboard***:
+- Navegar a http://localhost:3000/dashboard
+- Hacer clic en "*Dashboard*" en el *sidebar*
 
-4. **Test Flow**:
-- If no data: Dashboard shows 0 for all metrics
-- Upload PDFs via "Extract PDF" page
-- Make some corrections before submitting
-- Return to Dashboard to see metrics update
-- View table with all extractions
-- Try search/sort features
+4. **Flujo de Prueba**:
+- Si no hay datos: El *Dashboard* muestra 0 para todas las métricas
+- Subir PDFs vía la página "Extraer PDF"
+- Hacer algunas correcciones antes de enviar
+- Regresar al *Dashboard* para ver las métricas actualizadas
+- Ver la tabla con todas las extracciones
+- Probar las funcionalidades de búsqueda/ordenamiento
 
-## Database Queries Used
+## Consultas de Base de Datos Utilizadas
 
 ```python
-# Total extractions
+# Total de extracciones
 session.query(func.count(ExtractionLog.id)).scalar()
 
-# Field-specific corrections
+# Correcciones específicas por campo
 session.query(func.count(ExtractionLog.id)).filter(
     ExtractionLog.owner_corrected == True
 ).scalar()
 
-# This week's count
+# Conteo de esta semana
 week_ago = datetime.utcnow() - timedelta(days=7)
 session.query(func.count(ExtractionLog.id)).filter(
     ExtractionLog.timestamp >= week_ago
 ).scalar()
 
-# All logs sorted
+# Todos los logs ordenados
 session.query(ExtractionLog).order_by(
     ExtractionLog.timestamp.desc()
 ).all()
 ```
 
-## Success Metrics
+## Métricas de Éxito
 
-✅ Backend endpoints returning correct data
-✅ Metrics calculated accurately
-✅ Dashboard displays real-time data
-✅ Table shows all extractions
-✅ Search and sort working
-✅ Correction indicators visible
-✅ Loading states implemented
-✅ Error handling complete
-✅ Responsive design
-✅ Professional UI
+- *Endpoints* del *backend* retornando datos correctos
+- Métricas calculadas con precisión
+- *Dashboard* muestra datos en tiempo real
+- Tabla muestra todas las extracciones
+- Búsqueda y ordenamiento funcionando
+- Indicadores de corrección visibles
+- Estados de carga implementados
+- Manejo de errores completo
+- Diseño responsivo
+- Interfaz profesional
 
-## Next Steps (Future Enhancements)
+## Próximos Pasos (Mejoras Futuras)
 
-While the dashboard is complete, possible future additions:
-- Export to CSV functionality
-- Date range filters
-- Charts/graphs for trends over time
-- Delete/edit extraction logs
-- Bulk operations
-- User authentication
-- Real-time updates (WebSocket)
+Aunque el *dashboard* está completo, posibles adiciones futuras:
+- Funcionalidad de exportación a CSV
+- Filtros por rango de fechas
+- Gráficos/gráficas para tendencias a lo largo del tiempo
+- Eliminar/editar *logs* de extracción
+- Operaciones en lote
+- Autenticación de usuarios
+- Actualizaciones en tiempo real (*WebSocket*)
 
-## API Documentation
+## Documentación de la API
 
-Access the complete API docs at: http://localhost:8000/docs
+Acceder a la documentación completa de la API en: http://localhost:8000/docs
 
-New endpoints visible:
-- `GET /extraction/banks` - List of Mexican banks
-- `GET /extraction/logs` - All extraction logs
-- `GET /extraction/metrics` - Calculated metrics
-- `POST /extraction/pdf` - Extract from PDF
-- `POST /extraction/submit` - Submit with corrections
+Nuevos *endpoints* visibles:
+- `GET /extraction/banks` - Lista de bancos mexicanos
+- `GET /extraction/logs` - Todos los *logs* de extracción
+- `GET /extraction/metrics` - Métricas calculadas
+- `POST /extraction/pdf` - Extraer desde PDF
+- `POST /extraction/submit` - Enviar con correcciones
 
-## Complete! 🎉
+## Completado
 
-The dashboard is fully functional with:
-- Real-time metrics
-- Accuracy tracking
-- Searchable/sortable table
-- Visual indicators
-- Professional UI
+El *dashboard* está completamente funcional con:
+- Métricas en tiempo real
+- Seguimiento de precisión
+- Tabla con búsqueda/ordenamiento
+- Indicadores visuales
+- Interfaz profesional
 
-All planned features have been implemented successfully!
-
+Todas las funcionalidades planificadas han sido implementadas exitosamente.

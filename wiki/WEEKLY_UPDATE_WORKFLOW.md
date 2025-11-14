@@ -1,50 +1,50 @@
-# Weekly Bank Accounts Update Workflow
+# *Workflow* de Actualización Semanal de Cuentas Bancarias
 
-## Overview
+## Resumen General
 
-Simple 3-step workflow to process bank account data for extraction experiments.
+*Workflow* simple de 3 pasos para procesar datos de cuentas bancarias para experimentos de extracción.
 
-## Complete Workflow (3 Steps)
+## *Workflow* Completo (3 Pasos)
 
-### 1. Upload Bank Accounts Data
+### 1. Subir Datos de Cuentas Bancarias
 
 ```bash
 python scripts/upload_bank_accounts.py
 ```
 
-**What it does:**
+**Qué hace:**
 
-- Backs up the old `bank_accounts_downloaded.csv` (if exists)
-- Reads and **automatically cleans** the new `bank accounts-Grid view.csv`:
-  - Fixes multi-row records (embedded newlines)
-  - Normalizes whitespace
-  - Ensures proper CSV formatting
-- Shows how many records were added/removed
-- Saves cleaned version as `bank_accounts_downloaded.csv`
+- Hace respaldo del antiguo `bank_accounts_downloaded.csv` (si existe)
+- Lee y **limpia automáticamente** el nuevo `bank accounts-Grid view.csv`:
+  - Corrige registros de múltiples filas (saltos de línea embebidos)
+  - Normaliza espacios en blanco
+  - Asegura formato CSV adecuado
+- Muestra cuántos registros fueron agregados/eliminados
+- Guarda versión limpia como `bank_accounts_downloaded.csv`
 
-**Output:**
+***Output*:**
 
-- Backup: `data/raw/backups/bank_accounts_downloaded_YYYYMMDD_HHMMSS.csv`
-- Updated: `data/raw/bank_accounts_downloaded.csv` (cleaned)
+- Respaldo: `data/raw/backups/bank_accounts_downloaded_YYYYMMDD_HHMMSS.csv`
+- Actualizado: `data/raw/bank_accounts_downloaded.csv` (limpio)
 
 ---
 
-### 2. Download Bank Statements
+### 2. Descargar Estados de Cuenta Bancarios
 
 ```bash
 python src/preprocessing/download_statements.py
 ```
 
-**What it does:**
+**Qué hace:**
 
-- Downloads files from URLs in the CSV
-- **Automatically detects and filters** file types:
-  - ✅ **Accepted:** PDF, JPG, PNG, GIF, WEBP, BMP, TIFF, HEIC
-  - ⊘ **Skipped:** Excel (.xlsx), Word (.docx), ZIP files, executables
-- Handles existing files (won't re-download)
-- Updates CSV with download status
+- Descarga archivos desde URLs en el CSV
+- **Detecta y filtra automáticamente** tipos de archivo:
+  - **Aceptados:** PDF, JPG, PNG, GIF, WEBP, BMP, TIFF, HEIC
+  - **Omitidos:** *Excel* (.xlsx), *Word* (.docx), archivos ZIP, ejecutables
+- Maneja archivos existentes (no re-descarga)
+- Actualiza CSV con estado de descarga
 
-**Can run in background:**
+**Se puede ejecutar en segundo plano:**
 
 ```bash
 python src/preprocessing/download_statements.py > download_log.txt 2>&1 &
@@ -52,126 +52,126 @@ python src/preprocessing/download_statements.py > download_log.txt 2>&1 &
 
 ---
 
-### 3. Process Accounts (Filter & Prepare)
+### 3. Procesar Cuentas (Filtrar y Preparar)
 
 ```bash
 python scripts/process_accounts.py
 ```
 
-**What it does:**
+**Qué hace:**
 
-**Step 1: Filter by validation**
+**Paso 1: Filtrar por validación**
 
-- Validates 18-digit CLABE numbers
-- Validates RFC/CURP formats
-- Removes duplicate CLABEs
-- Cleans embedded newlines
+- Valida números CLABE de 18 dígitos
+- Valida formatos RFC/CURP
+- Elimina CLABEs duplicados
+- Limpia saltos de línea embebidos
 
-**Step 2: Filter to PDFs only**
+**Paso 2: Filtrar solo a PDFs**
 
-- Keeps only accounts with valid PDF files
-- Copies PDFs to `data/processed/pdfs/bank_statements/`
-- Creates final clean CSV
+- Mantiene solo cuentas con archivos PDF válidos
+- Copia PDFs a `data/processed/pdfs/bank_statements/`
+- Crea CSV limpio final
 
-**Output:**
+***Output*:**
 
-- `data/processed/pdfs/bank_accounts_filtered.csv` (accounts with PDFs)
-- `data/processed/pdfs/bank_statements/` (PDF files)
+- `data/processed/pdfs/bank_accounts_filtered.csv` (cuentas con PDFs)
+- `data/processed/pdfs/bank_statements/` (archivos PDF)
 
 ---
 
-### 4. Run Extraction Experiments (Optional)
+### 4. Ejecutar Experimentos de Extracción (Opcional)
 
 ```bash
-# Test with a few files
+# Probar con algunos archivos
 python scripts/run_extraction.py --parser regex --limit 10
 
-# Run on all files
+# Ejecutar en todos los archivos
 python scripts/run_extraction.py --parser regex
 
-# Compare both parsers
+# Comparar ambos parsers
 python scripts/run_extraction.py --parser all
 ```
 
-**Available parsers:**
+***Parsers* disponibles:**
 
-- `regex` - Pattern-based extraction (fast)
-- `llama` - LLM-based extraction (accurate, requires API keys)
-- `all` - Compare both parsers
+- `regex` - Extracción basada en patrones (rápida)
+- `llama` - Extracción basada en *LLM* (precisa, requiere *API keys*)
+- `all` - Comparar ambos *parsers*
 
 ---
 
-## File Type Handling
+## Manejo de Tipos de Archivo
 
-### Supported File Types
+### Tipos de Archivo Soportados
 
-The downloader now properly detects and handles:
+El descargador ahora detecta y maneja adecuadamente:
 
-| Type        | Extensions                                       | Status                     |
+| Tipo        | Extensiones                                       | Estado                     |
 | ----------- | ------------------------------------------------ | -------------------------- |
-| PDF         | `.pdf`                                           | ✅ Accepted                |
-| Images      | `.jpg`, `.png`, `.gif`, `.webp`, `.bmp`, `.tiff` | ✅ Accepted                |
-| HEIC        | `.heic`                                          | ✅ Accepted (Apple format) |
-| Office      | `.xlsx`, `.docx`                                 | ⊘ Skipped                  |
-| Archives    | `.zip`                                           | ⊘ Skipped                  |
-| Executables | `.exe`                                           | ⊘ Skipped                  |
-| Unknown     | `.bin`                                           | ⚠️ Kept for review         |
+| PDF         | `.pdf`                                           | Aceptado                |
+| Imágenes      | `.jpg`, `.png`, `.gif`, `.webp`, `.bmp`, `.tiff` | Aceptado                |
+| HEIC        | `.heic`                                          | Aceptado (formato *Apple*) |
+| *Office*      | `.xlsx`, `.docx`                                 | Omitido                  |
+| Archivos    | `.zip`                                           | Omitido                  |
+| Ejecutables | `.exe`                                           | Omitido                  |
+| Desconocido     | `.bin`                                           | Mantenido para revisión         |
 
-### Cleanup Existing .bin Files
+### Limpiar Archivos .bin Existentes
 
-If you have existing `.bin` files from previous downloads:
+Si tienes archivos `.bin` existentes de descargas previas:
 
 ```bash
 python src/preprocessing/cleanup_bin_files.py
 ```
 
-This will:
+Esto hará:
 
-- Detect actual file type
-- Convert to proper extension (if supported)
-- Delete unsupported files (Office docs, executables)
+- Detectar tipo de archivo real
+- Convertir a extensión adecuada (si es soportado)
+- Eliminar archivos no soportados (documentos de *Office*, ejecutables)
 
 ---
 
-## Data Validation
+## Validación de Datos
 
-### Bank Names
+### Nombres de Bancos
 
-All bank names must match **BANK_DICT_KUSHKI** exactly:
+Todos los nombres de bancos deben coincidir exactamente con ***BANK_DICT_KUSHKI***:
 
 - BBVA MEXICO, SANTANDER, BANAMEX, BANORTE, HSBC, SCOTIABANK
 - AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX
-- And 70+ more...
+- Y 70+ más...
 
-The schema automatically validates and normalizes bank names.
+El esquema valida y normaliza automáticamente los nombres de bancos.
 
-### Document Validation
+### Validación de Documentos
 
 - **RFC:**
-  - Person: `^[A-ZÑ&]{4}\d{6}[A-Z0-9]{3}$` (e.g., `OEEF970812PY1`)
-  - Company: `^[A-ZÑ&]{3}\d{6}[A-Z0-9]{3}$` (e.g., `STE080926CA0`)
-- **CURP:** `^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d$` (e.g., `FOMJ870825MDGLRH01`)
-- **CLABE:** Exactly 18 digits (e.g., `012180015788025831`)
+  - Persona: `^[A-ZÑ&]{4}\d{6}[A-Z0-9]{3}$` (ej., `OEEF970812PY1`)
+  - Empresa: `^[A-ZÑ&]{3}\d{6}[A-Z0-9]{3}$` (ej., `STE080926CA0`)
+- **CURP:** `^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d$` (ej., `FOMJ870825MDGLRH01`)
+- **CLABE:** Exactamente 18 dígitos (ej., `012180015788025831`)
 
 ---
 
-## Quick Commands
+## Comandos Rápidos
 
 ```bash
-# 1. Upload new data
+# 1. Subir nuevos datos
 python scripts/upload_bank_accounts.py
 
-# 2. Download statements
+# 2. Descargar estados de cuenta
 python src/preprocessing/download_statements.py
 
-# 3. Process accounts
+# 3. Procesar cuentas
 python scripts/process_accounts.py
 
-# 4. Run experiments (optional)
+# 4. Ejecutar experimentos (opcional)
 python scripts/run_extraction.py --parser regex --limit 5
 ```
 
-**Or run all at once:**
+**O ejecutar todo de una vez:**
 
 ```bash
 python scripts/upload_bank_accounts.py && \
@@ -181,56 +181,56 @@ python scripts/process_accounts.py
 
 ---
 
-## Directory Structure
+## Estructura de Directorios
 
 ```
 data/
 ├── raw/
-│   ├── bank accounts-Grid view.csv     # Weekly export from Airtable
-│   ├── bank_accounts_downloaded.csv    # Cleaned, working version
-│   ├── backups/                         # Timestamped backups
-│   └── bank_statements/                 # All downloaded files
+│   ├── bank accounts-Grid view.csv     # Exportación semanal desde Airtable
+│   ├── bank_accounts_downloaded.csv    # Versión limpia de trabajo
+│   ├── backups/                         # Respaldos con marca de tiempo
+│   └── bank_statements/                 # Todos los archivos descargados
 │
 ├── processed/
-│   ├── bank_accounts_filtered.csv      # All valid accounts
+│   ├── bank_accounts_filtered.csv      # Todas las cuentas válidas
 │   └── pdfs/
-│       ├── bank_accounts_filtered.csv  # Only accounts with PDFs
-│       └── bank_statements/            # Valid PDF files only
+│       ├── bank_accounts_filtered.csv  # Solo cuentas con PDFs
+│       └── bank_statements/            # Solo archivos PDF válidos
 │
 └── results/
-    ├── bank_extraction_*.csv           # Extraction results
-    └── logs/                            # Experiment logs
+    ├── bank_extraction_*.csv           # Resultados de extracción
+    └── logs/                            # Logs de experimentos
 ```
 
 ---
 
-## Troubleshooting
+## Solución de Problemas
 
-### Issue: Multi-row records in CSV
+### Problema: Registros de múltiples filas en CSV
 
-**Solution:** The `update_bank_accounts.py` script now automatically fixes this.
+**Solución:** El *script* `update_bank_accounts.py` ahora corrige esto automáticamente.
 
-### Issue: .bin files appearing
+### Problema: Aparecen archivos .bin
 
-**Solution:** Run `python src/preprocessing/cleanup_bin_files.py` to identify and handle them.
+**Solución:** Ejecuta `python src/preprocessing/cleanup_bin_files.py` para identificarlos y manejarlos.
 
-### Issue: Download stuck or failing
+### Problema: Descarga atascada o fallando
 
-**Solution:**
+**Solución:**
 
-1. Stop the process
-2. Re-run `python scripts/download_statements.py` - it will resume from where it stopped
-3. Check network connection and Airtable URLs
+1. Detener el proceso
+2. Re-ejecutar `python scripts/download_statements.py` - se reanudará desde donde se detuvo
+3. Verificar conexión de red y URLs de *Airtable*
 
-### Issue: Files already exist error
+### Problema: Error de archivos ya existentes
 
-**Solution:** The downloader skips existing files automatically.
+**Solución:** El descargador omite archivos existentes automáticamente.
 
 ---
 
-## Notes
+## Notas
 
-- **Backups:** All old files are automatically backed up with timestamps
-- **Idempotent:** All scripts can be re-run safely - they handle existing data
-- **CSV Cleaning:** Embedded newlines are automatically removed
-- **File Detection:** Uses magic bytes, not just file extensions
+- **Respaldos:** Todos los archivos antiguos se respaldan automáticamente con marcas de tiempo
+- **Idempotente:** Todos los *scripts* pueden re-ejecutarse de forma segura - manejan datos existentes
+- **Limpieza de CSV:** Los saltos de línea embebidos se eliminan automáticamente
+- **Detección de Archivos:** Usa *magic bytes*, no solo extensiones de archivo

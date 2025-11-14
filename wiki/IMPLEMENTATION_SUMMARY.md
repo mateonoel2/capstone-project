@@ -1,82 +1,83 @@
-# Implementation Summary - Bank Statement Extraction Frontend
+# Resumen de Implementación - *Frontend* de Extracción de Estados de Cuenta Bancarios
 
-## Overview
+## Resumen General
 
-Successfully implemented a complete Next.js frontend application with backend enhancements for bank statement extraction and verification.
+Implementación exitosa de una aplicación completa de *frontend* en *Next.js* con mejoras al *backend* para extracción y verificación de estados de cuenta bancarios.
 
-## What Was Built
+## Lo Que Se Construyó
 
-### Frontend Application (Next.js + TypeScript + Tailwind)
+### Aplicación de *Frontend* (*Next.js* + *TypeScript* + *Tailwind*)
 
-#### Core Pages
-- **Main Extraction Page** (`app/page.tsx`)
-  - Two-panel layout: PDF viewer on left, form on right
-  - Drag-and-drop file upload
-  - Real-time extraction on upload
-  - Side-by-side verification workflow
-  - Visual change tracking with yellow highlights
-  - Loading and error states
-  - Success feedback
+#### Páginas Principales
+- **Página Principal de Extracción** (`app/page.tsx`)
+  - Diseño de dos paneles: visor de PDF a la izquierda, formulario a la derecha
+  - Carga de archivos con arrastrar y soltar
+  - Extracción en tiempo real al subir
+  - Flujo de verificación lado a lado
+  - Seguimiento visual de cambios con resaltados amarillos
+  - Estados de carga y error
+  - Retroalimentación de éxito
 
-#### Components
-1. **PDF Viewer** (`components/pdf-viewer.tsx`)
-   - Multi-page PDF rendering using react-pdf
-   - Page navigation controls
-   - Responsive design
+#### Componentes
+1. **Visor de PDF** (`components/pdf-viewer.tsx`)
+   - Renderizado de PDF de múltiples páginas usando *react-pdf*
+   - Controles de navegación de páginas
+   - Diseño responsivo
 
-2. **File Upload** (`components/file-upload.tsx`)
-   - Drag-and-drop zone
-   - Click to browse
-   - PDF validation
-   - Loading states
+2. **Carga de Archivos** (`components/file-upload.tsx`)
+   - Zona de arrastrar y soltar
+   - Clic para explorar
+   - Validación de PDF
+   - Estados de carga
 
-3. **UI Components** (`components/ui/`)
-   - Button with variants
-   - Card with subcomponents
-   - Input field
-   - Label
-   - All built with shadcn/ui patterns
+3. **Componentes de Interfaz** (`components/ui/`)
+   - Botón con variantes
+   - Tarjeta con subcomponentes
+   - Campo de entrada
+   - Etiqueta
+   - Todos construidos con patrones de *shadcn/ui*
 
-#### API Integration
-- **API Client** (`lib/api.ts`)
-  - `extractFromPDF()` - Upload and extract
-  - `submitExtraction()` - Submit verified data
-  - TypeScript interfaces for type safety
-  - Error handling
+#### Integración con la API
+- **Cliente de API** (`lib/api.ts`)
+  - `extractFromPDF()` - Subir y extraer
+  - `submitExtraction()` - Enviar datos verificados
+  - *Interfaces* de *TypeScript* para seguridad de tipos
+  - Manejo de errores
 
-#### Styling & Configuration
-- Tailwind CSS with custom theme
-- CSS variables for theming
-- shadcn/ui design system
-- Responsive layout
-- Modern UI with proper spacing and shadows
+#### Estilo y Configuración
+- *Tailwind CSS* con tema personalizado
+- Variables CSS para tematización
+- Sistema de diseño *shadcn/ui*
+- Diseño responsivo
+- Interfaz moderna con espaciado y sombras adecuados
 
-### Backend Enhancements
+### Mejoras al *Backend*
 
-#### Database Layer
-- **SQLite Database** (`application/database.py`)
-  - `ExtractionLog` model with SQLAlchemy
-  - Fields: filename, timestamps, extracted values, final values
-  - Boolean flags for tracking corrections per field
-  - Auto-creation of database file
-  - Session management
+#### Capa de Base de Datos
+- **Base de Datos *SQLite*** (`application/database.py`)
+  - Modelo `ExtractionLog` con *SQLAlchemy*
+  - Campos: *filename*, marcas de tiempo, valores extraídos, valores finales
+  - *Flags* booleanos para seguimiento de correcciones por campo
+  - Auto-creación del archivo de base de datos
+  - Gestión de sesiones
 
-#### New API Endpoint
+#### Nuevo *Endpoint* de API
 - **POST /extraction/submit** (`application/api/extraction.py`)
-  - Accepts extraction submission payload
-  - Calculates which fields were corrected
-  - Stores in SQLite database
-  - Returns confirmation with log ID
+  - Acepta *payload* de envío de extracción
+  - Calcula qué campos fueron corregidos
+  - Almacena en base de datos *SQLite*
+  - Retorna confirmación con ID de *log*
 
-#### Application Startup
-- **Database Initialization** (`application/main.py`)
-  - Auto-creates database on startup
-  - Creates tables if they don't exist
-  - No manual setup required
+#### Inicio de la Aplicación
+- **Inicialización de Base de Datos** (`application/main.py`)
+  - Auto-crea base de datos al iniciar
+  - Crea tablas si no existen
+  - No requiere configuración manual
 
-### Dependencies Added
+### Dependencias Agregadas
 
-#### Frontend (`package.json`)
+#### *Frontend* (`package.json`)
+
 ```json
 {
   "next": "^15.0.3",
@@ -89,58 +90,59 @@ Successfully implemented a complete Next.js frontend application with backend en
 }
 ```
 
-#### Backend (`requirements.txt`)
+#### *Backend* (`requirements.txt`)
+
 ```
 sqlalchemy>=2.0.0
 ```
 
-## Key Features
+## Características Clave
 
-### User Experience
-1. **Seamless Upload**: Drag PDF or click to browse
-2. **Instant Feedback**: Loading spinners during processing
-3. **Visual Comparison**: See PDF and form side-by-side
-4. **Change Tracking**: Yellow highlights show modifications
-5. **Original Values**: Display original extraction for reference
-6. **Clear Actions**: Submit or Reset buttons
-7. **Success Confirmation**: Visual feedback on successful submission
+### Experiencia de Usuario
+1. **Carga Sin Interrupciones**: Arrastra PDF o haz clic para explorar
+2. **Retroalimentación Instantánea**: *Spinners* de carga durante el procesamiento
+3. **Comparación Visual**: Ver PDF y formulario lado a lado
+4. **Seguimiento de Cambios**: Resaltados amarillos muestran modificaciones
+5. **Valores Originales**: Mostrar extracción original para referencia
+6. **Acciones Claras**: Botones de Enviar o Reiniciar
+7. **Confirmación de Éxito**: Retroalimentación visual al enviar exitosamente
 
-### Data Tracking
-1. **Original Extraction**: Stored in database
-2. **Final Values**: User-corrected data stored
-3. **Correction Flags**: Boolean per field (owner, bank_name, account_number)
-4. **Timestamp**: When extraction occurred
-5. **Filename**: Which PDF was processed
+### Seguimiento de Datos
+1. **Extracción Original**: Almacenada en base de datos
+2. **Valores Finales**: Datos corregidos por el usuario almacenados
+3. ***Flags* de Corrección**: Booleano por campo (*owner*, *bank_name*, *account_number*)
+4. **Marca de Tiempo**: Cuándo ocurrió la extracción
+5. **Nombre de Archivo**: Qué PDF fue procesado
 
-### Technical Excellence
-1. **Type Safety**: Full TypeScript implementation
-2. **Error Handling**: Try-catch blocks throughout
-3. **Clean Architecture**: Separation of concerns
-4. **Reusable Components**: Modular design
-5. **Responsive Design**: Works on all screen sizes
-6. **Accessible**: Proper labels and semantic HTML
+### Excelencia Técnica
+1. **Seguridad de Tipos**: Implementación completa en *TypeScript*
+2. **Manejo de Errores**: Bloques *try-catch* en todo el código
+3. **Arquitectura Limpia**: Separación de responsabilidades
+4. **Componentes Reutilizables**: Diseño modular
+5. **Diseño Responsivo**: Funciona en todos los tamaños de pantalla
+6. **Accesible**: Etiquetas adecuadas y HTML semántico
 
-## File Structure
+## Estructura de Archivos
 
 ```
 capstone-project/
-├── frontend/                        # New Next.js application
+├── frontend/                        # Nueva aplicación Next.js
 │   ├── app/
-│   │   ├── layout.tsx              # Root layout
-│   │   ├── page.tsx                # Main extraction page
-│   │   └── globals.css             # Global styles
+│   │   ├── layout.tsx              # Layout raíz
+│   │   ├── page.tsx                # Página principal de extracción
+│   │   └── globals.css             # Estilos globales
 │   ├── components/
-│   │   ├── ui/                     # shadcn components
+│   │   ├── ui/                     # Componentes shadcn
 │   │   │   ├── button.tsx
 │   │   │   ├── card.tsx
 │   │   │   ├── input.tsx
 │   │   │   └── label.tsx
-│   │   ├── file-upload.tsx         # Upload component
-│   │   └── pdf-viewer.tsx          # PDF viewer
+│   │   ├── file-upload.tsx         # Componente de carga
+│   │   └── pdf-viewer.tsx          # Visor de PDF
 │   ├── lib/
-│   │   ├── api.ts                  # API client
-│   │   ├── utils.ts                # Utilities
-│   │   └── pdf-worker.ts           # PDF.js config
+│   │   ├── api.ts                  # Cliente de API
+│   │   ├── utils.ts                # Utilidades
+│   │   └── pdf-worker.ts           # Configuración de PDF.js
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── tailwind.config.ts
@@ -149,90 +151,94 @@ capstone-project/
 │   └── README.md
 ├── backend/
 │   ├── application/
-│   │   ├── database.py             # New - SQLite setup
-│   │   ├── main.py                 # Modified - DB init
+│   │   ├── database.py             # Nuevo - Configuración de SQLite
+│   │   ├── main.py                 # Modificado - Inicialización de BD
 │   │   └── api/
-│   │       └── extraction.py       # Modified - Submit endpoint
+│   │       └── extraction.py       # Modificado - Endpoint de submit
 │   ├── data/
-│   │   └── extractions.db          # Created on startup
-│   └── requirements.txt            # Modified - Added SQLAlchemy
-├── FRONTEND_SETUP.md               # New - Setup guide
+│   │   └── extractions.db          # Creado al iniciar
+│   └── requirements.txt            # Modificado - Agregado SQLAlchemy
+├── FRONTEND_SETUP.md               # Nuevo - Guía de configuración
 └── ...
 ```
 
-## How to Run
+## Cómo Ejecutar
 
-### Terminal 1 - Backend
+### Terminal 1 - *Backend*
+
 ```bash
 cd backend
 python scripts/run_api.py
 ```
-Backend runs on http://localhost:8000
 
-### Terminal 2 - Frontend
+El *backend* se ejecuta en http://localhost:8000
+
+### Terminal 2 - *Frontend*
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend runs on http://localhost:3000
 
-## Testing the Application
+El *frontend* se ejecuta en http://localhost:3000
 
-1. Navigate to http://localhost:3000
-2. Upload a PDF from `project/data/processed/pdfs/test_sample/`
-3. Wait for extraction to complete
-4. Review the extracted data
-5. Make a correction (e.g., edit the owner name)
-6. Click "Submit"
-7. Verify in database:
-   ```bash
-   cd backend/data
-   sqlite3 extractions.db
-   SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 1;
-   ```
+## Probando la Aplicación
 
-## What's Next (Phase 2)
+1. Navegar a http://localhost:3000
+2. Subir un PDF de `project/data/processed/pdfs/test_sample/`
+3. Esperar a que se complete la extracción
+4. Revisar los datos extraídos
+5. Hacer una corrección (ej., editar el nombre del titular)
+6. Hacer clic en "Enviar"
+7. Verificar en la base de datos:
 
-The foundation is now in place for Phase 2, which will add:
+```bash
+cd backend/data
+sqlite3 extractions.db
+SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 1;
+```
 
-1. **Dashboard Page**
-   - Table of all extractions
-   - Filterable by date, filename, corrections
-   - Sortable columns
+## Qué Sigue (Fase 2)
 
-2. **Analytics**
-   - Accuracy percentage calculations
-   - Charts showing correction rates per field
-   - Trends over time
+La base está ahora en su lugar para la Fase 2, que agregará:
 
-3. **Export**
-   - CSV export of extraction logs
-   - PDF report generation
+1. **Página de *Dashboard***
+   - Tabla de todas las extracciones
+   - Filtrable por fecha, *filename*, correcciones
+   - Columnas ordenables
 
-4. **Advanced Features**
-   - Batch upload
-   - Comparison view for multiple extractions
-   - Admin panel for data management
+2. **Análisis**
+   - Cálculos de porcentaje de precisión
+   - Gráficos mostrando tasas de corrección por campo
+   - Tendencias a lo largo del tiempo
 
-## Success Metrics
+3. **Exportación**
+   - Exportación CSV de *logs* de extracción
+   - Generación de reportes en PDF
 
-✅ Frontend application fully functional
-✅ PDF viewing working correctly
-✅ Extraction API integrated
-✅ Submission logging implemented
-✅ Database automatically created
-✅ Change tracking operational
-✅ User-friendly interface
-✅ Type-safe codebase
-✅ Error handling in place
-✅ Documentation complete
+4. **Funcionalidades Avanzadas**
+   - Carga en lote
+   - Vista de comparación para múltiples extracciones
+   - Panel de administración para gestión de datos
 
-## Notes
+## Métricas de Éxito
 
-- The frontend was built entirely from scratch (no npx create-next-app issues)
-- All shadcn components were manually created
-- Database schema supports future analytics features
-- CORS is properly configured
-- The application is ready for Phase 2 dashboard development
+- Aplicación de *frontend* completamente funcional
+- Visualización de PDF funcionando correctamente
+- API de extracción integrada
+- *Logging* de envíos implementado
+- Base de datos creada automáticamente
+- Seguimiento de cambios operacional
+- Interfaz amigable para el usuario
+- Base de código con seguridad de tipos
+- Manejo de errores implementado
+- Documentación completa
 
+## Notas
+
+- El *frontend* fue construido completamente desde cero (sin problemas con *npx create-next-app*)
+- Todos los componentes de *shadcn* fueron creados manualmente
+- El esquema de base de datos soporta funcionalidades futuras de análisis
+- CORS está configurado correctamente
+- La aplicación está lista para el desarrollo del *dashboard* de Fase 2

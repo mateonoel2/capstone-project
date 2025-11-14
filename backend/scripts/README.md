@@ -1,62 +1,62 @@
-# Scripts
+# *Scripts*
 
-## Main Workflow (2 Scripts)
+## Flujo de Trabajo Principal (2 *Scripts*)
 
 ### 1. `upload_bank_accounts.py`
 
-**Purpose:** Upload and clean new data from Airtable export
+**Propósito:** Subir y limpiar nuevos datos desde exportación de *Airtable*
 
 ```bash
 python scripts/upload_bank_accounts.py
 ```
 
-- Input: `data/raw/bank accounts-Grid view.csv` (from Airtable)
-- Output: `data/raw/bank_accounts_downloaded.csv` (cleaned)
-- Backs up old file automatically
-- Fixes embedded newlines and formatting issues
+- *Input*: `data/raw/bank accounts-Grid view.csv` (desde *Airtable*)
+- *Output*: `data/raw/bank_accounts_downloaded.csv` (limpio)
+- Hace respaldo del archivo antiguo automáticamente
+- Corrige saltos de línea embebidos y problemas de formato
 
 ---
 
 ### 2. `process_accounts.py`
 
-**Purpose:** Filter, validate, and prepare final dataset
+**Propósito:** Filtrar, validar y preparar el *dataset* final
 
 ```bash
 python scripts/process_accounts.py
 ```
 
-**Step 1: Validate**
+**Paso 1: Validar**
 
-- CLABE: 18 digits
-- RFC/CURP: Correct format
-- Remove duplicates
+- CLABE: 18 dígitos
+- RFC/CURP: Formato correcto
+- Eliminar duplicados
 
-**Step 2: Filter to PDFs**
+**Paso 2: Filtrar a PDFs**
 
-- Keep only accounts with PDF files
-- Copy PDFs to processed folder
+- Mantener solo cuentas con archivos PDF
+- Copiar PDFs a carpeta procesada
 
-**Output:**
+***Output*:**
 
 - `data/processed/pdfs/bank_accounts_filtered.csv`
-- `data/processed/pdfs/bank_statements/` (PDFs only)
+- `data/processed/pdfs/bank_statements/` (solo PDFs)
 
 ---
 
-## Complete Workflow
+## Flujo de Trabajo Completo
 
 ```bash
-# 1. Upload new data from Airtable
+# 1. Subir nuevos datos desde Airtable
 python scripts/upload_bank_accounts.py
 
-# 2. Download statements (in src/preprocessing)
+# 2. Descargar estados de cuenta (en src/preprocessing)
 python src/preprocessing/download_statements.py
 
-# 3. Process and filter accounts
+# 3. Procesar y filtrar cuentas
 python scripts/process_accounts.py
 ```
 
-**Or run all at once:**
+**O ejecutar todo de una vez:**
 
 ```bash
 python scripts/upload_bank_accounts.py && \
@@ -66,23 +66,23 @@ python scripts/process_accounts.py
 
 ---
 
-## API Server
+## Servidor de API
 
 ### `run_api.py`
 
-Run the FastAPI server for PDF extraction
+Ejecutar el servidor *FastAPI* para extracción de PDF
 
 ```bash
 python scripts/run_api.py
 ```
 
-**Endpoints:**
+***Endpoints*:**
 
-- `POST /extraction/pdf` - Upload a PDF and extract bank account information
-- `GET /health` - Health check
-- `GET /docs` - Interactive API documentation
+- `POST /extraction/pdf` - Subir un PDF y extraer información de cuenta bancaria
+- `GET /health` - Verificación de salud
+- `GET /docs` - Documentación interactiva de la API
 
-**Usage example:**
+**Ejemplo de uso:**
 
 ```bash
 curl -X POST "http://localhost:8000/extraction/pdf" \
@@ -91,7 +91,7 @@ curl -X POST "http://localhost:8000/extraction/pdf" \
   -F "file=@path/to/statement.pdf"
 ```
 
-**Response:**
+**Respuesta:**
 
 ```json
 {
@@ -103,29 +103,29 @@ curl -X POST "http://localhost:8000/extraction/pdf" \
 
 ---
 
-## Other Scripts
+## Otros *Scripts*
 
 ### `run_extraction.py`
 
-Run extraction experiments on PDFs
+Ejecutar experimentos de extracción en PDFs
 
 ```bash
-# Test with 10 files
+# Probar con 10 archivos
 python scripts/run_extraction.py --parser regex --limit 10
 
-# Full run
+# Ejecución completa
 python scripts/run_extraction.py --parser regex
 
-# Compare both parsers
+# Comparar ambos parsers
 python scripts/run_extraction.py --parser all
 ```
 
 ---
 
-## Supporting Tools (in `src/preprocessing/`)
+## Herramientas de Soporte (en `src/preprocessing/`)
 
-- `download_statements.py` - Download bank statement files
-- `cleanup_bin_files.py` - Fix misdetected file types
-- `file_downloader.py` - Core download functionality
-- `file_validator.py` - File validation utilities
-- `data_cleaner.py` - Data cleaning utilities
+- `download_statements.py` - Descargar archivos de estados de cuenta bancarios
+- `cleanup_bin_files.py` - Corregir tipos de archivo mal detectados
+- `file_downloader.py` - Funcionalidad central de descarga
+- `file_validator.py` - Utilidades de validación de archivos
+- `data_cleaner.py` - Utilidades de limpieza de datos

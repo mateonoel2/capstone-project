@@ -1,12 +1,12 @@
-# Frontend Setup Guide
+# Guía de Configuración del *Frontend*
 
-This guide will help you set up and run the complete Bank Statement Extraction application with both backend and frontend.
+Esta guía te ayudará a configurar y ejecutar la aplicación completa de Extracción de Estados de Cuenta Bancarios con *backend* y *frontend*.
 
-## Quick Start
+## Inicio Rápido
 
-### 1. Backend Setup
+### 1. Configuración del *Backend*
 
-First, ensure the backend API is running:
+Primero, asegúrate de que la API del *backend* esté ejecutándose:
 
 ```bash
 cd backend
@@ -14,15 +14,15 @@ cd backend
 python scripts/run_api.py
 ```
 
-The backend will start on http://localhost:8000
+El *backend* iniciará en http://localhost:8000
 
-You can verify it's running by visiting:
-- API docs: http://localhost:8000/docs
-- Health check: http://localhost:8000/health
+Puedes verificar que está ejecutándose visitando:
+- Documentación de la API: http://localhost:8000/docs
+- Verificación de salud: http://localhost:8000/health
 
-### 2. Frontend Setup
+### 2. Configuración del *Frontend*
 
-In a new terminal, navigate to the frontend directory and install dependencies:
+En una nueva terminal, navega al directorio del *frontend* e instala las dependencias:
 
 ```bash
 cd frontend
@@ -30,43 +30,44 @@ cd frontend
 npm install
 ```
 
-### 3. Run Frontend
+### 3. Ejecutar el *Frontend*
 
-Start the development server:
+Inicia el servidor de desarrollo:
 
 ```bash
 npm run dev
 ```
 
-The frontend will start on http://localhost:3000
+El *frontend* iniciará en http://localhost:3000
 
-## Complete Application Flow
+## Flujo Completo de la Aplicación
 
-1. **Backend** (http://localhost:8000):
-   - Handles PDF extraction using Claude AI
-   - Stores extraction logs in SQLite database
-   - Provides REST API endpoints
+1. ***Backend*** (http://localhost:8000):
+   - Maneja la extracción de PDF usando *Claude AI*
+   - Almacena *logs* de extracción en base de datos *SQLite*
+   - Proporciona *endpoints* de API REST
 
-2. **Frontend** (http://localhost:3000):
-   - Modern UI for uploading PDFs
-   - Side-by-side PDF viewer and form
-   - Data verification and correction interface
-   - Submits verified data back to backend
+2. ***Frontend*** (http://localhost:3000):
+   - Interfaz moderna para subir PDFs
+   - Visor de PDF y formulario lado a lado
+   - Interfaz de verificación y corrección de datos
+   - Envía datos verificados de vuelta al *backend*
 
-## Database
+## Base de Datos
 
-The SQLite database is automatically created at:
+La base de datos *SQLite* se crea automáticamente en:
+
 ```
 backend/data/extractions.db
 ```
 
-It stores:
-- Original extracted values
-- User-corrected final values
-- Correction flags for accuracy tracking
-- Timestamps and filenames
+Almacena:
+- Valores extraídos originales
+- Valores finales corregidos por el usuario
+- *Flags* de corrección para seguimiento de precisión
+- Marcas de tiempo y nombres de archivo
 
-## Database Schema
+## Esquema de la Base de Datos
 
 ```sql
 CREATE TABLE extraction_logs (
@@ -85,142 +86,150 @@ CREATE TABLE extraction_logs (
 );
 ```
 
-## Accessing the Database
+## Accediendo a la Base de Datos
 
-You can query the database directly using SQLite:
+Puedes consultar la base de datos directamente usando *SQLite*:
 
 ```bash
 cd backend/data
 sqlite3 extractions.db
 
-# Example queries:
+# Ejemplos de consultas:
 SELECT * FROM extraction_logs;
 SELECT COUNT(*) FROM extraction_logs WHERE owner_corrected = 1;
 SELECT * FROM extraction_logs ORDER BY timestamp DESC LIMIT 10;
 ```
 
-## Environment Requirements
+## Requisitos del Entorno
 
-### Backend
+### *Backend*
 - Python 3.8+
-- All dependencies from `backend/requirements.txt`
-- ANTHROPIC_API_KEY in `.env` file
+- Todas las dependencias de `backend/requirements.txt`
+- *ANTHROPIC_API_KEY* en archivo `.env`
 
-### Frontend
+### *Frontend*
 - Node.js 18+
 - npm/yarn/pnpm
 
-## Troubleshooting
+## Solución de Problemas
 
-### Backend Issues
+### Problemas del *Backend*
 
-**Issue**: Import errors
+**Problema**: Errores de importación
+
 ```bash
-# Solution: Ensure you're in the project directory
+# Solución: Asegúrate de estar en el directorio del proyecto
 cd backend
 python -m pip install -r requirements.txt
 ```
 
-**Issue**: Claude API errors
+**Problema**: Errores de API de *Claude*
+
 ```bash
-# Solution: Check your .env file has ANTHROPIC_API_KEY
+# Solución: Verifica que tu archivo .env tenga ANTHROPIC_API_KEY
 cat backend/.env | grep ANTHROPIC_API_KEY
 ```
 
-### Frontend Issues
+### Problemas del *Frontend*
 
-**Issue**: npm permission errors
+**Problema**: Errores de permisos de npm
+
 ```bash
-# Solution: Try using a different package manager
+# Solución: Intenta usar un gestor de paquetes diferente
 npm install --legacy-peer-deps
-# or
+# o
 yarn install
-# or
+# o
 pnpm install
 ```
 
-**Issue**: PDF not displaying
+**Problema**: PDF no se muestra
+
 ```bash
-# Solution: Ensure react-pdf is properly installed
+# Solución: Asegúrate de que react-pdf esté instalado correctamente
 cd frontend
 npm install react-pdf --force
 ```
 
-**Issue**: CORS errors
+**Problema**: Errores de CORS
+
 ```bash
-# Solution: Backend already has CORS enabled for all origins
-# Check that backend is running on port 8000
+# Solución: El backend ya tiene CORS habilitado para todos los orígenes
+# Verifica que el backend esté ejecutándose en el puerto 8000
 ```
 
-## Development Tips
+## Consejos de Desarrollo
 
-### Hot Reload
-Both frontend and backend support hot reload:
-- Frontend: Automatic on file save
-- Backend: Automatic with `reload=True` in uvicorn
+### *Hot Reload*
+Tanto el *frontend* como el *backend* soportan *hot reload*:
+- *Frontend*: Automático al guardar archivo
+- *Backend*: Automático con `reload=True` en *uvicorn*
 
-### Debugging
+### Depuración
 
-**Backend**:
+***Backend***:
+
 ```python
-# Add print statements or use the FastAPI docs UI
-# Visit http://localhost:8000/docs to test endpoints
+# Agrega declaraciones print o usa la interfaz de documentos de FastAPI
+# Visita http://localhost:8000/docs para probar endpoints
 ```
 
-**Frontend**:
+***Frontend***:
+
 ```javascript
-// Use browser DevTools console
-// Check Network tab for API calls
-// React DevTools for component state
+// Usa la consola de DevTools del navegador
+// Verifica la pestaña Network para llamadas a la API
+// React DevTools para el estado de componentes
 ```
 
-### Testing the Flow
+### Probando el Flujo
 
-1. Use a sample PDF from `backend/data/processed/pdfs/test_sample/`
-2. Upload it through the frontend
-3. Verify extraction results
-4. Make a correction to one field
-5. Submit the form
-6. Check the database to confirm the log was created
+1. Usa un PDF de muestra de `backend/data/processed/pdfs/test_sample/`
+2. Súbelo a través del *frontend*
+3. Verifica los resultados de extracción
+4. Haz una corrección a un campo
+5. Envía el formulario
+6. Verifica la base de datos para confirmar que se creó el *log*
 
 ```bash
-# Quick database check
+# Verificación rápida de la base de datos
 cd backend/data
 sqlite3 extractions.db "SELECT filename, owner_corrected, bank_name_corrected, account_number_corrected FROM extraction_logs ORDER BY timestamp DESC LIMIT 1;"
 ```
 
-## Production Deployment
+## Despliegue en Producción
 
-### Backend
+### *Backend*
+
 ```bash
 cd backend
 pip install -r requirements.txt
 python scripts/run_api.py
-# or use gunicorn for production:
+# o usa gunicorn para producción:
 gunicorn application.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
 ```
 
-### Frontend
+### *Frontend*
+
 ```bash
 cd frontend
 npm run build
 npm start
-# or deploy to Vercel, Netlify, etc.
+# o despliega en Vercel, Netlify, etc.
 ```
 
-## Next Steps (Phase 2)
+## Próximos Pasos (Fase 2)
 
-After the extraction page is working, Phase 2 will add:
-- Dashboard page showing all extractions
-- Accuracy metrics and charts
-- Filtering and search capabilities
-- Data export functionality
+Después de que la página de extracción esté funcionando, la Fase 2 agregará:
+- Página de *dashboard* mostrando todas las extracciones
+- Métricas de precisión y gráficos
+- Capacidades de filtrado y búsqueda
+- Funcionalidad de exportación de datos
 
-## Support
+## Soporte
 
-For issues specific to:
-- **Extraction logic**: Check `backend/src/extraction/`
-- **API endpoints**: Check `backend/application/api/`
-- **Frontend UI**: Check `frontend/components/`
-- **Database**: Check `backend/application/database.py`
-
+Para problemas específicos de:
+- **Lógica de extracción**: Verifica `backend/src/extraction/`
+- ***Endpoints* de API**: Verifica `backend/application/api/`
+- **Interfaz del *frontend***: Verifica `frontend/components/`
+- **Base de datos**: Verifica `backend/application/database.py`

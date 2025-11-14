@@ -1,116 +1,119 @@
-# Latest Updates
+# Últimas Actualizaciones
 
-## New Features Added
+## Nuevas Funcionalidades Agregadas
 
-### 1. Sidebar Navigation ✅
-- Added a dark sidebar with navigation
-- Two pages: "Extract PDF" and "Dashboard"
-- Active state highlighting
-- Professional layout with sticky sidebar
+### 1. Navegación con *Sidebar*
+- Agregado un *sidebar* oscuro con navegación
+- Dos páginas: "Extraer PDF" y "*Dashboard*"
+- Resaltado de estado activo
+- Diseño profesional con *sidebar* fijo
 
-### 2. Bank Name Select Dropdown ✅
-- Replaced text input with dropdown select
-- Backend endpoint: `GET /extraction/banks`
-- Returns 91 Mexican banks from BANK_DICT_KUSHKI
-- Banks sorted alphabetically
-- Includes bank codes for future use
+### 2. *Dropdown* de Selección de Banco
+- Reemplazado *input* de texto con *dropdown* de selección
+- *Endpoint* del *backend*: `GET /extraction/banks`
+- Retorna 91 bancos mexicanos de *BANK_DICT_KUSHKI*
+- Bancos ordenados alfabéticamente
+- Incluye códigos de banco para uso futuro
 
-### 3. Dashboard Page (Phase 2 Placeholder) ✅
-- Created `/dashboard` route
-- Metric cards showing:
-  - Total Extractions
-  - Corrections Made
-  - Accuracy Rate
-  - This Week's activity
-- Placeholder content explaining Phase 2 features
-- Professional UI matching extraction page
+### 3. Página de *Dashboard* (Fase 2)
+- Creada ruta `/dashboard`
+- Tarjetas de métricas mostrando:
+  - Total de Extracciones
+  - Correcciones Realizadas
+  - Tasa de Precisión
+  - Actividad de Esta Semana
+- Contenido de funcionalidades de Fase 2
+- Interfaz profesional que coincide con la página de extracción
 
-### 4. PDF Viewer Improvements ✅
-- Zoom In/Out controls (50% - 300%)
-- Rotate button (90° increments)
-- Current zoom percentage display
-- Better scrolling for full document visibility
-- Icons for all controls
+### 4. Mejoras del Visor de PDF
+- Controles de *Zoom* In/Out (50% - 300%)
+- Botón de rotación (incrementos de 90°)
+- Visualización del porcentaje de *zoom* actual
+- Mejor desplazamiento para visibilidad completa del documento
+- Iconos para todos los controles
 
-### 5. Backend Bug Fixes ✅
-- Fixed SQLAlchemy session error
-- Proper session management with refresh
-- Added rollback on errors
-- Try-finally blocks for cleanup
+### 5. Correcciones de Errores del *Backend*
+- Corregido error de sesión de *SQLAlchemy*
+- Gestión adecuada de sesión con *refresh*
+- Agregado *rollback* en errores
+- Bloques *try-finally* para limpieza
 
-## File Changes
+## Cambios en Archivos
 
-### New Files
-- `frontend/components/sidebar.tsx` - Navigation sidebar
-- `frontend/components/ui/select.tsx` - Select dropdown component
-- `frontend/app/dashboard/page.tsx` - Dashboard page
-- `backend/application/constants.py` - Bank dictionary
+### Nuevos Archivos
+- `frontend/components/sidebar.tsx` - *Sidebar* de navegación
+- `frontend/components/ui/select.tsx` - Componente *dropdown* de selección
+- `frontend/app/dashboard/page.tsx` - Página de *dashboard*
+- `backend/application/constants.py` - Diccionario de bancos
 
-### Modified Files
-- `frontend/app/layout.tsx` - Added sidebar to layout
-- `frontend/app/page.tsx` - Bank select + useEffect for banks
-- `frontend/components/pdf-viewer.tsx` - Zoom and rotate controls
-- `frontend/lib/api.ts` - Added getBanks() function
-- `backend/application/api/extraction.py` - Banks endpoint + session fix
+### Archivos Modificados
+- `frontend/app/layout.tsx` - Agregado *sidebar* al *layout*
+- `frontend/app/page.tsx` - Selección de banco + *useEffect* para bancos
+- `frontend/components/pdf-viewer.tsx` - Controles de *zoom* y rotación
+- `frontend/lib/api.ts` - Agregada función *getBanks()*
+- `backend/application/api/extraction.py` - *Endpoint* de bancos + corrección de sesión
 
-## API Endpoints
+## *Endpoints* de la API
 
-### New
+### Nuevos
+
 ```
 GET /extraction/banks
 Response: { "banks": [{ "name": "...", "code": "..." }] }
 ```
 
-### Fixed
+### Corregidos
+
 ```
 POST /extraction/submit
-- Fixed session management
-- Proper error handling
+- Corregida gestión de sesión
+- Manejo adecuado de errores
 ```
 
-## How to Use
+## Cómo Usar
 
-### Backend
+### *Backend*
+
 ```bash
 cd backend
 python scripts/run_api.py
 ```
 
-### Frontend
+### *Frontend*
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Navigation
-- Click "Extract PDF" in sidebar to upload and extract
-- Click "Dashboard" to view Phase 2 placeholder
-- Use zoom controls on PDF viewer
-- Select bank from dropdown (91 options)
+### Navegación
+- Hacer clic en "Extraer PDF" en el *sidebar* para subir y extraer
+- Hacer clic en "*Dashboard*" para ver la página de Fase 2
+- Usar controles de *zoom* en el visor de PDF
+- Seleccionar banco del *dropdown* (91 opciones)
 
-## Database
-The SQLite database at `backend/data/extractions.db` now properly stores:
-- Original extracted values
-- User corrections
-- Correction flags per field
-- No more session errors!
+## Base de Datos
+La base de datos *SQLite* en `backend/data/extractions.db` ahora almacena adecuadamente:
+- Valores extraídos originales
+- Correcciones del usuario
+- *Flags* de corrección por campo
+- Sin más errores de sesión
 
-## Next Steps (Phase 2)
+## Próximos Pasos (Fase 2)
 
-To implement the full dashboard:
-1. Add endpoint to fetch extraction logs
-2. Calculate accuracy metrics
-3. Build data table with filtering
-4. Add charts for trends
-5. Export functionality
+Para implementar el *dashboard* completo:
+1. Agregar *endpoint* para obtener *logs* de extracción
+2. Calcular métricas de precisión
+3. Construir tabla de datos con filtrado
+4. Agregar gráficos para tendencias
+5. Funcionalidad de exportación
 
-## Testing
+## Pruebas
 
-1. Upload a PDF bank statement
-2. Verify bank dropdown shows all 91 banks
-3. Use zoom controls on PDF
-4. Select bank from dropdown
-5. Submit form
-6. Check database for entry
-7. Navigate to Dashboard page
-
+1. Subir un estado de cuenta bancario en PDF
+2. Verificar que el *dropdown* de banco muestre los 91 bancos
+3. Usar controles de *zoom* en el PDF
+4. Seleccionar banco del *dropdown*
+5. Enviar formulario
+6. Verificar entrada en la base de datos
+7. Navegar a la página de *Dashboard*
