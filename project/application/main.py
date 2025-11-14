@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from application.api.extraction import router as extraction_router
+from application.database import init_db
 
 load_dotenv()
 
@@ -27,6 +28,11 @@ app.add_middleware(
 )
 
 app.include_router(extraction_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 
 @app.get("/")
