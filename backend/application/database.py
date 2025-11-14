@@ -3,7 +3,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from application.modules.extraction.entities import Base
+from application.modules.extraction.models import Base
 
 
 def get_database_path() -> Path:

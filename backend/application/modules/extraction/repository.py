@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from application.modules.extraction.entities import ExtractionLog
+from application.modules.extraction.models import ExtractionLog
 
 
 class ExtractionRepository:

@@ -1,6 +1,6 @@
 # Últimas Actualizaciones
 
-**Última actualización:** Noviembre 2024
+**Última actualización:** Noviembre 2025
 
 ## Estado Actual del Proyecto
 
@@ -70,7 +70,8 @@ El proyecto está completamente funcional con todas las funcionalidades principa
 - `backend/application/api/extraction/dtos.py` - *DTOs* y validación
 - `backend/application/modules/extraction/service.py` - Lógica de negocio
 - `backend/application/modules/extraction/repository.py` - Acceso a datos
-- `backend/application/modules/extraction/entities.py` - Modelos de base de datos
+- `backend/application/modules/extraction/models.py` - Modelos ORM de base de datos
+- `backend/application/modules/extraction/entities.py` - Entidades de dominio
 - `backend/application/constants.py` - Diccionario de bancos
 - `backend/src/extraction/` - 9 *parsers* implementados
 

@@ -13,8 +13,9 @@ from application.api.extraction.dtos import (
 )
 from application.constants import BANK_DICT_KUSHKI
 from application.database import get_session
+from application.modules.extraction.entities import SubmissionData
 from application.modules.extraction.repository import ExtractionRepository
-from application.modules.extraction.service import ExtractionService, SubmissionData
+from application.modules.extraction.service import ExtractionService
 
 router = APIRouter(prefix="/extraction", tags=["extraction"])
 
