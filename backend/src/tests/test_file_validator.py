@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.preprocessing.file_validator import FileValidator
+from src.infrastructure.preprocessing.file_validator import FileValidator
 
 
 class TestFileValidator:

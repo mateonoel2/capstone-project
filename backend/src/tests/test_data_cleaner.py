@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.preprocessing.data_cleaner import DataCleaner
+from src.infrastructure.preprocessing.data_cleaner import DataCleaner
 
 
 class TestDataCleaner:

@@ -11,9 +11,9 @@ Mexican bank statement extraction system. Uploads PDF bank statements and extrac
 ### Backend (`cd backend`)
 ```bash
 pip install -r requirements.txt          # install deps
-uvicorn application.main:app --reload    # run API server (port 8000)
+uvicorn src.main:app --reload            # run API server (port 8000)
 pytest                                   # run all tests
-pytest tests/test_file_validator.py      # run single test file
+pytest src/tests/test_file_validator.py  # run single test file
 ruff check .                             # lint
 ruff format .                            # format
 ```
@@ -28,25 +28,33 @@ npm run lint                             # eslint
 
 ## Architecture
 
-### Backend (`backend/`)
+### Backend (`backend/src/`)
 
-Two layers sharing the same codebase:
+Three layers under `src/`:
 
-- **`application/`** — Production FastAPI API (clean architecture)
-  - `main.py` — App entry point with CORS and lifespan
+- **`src/main.py`** — FastAPI app entry point with CORS and lifespan
+
+- **`src/domain/`** — Pure business logic (no external dependencies)
+  - `schemas.py` — `BankAccount` Pydantic model
+  - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`
+  - `banks.py` — `BANK_DICT_KUSHKI` (91 Mexican banks)
+  - `validators.py` — CLABE/bank regex patterns and validation
+  - `parser_interface.py` — `BaseParser` ABC
+  - `entities.py` — `SubmissionData`, `MetricsData` dataclasses
+  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`
+
+- **`src/infrastructure/`** — External integrations
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
-  - `modules/extraction/service.py` — Business logic orchestrating parsing + persistence
-  - `modules/extraction/repository.py` — SQLAlchemy data access (SQLite at `data/extractions.db`)
-  - `modules/extraction/entities.py` — Domain classes (`ExtractionResult`, `SubmissionData`, `MetricsData`)
-  - `modules/extraction/models.py` — ORM model (`ExtractionLog`)
+  - `api/extraction/dtos.py` — Request/response Pydantic models
+  - `database.py` — SQLAlchemy engine + session (SQLite at `data/extractions.db`)
+  - `models.py` — `ExtractionLog` ORM model
+  - `repository.py` — `ExtractionRepository` data access
+  - `parsers/` — Parser implementations: `claude_ocr`, `claude_text`, `claude_vision`, `hybrid`, `regex`, `pdfplumber`, `llama`, `layoutlm`
+  - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
+  - `evaluation/` — `ExperimentRunner` + validation metrics
+  - `data_pipeline/` — Download/cleanup scripts
 
-- **`src/`** — Research/experimentation layer
-  - `src/extraction/` — Parser implementations inheriting `BaseParser`: `ClaudeOCRParser`, `ClaudeParser`, `ClaudeVisionParser`, `LlamaParser`, `RegexParser`, `HybridParser`, `PdfplumberParser`, `LayoutLMParser`
-  - `src/extraction/schemas.py` — `BankAccount` Pydantic model + `BANK_DICT_KUSHKI` (91 Mexican banks)
-  - `src/preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
-  - `src/experiments/` — `ExperimentRunner` for batch parser comparison
-
-The application layer uses `ClaudeOCRParser` from `src/extraction/` as its production parser.
+- **`src/core/`** — Generic utilities (`logger.py`, `file_utils.py`)
 
 ### Frontend (`frontend/`)
 

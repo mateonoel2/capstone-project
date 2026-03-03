@@ -17,7 +17,7 @@ def main():
     print("\nPress CTRL+C to stop\n")
 
     uvicorn.run(
-        "src.application.main:app",
+        "src.main:app",
         host="127.0.0.1",
         port=8000,
         reload=True,
