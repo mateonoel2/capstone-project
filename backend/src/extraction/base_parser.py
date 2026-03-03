@@ -1,8 +1,11 @@
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
 from src.extraction.schemas import BankAccount
+
+logger = logging.getLogger(__name__)
 
 
 class BaseParser(ABC):
@@ -17,6 +20,6 @@ class BaseParser(ABC):
                 result = self.parse_file(file_path)
                 results.append(result)
             except Exception as e:
-                print(f"Error parsing {file_path}: {str(e)}")
+                logger.error("Error parsing %s: %s", file_path, e)
         return results
 

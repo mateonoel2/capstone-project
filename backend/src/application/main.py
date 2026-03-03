@@ -2,15 +2,16 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from application.api.extraction.routes import router as extraction_router
-from application.database import init_db
+from src.application.api.extraction.routes import router as extraction_router
+from src.application.database import init_db
 
 load_dotenv()
 
@@ -37,6 +38,11 @@ app.add_middleware(
 )
 
 app.include_router(extraction_router)
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.get("/")

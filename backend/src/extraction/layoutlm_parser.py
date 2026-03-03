@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from typing import Optional
@@ -7,8 +8,12 @@ from PIL import Image
 from transformers import AutoProcessor, AutoModelForTokenClassification
 import torch
 
+logger = logging.getLogger(__name__)
+
+from src.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
+from src.extraction.validators import bank_patterns, clabe_pattern, clabe_with_spaces_pattern
 
 
 class LayoutLMParser(BaseParser):
@@ -16,24 +21,10 @@ class LayoutLMParser(BaseParser):
         self.model_name = model_name
         self.processor = AutoProcessor.from_pretrained(model_name, apply_ocr=True)
         self.model = AutoModelForTokenClassification.from_pretrained(model_name)
-        
-        self.clabe_pattern = re.compile(r"\b\d{18}\b")
-        self.clabe_with_spaces_pattern = re.compile(
-            r"\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b"
-        )
-        self.bank_patterns = {
-            "BBVA MEXICO": re.compile(r"BBVA|Bancomer", re.IGNORECASE),
-            "SANTANDER": re.compile(r"Santander", re.IGNORECASE),
-            "BANAMEX": re.compile(r"Banamex|Citibanamex", re.IGNORECASE),
-            "BANORTE": re.compile(r"Banorte", re.IGNORECASE),
-            "HSBC": re.compile(r"HSBC", re.IGNORECASE),
-            "SCOTIABANK": re.compile(r"Scotiabank", re.IGNORECASE),
-            "AFIRME": re.compile(r"Afirme", re.IGNORECASE),
-            "BAJIO": re.compile(r"Bajío|Bajio", re.IGNORECASE),
-            "BANREGIO": re.compile(r"Banregio", re.IGNORECASE),
-            "MIFEL": re.compile(r"Mifel", re.IGNORECASE),
-            "BMONEX": re.compile(r"Bmonex|Monex", re.IGNORECASE),
-        }
+
+        self.clabe_pattern = clabe_pattern
+        self.clabe_with_spaces_pattern = clabe_with_spaces_pattern
+        self.bank_patterns = bank_patterns
 
     def _pdf_to_images(self, file_path: Path) -> list[Image.Image]:
         if file_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
@@ -105,12 +96,12 @@ class LayoutLMParser(BaseParser):
             images = self._pdf_to_images(file_path)
             text = self._extract_text_from_images(images)
         except Exception as e:
-            print(f"Error processing document with LayoutLM: {e}")
+            logger.error("Error processing document with LayoutLM: %s", e)
             text = ""
         
-        owner = self._extract_owner(text) or "Unknown"
-        account_number = self._extract_clabe(text) or "000000000000000000"
-        bank_name = self._extract_bank_name(text) or "Unknown"
+        owner = self._extract_owner(text) or UNKNOWN_OWNER
+        account_number = self._extract_clabe(text) or UNKNOWN_ACCOUNT
+        bank_name = self._extract_bank_name(text) or UNKNOWN_OWNER
         
         return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
 

@@ -3,21 +3,15 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from application.modules.extraction.entities import (
-    ExtractionResult,
-    MetricsData,
-    SubmissionData,
-)
-from application.modules.extraction.models import ExtractionLog
-from application.modules.extraction.repository import ExtractionRepository
+from src.application.modules.extraction.entities import MetricsData, SubmissionData
+from src.application.modules.extraction.models import ExtractionLog
+from src.application.modules.extraction.repository import ExtractionRepository
 from src.extraction.claude_ocr_parser import ClaudeOCRParser
+from src.extraction.schemas import BankAccount
 
 
 class ExtractionService:
-    def __init__(self, repository: ExtractionRepository):
-        self.repository = repository
-
-    async def extract_from_pdf(self, file: UploadFile) -> ExtractionResult:
+    async def extract_from_pdf(self, file: UploadFile) -> BankAccount:
         if not file.filename.lower().endswith(".pdf"):
             raise ValueError("Only PDF files are supported")
 
@@ -33,18 +27,17 @@ class ExtractionService:
 
             tmp_file_path.unlink()
 
-            return ExtractionResult(
-                owner="" if result.owner == "Unknown" else result.owner,
-                bank_name="" if result.bank_name == "Unknown" else result.bank_name,
-                account_number=""
-                if result.account_number == "000000000000000000"
-                else result.account_number,
-            )
+            return result
 
         except Exception as e:
             if tmp_file_path and tmp_file_path.exists():
                 tmp_file_path.unlink()
             raise e
+
+
+class SubmissionService:
+    def __init__(self, repository: ExtractionRepository):
+        self.repository = repository
 
     def submit_extraction(self, submission: SubmissionData) -> int:
         log_entry = ExtractionLog(
@@ -75,6 +68,11 @@ class ExtractionService:
         logs, total = self.repository.get_all_paginated(page, page_size)
         total_pages = (total + page_size - 1) // page_size
         return logs, total, total_pages
+
+
+class MetricsService:
+    def __init__(self, repository: ExtractionRepository):
+        self.repository = repository
 
     def get_metrics(self) -> MetricsData:
         total_extractions = self.repository.count_total()
@@ -131,4 +129,3 @@ class ExtractionService:
             bank_name_accuracy=round(bank_name_accuracy, 2),
             account_number_accuracy=round(account_number_accuracy, 2),
         )
-

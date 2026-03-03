@@ -1,12 +1,17 @@
 import json
+import logging
 import os
 import re
 from pathlib import Path
 
 import anthropic
 
+logger = logging.getLogger(__name__)
+
+from src.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
+from src.extraction.validators import validate_clabe
 from src.preprocessing.ocr_processor import OCRProcessor
 
 
@@ -14,7 +19,7 @@ class ClaudeOCRParser(BaseParser):
     def __init__(
         self,
         api_key: str = None,
-        model: str = "claude-3-5-haiku-latest",
+        model: str = "claude-sonnet-4-6",
         max_tokens: int = 1024,
         ocr_language: str = "spa+eng",
     ):
@@ -65,31 +70,26 @@ NO inventes información. Solo extrae lo que está claramente visible en el text
             return {}
 
         except Exception as e:
-            print(f"Error calling Claude: {e}")
+            logger.error("Error calling Claude: %s", e)
             return {}
-
-    def _validate_clabe(self, clabe: str) -> bool:
-        if not clabe or clabe == "000000000000000000":
-            return False
-        return bool(re.match(r"^\d{18}$", clabe))
 
     def parse_file(self, file_path: Path) -> BankAccount:
         text = self.ocr.process_pdf(file_path, preserve_layout=True)
 
         if not text.strip():
             return BankAccount(
-                owner="Unknown", account_number="000000000000000000", bank_name="Unknown"
+                owner=UNKNOWN_OWNER, account_number=UNKNOWN_ACCOUNT, bank_name=UNKNOWN_OWNER
             )
 
         claude_result = self._extract_with_claude(text)
 
-        owner = claude_result.get("owner", "Unknown") or "Unknown"
+        owner = claude_result.get("owner", UNKNOWN_OWNER) or UNKNOWN_OWNER
         account_number = (
-            claude_result.get("account_number", "000000000000000000") or "000000000000000000"
+            claude_result.get("account_number", UNKNOWN_ACCOUNT) or UNKNOWN_ACCOUNT
         )
-        bank_name = claude_result.get("bank_name", "Unknown") or "Unknown"
+        bank_name = claude_result.get("bank_name", UNKNOWN_OWNER) or UNKNOWN_OWNER
 
-        if not self._validate_clabe(account_number):
-            account_number = "000000000000000000"
+        if not validate_clabe(account_number):
+            account_number = UNKNOWN_ACCOUNT
 
         return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)

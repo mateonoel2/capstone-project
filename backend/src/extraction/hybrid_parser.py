@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Optional
@@ -6,8 +7,17 @@ from typing import Optional
 import ollama
 import pdfplumber
 
+logger = logging.getLogger(__name__)
+
+from src.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
+from src.extraction.validators import (
+    bank_patterns,
+    clabe_pattern,
+    clabe_with_spaces_pattern,
+    validate_clabe,
+)
 from src.preprocessing.ocr_processor import OCRProcessor
 
 
@@ -20,23 +30,9 @@ class HybridParser(BaseParser):
         self.use_ocr_fallback = use_ocr_fallback
         self.ocr = OCRProcessor() if use_ocr_fallback else None
 
-        self.clabe_pattern = re.compile(r"\b\d{18}\b")
-        self.clabe_with_spaces_pattern = re.compile(
-            r"\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b"
-        )
-        self.bank_patterns = {
-            "BBVA MEXICO": re.compile(r"BBVA|Bancomer", re.IGNORECASE),
-            "SANTANDER": re.compile(r"Santander", re.IGNORECASE),
-            "BANAMEX": re.compile(r"Banamex|Citibanamex", re.IGNORECASE),
-            "BANORTE": re.compile(r"Banorte", re.IGNORECASE),
-            "HSBC": re.compile(r"HSBC", re.IGNORECASE),
-            "SCOTIABANK": re.compile(r"Scotiabank", re.IGNORECASE),
-            "AFIRME": re.compile(r"Afirme", re.IGNORECASE),
-            "BAJIO": re.compile(r"Bajío|Bajio", re.IGNORECASE),
-            "BANREGIO": re.compile(r"Banregio", re.IGNORECASE),
-            "MIFEL": re.compile(r"Mifel", re.IGNORECASE),
-            "BMONEX": re.compile(r"Bmonex|Monex", re.IGNORECASE),
-        }
+        self.clabe_pattern = clabe_pattern
+        self.clabe_with_spaces_pattern = clabe_with_spaces_pattern
+        self.bank_patterns = bank_patterns
 
     def _extract_text_with_pdfplumber(self, file_path: Path) -> str:
         text = ""
@@ -94,7 +90,7 @@ y "000000000000000000" para account_number.
             return {}
 
         except Exception as e:
-            print(f"Error calling Ollama: {e}")
+            logger.error("Error calling Ollama: %s", e)
             return {}
 
     def _extract_clabe_regex(self, text: str) -> Optional[str]:
@@ -137,32 +133,27 @@ y "000000000000000000" para account_number.
 
         return None
 
-    def _validate_clabe(self, clabe: str) -> bool:
-        if not clabe or clabe == "000000000000000000":
-            return False
-        return bool(re.match(r"^\d{18}$", clabe))
-
     def parse_file(self, file_path: Path) -> BankAccount:
         text = self._extract_text_with_pdfplumber(file_path)
 
         ollama_result = self._extract_with_ollama(text)
 
-        owner = ollama_result.get("owner", "Unknown")
-        account_number = ollama_result.get("account_number", "000000000000000000")
-        bank_name = ollama_result.get("bank_name", "Unknown")
+        owner = ollama_result.get("owner", UNKNOWN_OWNER)
+        account_number = ollama_result.get("account_number", UNKNOWN_ACCOUNT)
+        bank_name = ollama_result.get("bank_name", UNKNOWN_OWNER)
 
         if self.fallback_to_regex:
-            if not self._validate_clabe(account_number):
+            if not validate_clabe(account_number):
                 regex_clabe = self._extract_clabe_regex(text)
                 if regex_clabe:
                     account_number = regex_clabe
 
-            if bank_name == "Unknown" or not bank_name:
+            if bank_name == UNKNOWN_OWNER or not bank_name:
                 regex_bank = self._extract_bank_name_regex(text)
                 if regex_bank:
                     bank_name = regex_bank
 
-            if owner == "Unknown" or not owner:
+            if owner == UNKNOWN_OWNER or not owner:
                 regex_owner = self._extract_owner_regex(text)
                 if regex_owner:
                     owner = regex_owner

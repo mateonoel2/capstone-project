@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import List
 
 import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 class OCRProcessor:
@@ -30,7 +33,7 @@ class OCRProcessor:
             images = convert_from_path(str(pdf_path), dpi=dpi, first_page=1, last_page=3)
             return images
         except Exception as e:
-            print(f"Error converting PDF to images: {e}")
+            logger.error("Error converting PDF to images: %s", e)
             return []
 
     def ocr_image(self, image: Image.Image) -> str:
@@ -39,7 +42,7 @@ class OCRProcessor:
             text = pytesseract.image_to_string(image, lang=self.language, config=custom_config)
             return text
         except Exception as e:
-            print(f"Error performing OCR: {e}")
+            logger.error("Error performing OCR: %s", e)
             return ""
 
     def ocr_image_with_layout(self, image: Image.Image) -> str:
@@ -71,7 +74,7 @@ class OCRProcessor:
 
             return "\n".join(text_blocks)
         except Exception as e:
-            print(f"Error performing OCR with layout: {e}")
+            logger.error("Error performing OCR with layout: %s", e)
             return ""
 
     def process_pdf(self, pdf_path: Path, preserve_layout: bool = True) -> str:

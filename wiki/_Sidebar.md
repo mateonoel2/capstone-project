@@ -5,6 +5,11 @@
 
 ### Documentación Principal
 - [Diseño de Solución](Diseño-de-Solución)
+- [Arquitectura Mínima Operable](Arquitectura-Mínima-Operable)
+
+### Planificación
+- [Autodiagnóstico Prototipo-MVP](Autodiagnóstico-Prototipo-MVP)
+- [Recomendaciones de Generalización](Recomendaciones-de-Generalización)
 
 ### *Backend*
 - [Guía de *Scripts*](Guía-de-Scripts)

@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -8,15 +9,19 @@ import anthropic
 from pdf2image import convert_from_path
 from PIL import Image
 
+logger = logging.getLogger(__name__)
+
+from src.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 from src.extraction.base_parser import BaseParser
 from src.extraction.schemas import BankAccount
+from src.extraction.validators import validate_clabe
 
 
 class ClaudeVisionParser(BaseParser):
     def __init__(
         self,
         api_key: str = None,
-        model: str = "claude-3-5-haiku-latest",
+        model: str = "claude-sonnet-4-6",
         max_tokens: int = 1024,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
@@ -46,7 +51,7 @@ class ClaudeVisionParser(BaseParser):
 
             return base64_images
         except Exception as e:
-            print(f"Error converting PDF to images: {e}")
+            logger.error("Error converting PDF to images: %s", e)
             return []
 
     def _extract_with_vision(self, base64_images: list[str]) -> dict:
@@ -110,31 +115,26 @@ NO inventes información. Solo extrae lo que está claramente visible en el docu
             return {}
 
         except Exception as e:
-            print(f"Error calling Claude Vision: {e}")
+            logger.error("Error calling Claude Vision: %s", e)
             return {}
-
-    def _validate_clabe(self, clabe: str) -> bool:
-        if not clabe or clabe == "000000000000000000":
-            return False
-        return bool(re.match(r"^\d{18}$", clabe))
 
     def parse_file(self, file_path: Path) -> BankAccount:
         base64_images = self._pdf_to_base64_images(file_path)
 
         if not base64_images:
             return BankAccount(
-                owner="Unknown", account_number="000000000000000000", bank_name="Unknown"
+                owner=UNKNOWN_OWNER, account_number=UNKNOWN_ACCOUNT, bank_name=UNKNOWN_OWNER
             )
 
         vision_result = self._extract_with_vision(base64_images)
 
-        owner = vision_result.get("owner", "Unknown") or "Unknown"
+        owner = vision_result.get("owner", UNKNOWN_OWNER) or UNKNOWN_OWNER
         account_number = (
-            vision_result.get("account_number", "000000000000000000") or "000000000000000000"
+            vision_result.get("account_number", UNKNOWN_ACCOUNT) or UNKNOWN_ACCOUNT
         )
-        bank_name = vision_result.get("bank_name", "Unknown") or "Unknown"
+        bank_name = vision_result.get("bank_name", UNKNOWN_OWNER) or UNKNOWN_OWNER
 
-        if not self._validate_clabe(account_number):
-            account_number = "000000000000000000"
+        if not validate_clabe(account_number):
+            account_number = UNKNOWN_ACCOUNT
 
         return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)

@@ -91,6 +91,11 @@ capstone-project/
 
 ### Arquitectura y Diseño
 - [Diseño de Solución](Diseño-de-Solución) - Arquitectura completa del producto de datos
+- [Arquitectura Mínima Operable](Arquitectura-Mínima-Operable) - Componentes e infraestructura mínima
+
+### Planificación y Evolución
+- [Autodiagnóstico Prototipo-MVP](Autodiagnóstico-Prototipo-MVP) - Evaluación del estado actual del prototipo
+- [Recomendaciones de Generalización](Recomendaciones-de-Generalización) - Hoja de ruta para evolucionar el proyecto
 
 ### *Backend*
 - [Guía de *Scripts*](Guía-de-Scripts) - Cómo usar los *scripts* del proyecto

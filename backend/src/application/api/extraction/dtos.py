@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class ExtractionResponse(BaseModel):
@@ -32,6 +34,8 @@ class BanksResponse(BaseModel):
 
 
 class ExtractionLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     timestamp: str | None
     filename: str
@@ -44,6 +48,13 @@ class ExtractionLogResponse(BaseModel):
     owner_corrected: bool
     bank_name_corrected: bool
     account_number_corrected: bool
+
+    @field_validator("timestamp", mode="before")
+    @classmethod
+    def convert_timestamp(cls, v: datetime | str | None) -> str | None:
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 
 class PaginationMeta(BaseModel):
@@ -59,6 +70,8 @@ class LogsResponse(BaseModel):
 
 
 class MetricsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     total_extractions: int
     total_corrections: int
     accuracy_rate: float
@@ -66,4 +79,3 @@ class MetricsResponse(BaseModel):
     owner_accuracy: float
     bank_name_accuracy: float
     account_number_accuracy: float
-
