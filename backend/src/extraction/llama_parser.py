@@ -16,13 +16,13 @@ from src.extraction.schemas import BankAccount
 class LlamaParser(BaseParser):
     def __init__(
         self,
-        llama_api_key: str = None,
-        anthropic_api_key: str = None,
-        model: str = "claude-sonnet-4-6",
+        llama_api_key: str | None = None,
+        anthropic_api_key: str | None = None,
+        model: str = "claude-haiku-4-5-20251001",
         separator: str = "\n---\n",
     ):
-        self.llama_api_key = llama_api_key or os.environ.get("LLAMA_CLOUD_API_KEY")
-        self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.llama_api_key = llama_api_key or os.environ.get("LLAMA_CLOUD_API_KEY", "")
+        self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model = model
         self.separator = separator
 
@@ -35,7 +35,7 @@ class LlamaParser(BaseParser):
         Settings.embed_model = embed_model
 
     def _get_page_nodes(self, file_path: Path) -> List[TextNode]:
-        docs = LlamaParse(result_type="text", api_key=self.llama_api_key).load_data(str(file_path))
+        docs = LlamaParse(result_type="text", api_key=self.llama_api_key).load_data(str(file_path))  # type: ignore[arg-type]
 
         nodes = []
         for doc in docs:
@@ -59,7 +59,7 @@ class LlamaParser(BaseParser):
         )
 
         response = query_engine.query(query)
-        return response
+        return response  # type: ignore[return-value]
 
     def parse_file(self, file_path: Path) -> BankAccount:
         query = "En la carátula del estado de cuenta, encuentra el dueño de la cuenta, el número \

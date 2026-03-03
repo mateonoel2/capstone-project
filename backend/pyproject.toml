@@ -2,11 +2,11 @@
 name = "bank-statement-extraction"
 version = "0.1.0"
 description = "Bank statement extraction with multiple approaches"
-requires-python = ">=3.9"
+requires-python = ">=3.14"
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
@@ -29,9 +29,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
+[tool.basedpyright]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
 

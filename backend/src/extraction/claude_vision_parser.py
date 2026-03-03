@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 import anthropic
+from anthropic.types import TextBlock
 from pdf2image import convert_from_path
 from PIL import Image
 
@@ -20,11 +21,11 @@ from src.extraction.validators import validate_clabe
 class ClaudeVisionParser(BaseParser):
     def __init__(
         self,
-        api_key: str = None,
-        model: str = "claude-sonnet-4-6",
+        api_key: str | None = None,
+        model: str = "claude-haiku-4-5-20251001",
         max_tokens: int = 1024,
     ):
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model = model
         self.max_tokens = max_tokens
         self.client = anthropic.Anthropic(api_key=self.api_key)
@@ -105,7 +106,8 @@ NO inventes información. Solo extrae lo que está claramente visible en el docu
                 messages=[{"role": "user", "content": content}],
             )
 
-            response_text = message.content[0].text
+            text_blocks = [block for block in message.content if isinstance(block, TextBlock)]
+            response_text = text_blocks[0].text if text_blocks else ""
 
             json_match = re.search(r"\{[^}]+\}", response_text, re.DOTALL)
             if json_match:

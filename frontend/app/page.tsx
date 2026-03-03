@@ -7,6 +7,7 @@ import { BankCombobox } from "@/components/bank-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -22,9 +23,11 @@ export default function Home() {
   const {
     file,
     extracted,
+    parser,
     formData,
     setFile,
     setExtracted,
+    setParser,
     updateFormField,
     setFormData,
     reset: resetStore,
@@ -55,7 +58,7 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromPDF(selectedFile);
+      const result = await extractFromPDF(selectedFile, parser);
       setExtracted(result);
       setFormData({
         owner: result.owner,
@@ -124,10 +127,26 @@ export default function Home() {
         </div>
 
         {!file ? (
-          <FileUpload
-            onFileSelect={handleFileSelect}
-            isLoading={isExtracting}
-          />
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Label htmlFor="parser-select" className="text-sm font-medium whitespace-nowrap">
+                Parser
+              </Label>
+              <Select
+                id="parser-select"
+                value={parser}
+                onChange={(e) => setParser(e.target.value)}
+                className="w-[220px]"
+              >
+                <option value="claude_ocr">Claude OCR</option>
+                <option value="claude_vision">Claude Vision</option>
+              </Select>
+            </div>
+            <FileUpload
+              onFileSelect={handleFileSelect}
+              isLoading={isExtracting}
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">

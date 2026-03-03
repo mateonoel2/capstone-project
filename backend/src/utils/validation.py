@@ -5,7 +5,7 @@ import pandas as pd
 import pdfplumber
 
 
-def check_pdf_text_extraction(pdf_path: Path) -> Dict[str, any]:
+def check_pdf_text_extraction(pdf_path: Path) -> Dict[str, object]:
     try:
         with pdfplumber.open(pdf_path) as pdf:
             total_chars = 0
@@ -129,9 +129,9 @@ def calculate_metrics(results_df: pd.DataFrame, ground_truth_df: pd.DataFrame) -
     }
 
     for _, row in merged.iterrows():
-        owner_correct, owner_type = validate_owner(row.get("owner", ""), row["Owner"])
-        clabe_correct, clabe_type = validate_clabe(row.get("account_number", ""), row["CLABE"])
-        bank_correct, bank_type = validate_bank(row.get("bank_name", ""), row["banco"])
+        owner_correct, owner_type = validate_owner(str(row.get("owner", "")), str(row["Owner"]))
+        clabe_correct, clabe_type = validate_clabe(str(row.get("account_number", "")), str(row["CLABE"]))
+        bank_correct, bank_type = validate_bank(str(row.get("bank_name", "")), str(row["banco"]))
 
         metrics["owner"][
             "correct"

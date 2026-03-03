@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.application.api.extraction.dtos import (
@@ -22,6 +24,8 @@ from src.application.modules.extraction.service import (
 )
 from src.constants import BANK_DICT_KUSHKI, UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 
+DbDep = Annotated[Session, Depends(get_db)]
+
 router = APIRouter(prefix="/extraction", tags=["extraction"])
 
 
@@ -31,11 +35,12 @@ def _get_repository(db: Session) -> ExtractionRepository:
 
 @router.post("/pdf", response_model=ExtractionResponse)
 async def extract_from_pdf(
-    file: UploadFile = File(...),
+    file: Annotated[UploadFile, File()],
+    parser: Annotated[str, Form()] = "claude_ocr",
 ):
     try:
         service = ExtractionService()
-        result = await service.extract_from_pdf(file)
+        result = await service.extract_from_pdf(file, parser)
 
         return ExtractionResponse(
             owner="" if result.owner == UNKNOWN_OWNER else result.owner,
@@ -51,9 +56,7 @@ async def extract_from_pdf(
 
 
 @router.post("/submit", response_model=SubmissionResponse)
-async def submit_extraction(
-    submission: SubmissionRequest, db: Session = Depends(get_db)
-):
+async def submit_extraction(submission: SubmissionRequest, db: DbDep):
     try:
         service = SubmissionService(_get_repository(db))
 
@@ -82,9 +85,7 @@ async def get_banks():
 
 
 @router.get("/logs", response_model=LogsResponse)
-async def get_extraction_logs(
-    page: int = 1, page_size: int = 50, db: Session = Depends(get_db)
-):
+async def get_extraction_logs(db: DbDep, page: int = 1, page_size: int = 50):
     try:
         service = SubmissionService(_get_repository(db))
         logs, total, total_pages = service.get_extraction_logs(page, page_size)
@@ -107,7 +108,7 @@ async def get_extraction_logs(
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics(db: Session = Depends(get_db)):
+async def get_metrics(db: DbDep):
     try:
         service = MetricsService(_get_repository(db))
         metrics = service.get_metrics()

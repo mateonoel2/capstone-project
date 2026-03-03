@@ -7,13 +7,23 @@ from src.application.modules.extraction.entities import MetricsData, SubmissionD
 from src.application.modules.extraction.models import ExtractionLog
 from src.application.modules.extraction.repository import ExtractionRepository
 from src.extraction.claude_ocr_parser import ClaudeOCRParser
+from src.extraction.claude_vision_parser import ClaudeVisionParser
 from src.extraction.schemas import BankAccount
+
+PARSER_MAP = {
+    "claude_ocr": ClaudeOCRParser,
+    "claude_vision": ClaudeVisionParser,
+}
 
 
 class ExtractionService:
-    async def extract_from_pdf(self, file: UploadFile) -> BankAccount:
-        if not file.filename.lower().endswith(".pdf"):
+    async def extract_from_pdf(
+        self, file: UploadFile, parser: str = "claude_ocr"
+    ) -> BankAccount:
+        if not file.filename or not file.filename.lower().endswith(".pdf"):
             raise ValueError("Only PDF files are supported")
+        if parser not in PARSER_MAP:
+            raise ValueError(f"Unknown parser: {parser}. Options: {list(PARSER_MAP.keys())}")
 
         tmp_file_path = None
         try:
@@ -22,8 +32,8 @@ class ExtractionService:
                 tmp_file.write(content)
                 tmp_file_path = Path(tmp_file.name)
 
-            parser = ClaudeOCRParser()
-            result = parser.parse_file(tmp_file_path)
+            parser_instance = PARSER_MAP[parser]()
+            result = parser_instance.parse_file(tmp_file_path)
 
             tmp_file_path.unlink()
 
@@ -55,7 +65,7 @@ class SubmissionService:
         )
 
         created_log = self.repository.create(log_entry)
-        return created_log.id
+        return int(created_log.id)  # type: ignore[arg-type]
 
     def get_extraction_logs(
         self, page: int, page_size: int

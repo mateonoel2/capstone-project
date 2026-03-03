@@ -8,45 +8,41 @@ https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
 
 ## Descripción
 
-Este proyecto implementa y compara múltiples métodos para extraer información estructurada de estados de cuenta bancarios en formato PDF, incluyendo:
-
-- *LlamaParse*: Extracción basada en modelos de lenguaje (*LLM*)
-- *Regex Parser*: Extracción basada en expresiones regulares
-
-El sistema está diseñado para experimentar con diferentes técnicas y evaluar su efectividad en la extracción de datos bancarios.
+Este proyecto implementa un sistema de producción (*FastAPI* + *Next.js*) y una capa de investigación para extraer información estructurada de estados de cuenta bancarios mexicanos en formato PDF. Utiliza 8 *parsers* diferentes (2 seleccionables desde la UI) basados en *Claude Sonnet 4.6*, *LlamaParse*, OCR, expresiones regulares y más.
 
 ## Características
 
-- Extracción automatizada de datos de estados de cuenta en PDF
-- Múltiples estrategias de *parsing* (*LLM* y *Regex*)
-- Sistema de experimentación para comparar diferentes enfoques
-- Preprocesamiento y limpieza de datos
-- Validación de archivos
-- Descarga automatizada de estados de cuenta
-- *Logging* detallado de experimentos
+- Aplicación web de producción con *FastAPI* (*backend*) y *Next.js* (*frontend*)
+- Selector de *parser* en la UI (*Claude OCR* 63.8%, *Claude Vision* 54.5%)
+- 8 estrategias de *parsing* para experimentación
+- *Dashboard* con métricas de precisión y correcciones
+- Preprocesamiento y limpieza de datos (OCR, validación)
+- Sistema de experimentación para comparar enfoques
 - Suite de pruebas automatizadas
 
 ## Estructura del Proyecto
 
 ```
-backend/
-├── config/                      # Archivos de configuración
-│   └── extraction_config.yaml
-├── data/                        # Datos del proyecto
-│   ├── raw/                     # Datos sin procesar
-│   ├── processed/               # Datos procesados
-│   └── results/                 # Resultados de extracción
-├── notebooks/                   # Jupyter notebooks para análisis
-├── scripts/                     # Scripts ejecutables
-│   ├── clean_data.py           # Limpieza de datos
-│   ├── download_statements.py  # Descarga de estados de cuenta
-│   └── run_extraction.py       # Ejecución de extracción
-├── src/                        # Código fuente
-│   ├── experiments/            # Sistema de experimentos
-│   ├── extraction/             # Parsers y esquemas
-│   ├── preprocessing/          # Preprocesamiento de datos
-│   └── utils/                  # Utilidades
-└── tests/                      # Pruebas unitarias
+capstone-project/
+├── backend/
+│   ├── src/
+│   │   ├── application/            # API REST (FastAPI)
+│   │   │   ├── api/                # Endpoints
+│   │   │   ├── modules/            # Servicios, repositorio, entidades
+│   │   │   ├── database.py         # Configuración SQLite
+│   │   │   └── main.py             # Entry point
+│   │   ├── extraction/             # 8 parsers implementados
+│   │   ├── preprocessing/          # Preprocesamiento de datos
+│   │   ├── experiments/            # Sistema de experimentos
+│   │   └── utils/                  # Utilidades
+│   ├── scripts/                    # Scripts ejecutables
+│   ├── tests/                      # Pruebas unitarias
+│   └── data/                       # Datos y base de datos SQLite
+│
+└── frontend/                       # Aplicación Next.js
+    ├── app/                        # Pages (App Router)
+    ├── components/                 # Componentes React + shadcn/ui
+    └── lib/                        # API client, Store, Utils
 ```
 
 ## Requisitos
@@ -94,38 +90,26 @@ cp .env.example .env
 
 ## Uso
 
-### Extracción con *LlamaParse*
+### Aplicación web
 
 ```bash
-python scripts/run_extraction.py --parser llama --input-dir data/raw/bank_statements
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn src.application.main:app --reload  # http://localhost:8000
+
+# Frontend
+cd frontend
+npm install
+npm run dev  # http://localhost:3000
 ```
 
-### Extracción con *Regex*
+### *Scripts* de investigación
 
 ```bash
-python scripts/run_extraction.py --parser regex --input-dir data/raw/bank_statements
-```
-
-### Comparar todos los *parsers*
-
-```bash
+cd backend
 python scripts/run_extraction.py --parser all --input-dir data/raw/bank_statements
-```
-
-### Limitar número de archivos a procesar
-
-```bash
 python scripts/run_extraction.py --parser llama --limit 10
-```
-
-### Preprocesamiento de datos
-
-```bash
-# Limpiar datos crudos
-python scripts/clean_data.py
-
-# Descargar estados de cuenta
-python scripts/download_statements.py
 ```
 
 ## Pruebas

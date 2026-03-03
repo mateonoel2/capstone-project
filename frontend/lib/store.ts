@@ -7,6 +7,7 @@ interface ExtractionState {
   fileName: string | null;
   fileData: string | null;
   extracted: ExtractionResult | null;
+  parser: string;
   formData: {
     owner: string;
     bank_name: string;
@@ -14,6 +15,7 @@ interface ExtractionState {
   };
   setFile: (file: File | null) => void;
   setExtracted: (extracted: ExtractionResult | null) => void;
+  setParser: (parser: string) => void;
   setFormData: (formData: { owner: string; bank_name: string; account_number: string }) => void;
   updateFormField: (field: keyof ExtractionState["formData"], value: string) => void;
   reset: () => void;
@@ -24,6 +26,7 @@ const initialState = {
   fileName: null,
   fileData: null,
   extracted: null,
+  parser: "claude_ocr",
   formData: {
     owner: "",
     bank_name: "",
@@ -55,6 +58,8 @@ export const useExtractionStore = create<ExtractionState>()(
 
       setExtracted: (extracted) => set({ extracted }),
 
+      setParser: (parser) => set({ parser }),
+
       setFormData: (formData) => set({ formData }),
 
       updateFormField: (field, value) =>
@@ -73,6 +78,7 @@ export const useExtractionStore = create<ExtractionState>()(
       partialize: (state) => ({
         fileName: state.fileName,
         extracted: state.extracted,
+        parser: state.parser,
         formData: state.formData,
       }),
     }

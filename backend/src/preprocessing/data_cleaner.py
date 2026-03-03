@@ -74,15 +74,15 @@ class DataCleaner:
         df = pd.DataFrame(results)
 
         if "account_number" in df.columns:
-            df = df[df["account_number"].str.match(r"^\d{18}$", na=False)]
+            df = df[df["account_number"].str.match(r"^\d{18}$", na=False)]  # type: ignore[assignment]
 
         if "owner" in df.columns:
-            df = df[df["owner"].notna() & (df["owner"] != "Unknown")]
+            df = df[df["owner"].notna() & (df["owner"] != "Unknown")]  # type: ignore[assignment]
 
-        if "bank_name" in df.columns:
-            df = df[df["bank_name"].notna() & (df["bank_name"] != "Unknown")]
+        if "bank_name" in df.columns:  # type: ignore[union-attr]
+            df = df[df["bank_name"].notna() & (df["bank_name"] != "Unknown")]  # type: ignore[assignment]
 
-        return df
+        return df  # type: ignore[return-value]
 
     def get_cleaning_report(self) -> pd.DataFrame:
         if not self.cleaning_report:

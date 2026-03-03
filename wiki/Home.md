@@ -29,8 +29,8 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 - **Lenguaje**: Python 3.10+
 - ***Framework* API**: *FastAPI*
 - **Base de Datos**: *SQLite* con *SQLAlchemy*
-- **Extracción**: 9 *parsers* implementados
-  - *Claude* (Haiku/Sonnet)
+- **Extracción**: 8 *parsers* implementados, 2 expuestos en la UI de producción
+  - *Claude* (Sonnet 4.6)
   - *LlamaParse*
   - *Tesseract OCR*
   - *PDFPlumber*, *PyPDF2*
@@ -58,13 +58,13 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 ```
 capstone-project/
 ├── backend/                        # Código del backend
-│   ├── application/                # API REST + Database
-│   │   ├── api/                    # Endpoints
-│   │   ├── modules/                # Lógica de negocio
-│   │   ├── database.py             # Configuración SQLite
-│   │   └── constants.py            # Diccionario de bancos
-│   ├── src/                        # Código fuente
-│   │   ├── extraction/             # 9 parsers implementados
+│   ├── src/
+│   │   ├── application/            # API REST (FastAPI)
+│   │   │   ├── api/                # Endpoints
+│   │   │   ├── modules/            # Servicios, repositorio, entidades
+│   │   │   ├── database.py         # Configuración SQLite
+│   │   │   └── main.py             # Entry point
+│   │   ├── extraction/             # 8 parsers implementados
 │   │   ├── preprocessing/          # Limpieza y OCR
 │   │   ├── experiments/            # ExperimentRunner
 │   │   └── utils/                  # Utilidades
@@ -114,13 +114,14 @@ capstone-project/
 
 ### Completamente Implementado
 
-- Sistema de extracción con 9 *parsers*
+- Sistema de extracción con 8 *parsers* (2 seleccionables desde la UI)
 - API REST con 7 *endpoints*
-- *Frontend* con extracción y *dashboard*
+- *Frontend* con extracción, selector de *parser* y *dashboard*
 - Base de datos *SQLite* con *logging*
 - Sistema de métricas y análisis
 - Visor de PDF con controles avanzados
 - Tabla de extracciones con búsqueda y paginación
+- Servicios divididos: `ExtractionService`, `SubmissionService`, `MetricsService`
 
 ### *Parser* Recomendado
 

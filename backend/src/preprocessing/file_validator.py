@@ -37,7 +37,7 @@ class FileValidator:
         return min_size <= size <= max_size
 
     @classmethod
-    def validate_file(cls, file_path: Path) -> Dict[str, any]:
+    def validate_file(cls, file_path: Path) -> Dict[str, object]:
         result = {
             'file_path': str(file_path),
             'exists': file_path.exists(),
@@ -70,7 +70,7 @@ class FileValidator:
         return result
 
     @classmethod
-    def validate_directory(cls, directory: Path) -> List[Dict[str, any]]:
+    def validate_directory(cls, directory: Path) -> List[Dict[str, object]]:
         results = []
         for file_path in directory.glob('*'):
             if file_path.is_file():

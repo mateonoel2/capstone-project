@@ -58,9 +58,10 @@ export interface PaginatedLogsResponse {
   pagination: PaginationMeta;
 }
 
-export async function extractFromPDF(file: File): Promise<ExtractionResult> {
+export async function extractFromPDF(file: File, parser: string = "claude_ocr"): Promise<ExtractionResult> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("parser", parser);
 
   const response = await fetch(`${API_BASE_URL}/extraction/pdf`, {
     method: "POST",

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mexican bank statement extraction system. Uploads PDF bank statements and extracts structured fields (owner name, CLABE account number, bank name) using Claude 3.5 Haiku. Two subsystems: a research/experimentation layer for comparing parser strategies, and a production FastAPI + Next.js application.
+Mexican bank statement extraction system. Uploads PDF bank statements and extracts structured fields (owner name, CLABE account number, bank name) using Claude Haiku 4.5. Two subsystems: a research/experimentation layer for comparing parser strategies, and a production FastAPI + Next.js application.
 
 ## Commands
 

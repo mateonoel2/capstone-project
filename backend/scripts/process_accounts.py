@@ -49,7 +49,7 @@ def filter_by_validation(df: pd.DataFrame) -> pd.DataFrame:
     df["document_type"] = df["document_type"].fillna("").astype(str)
 
     valid_clabe_mask = df["CLABE"].apply(is_valid_clabe)
-    df = df[valid_clabe_mask]
+    df = df[valid_clabe_mask]  # type: ignore[assignment]
     print(f"After CLABE validation (18 digits): {len(df)}")
 
     def is_valid_document(row):
@@ -67,7 +67,7 @@ def filter_by_validation(df: pd.DataFrame) -> pd.DataFrame:
             return False
 
     valid_document_mask = df.apply(is_valid_document, axis=1)
-    df = df[valid_document_mask]
+    df = df[valid_document_mask]  # type: ignore[assignment]
     print(f"After RFC/CURP validation: {len(df)}")
 
     before_dedup = len(df)
@@ -104,7 +104,7 @@ def filter_by_pdfs(df: pd.DataFrame, statements_dir: Path, output_dir: Path) -> 
         downloaded_file = row.get("downloaded_file", "")
 
         if (
-            pd.notna(downloaded_file)
+            pd.notna(downloaded_file)  # type: ignore[arg-type]
             and str(downloaded_file).strip()
             and str(downloaded_file) != "nan"
         ):

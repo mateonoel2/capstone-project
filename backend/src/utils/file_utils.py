@@ -19,7 +19,7 @@ def ensure_directory(directory: Path) -> Path:
     return directory
 
 
-def get_all_files(directory: Path, extensions: List[str] = None) -> List[Path]:
+def get_all_files(directory: Path, extensions: List[str] | None = None) -> List[Path]:
     if extensions is None:
         return sorted([f for f in directory.iterdir() if f.is_file()])
 

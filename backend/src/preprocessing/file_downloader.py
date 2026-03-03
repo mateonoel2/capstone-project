@@ -91,6 +91,7 @@ class FileDownloader:
                 else:
                     print(f"  ✗ Failed after {self.max_retries} attempts")
                     return False
+        return False
 
     def download_from_csv(self, csv_path: Path, url_column: str = "Caratula") -> pd.DataFrame:
         df = pd.read_csv(csv_path)
@@ -109,19 +110,19 @@ class FileDownloader:
 
         for idx, row in df.iterrows():
             try:
-                row_num = idx + 2
+                row_num = int(idx) + 2  # type: ignore[arg-type]
                 nickname = row.get("Nickname", "Unknown")
                 school = row.get("Colegio", "Unknown")
                 caratula_value = row.get(url_column, "")
 
-                if pd.isna(nickname):
+                if pd.isna(nickname):  # type: ignore[arg-type]
                     nickname = "Unknown"
-                if pd.isna(school):
+                if pd.isna(school):  # type: ignore[arg-type]
                     school = "Unknown"
 
                 print(f"[{row_num}/{len(df) + 1}] {nickname} - {school}")
 
-                if pd.isna(caratula_value) or caratula_value == "":
+                if pd.isna(caratula_value) or caratula_value == "":  # type: ignore[arg-type]
                     print("  ⊘ No file URL found")
                     df.at[idx, "download_status"] = "no_url"
                     skipped_count += 1
@@ -137,7 +138,7 @@ class FileDownloader:
                     continue
 
                 url = url_match.group(0)
-                safe_nickname = self.sanitize_filename(nickname)
+                safe_nickname = self.sanitize_filename(str(nickname) if nickname else "Unknown")
 
                 temp_filename = f"row{row_num:03d}_{safe_nickname}_temp"
                 temp_path = self.output_dir / temp_filename
