@@ -10,12 +10,18 @@ Mexican bank statement extraction system. Uploads PDF bank statements and extrac
 
 ### Backend (`cd backend`)
 ```bash
-pip install -r requirements.txt          # install deps
+uv sync                                  # install deps
 uvicorn src.main:app --reload            # run API server (port 8000)
 pytest                                   # run all tests
 pytest src/tests/test_file_validator.py  # run single test file
 ruff check .                             # lint
 ruff format .                            # format
+```
+
+### Docker (project root)
+```bash
+docker compose up                        # run full stack (backend + postgres + localstack)
+docker compose build backend             # rebuild backend image
 ```
 
 ### Frontend (`cd frontend`)
@@ -46,10 +52,10 @@ Three layers under `src/`:
 - **`src/infrastructure/`** — External integrations
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
-  - `database.py` — SQLAlchemy engine + session (SQLite at `data/extractions.db`)
+  - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
   - `models.py` — `ExtractionLog` ORM model
   - `repository.py` — `ExtractionRepository` data access
-  - `parsers/` — Parser implementations: `claude_ocr`, `claude_text`, `claude_vision`, `hybrid`, `regex`, `pdfplumber`, `llama`, `layoutlm`
+  - `parsers/` — Parser implementations: `claude_ocr`, `claude_text`, `claude_vision`
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics
   - `data_pipeline/` — Download/cleanup scripts
@@ -68,7 +74,7 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 ## Key Domain Concepts
 
 - **CLABE**: 18-digit Mexican interbank account number (validated with `^\d{18}$`)
-- **Extraction flow**: pdfplumber text extraction → fallback to OCR (pdf2image + pytesseract) → Claude prompt → JSON response → user correction → persistence with correction flags
+- **Extraction flow**: OCR (pdf2image + pytesseract) → Claude prompt → JSON response → user correction → persistence with correction flags
 - **Accuracy metrics**: Calculated from per-field boolean correction flags stored in `ExtractionLog`
 
 ## Environment Variables

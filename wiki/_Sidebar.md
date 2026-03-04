@@ -8,6 +8,7 @@
 - [Arquitectura Mínima Operable](Arquitectura-Mínima-Operable)
 
 ### Planificación
+- [Prototipo](Prototipo)
 - [Autodiagnóstico Prototipo-MVP](Autodiagnóstico-Prototipo-MVP)
 - [Recomendaciones de Generalización](Recomendaciones-de-Generalización)
 
