@@ -5,14 +5,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from alembic import command
-from alembic.config import Config
-
 from src.infrastructure.api.extraction.routes import router as extraction_router
 
 load_dotenv()

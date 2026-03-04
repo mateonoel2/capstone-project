@@ -1,18 +1,19 @@
 """Initial extraction_logs table
 
 Revision ID: 554efd373264
-Revises: 
+Revises:
 Create Date: 2026-03-03 20:57:26.612847
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '554efd373264'
+revision: str = "554efd373264"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

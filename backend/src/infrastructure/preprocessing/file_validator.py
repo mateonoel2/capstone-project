@@ -5,7 +5,7 @@ import pypdf
 
 
 class FileValidator:
-    VALID_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff'}
+    VALID_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff"}
 
     @staticmethod
     def is_valid_extension(file_path: Path) -> bool:
@@ -13,11 +13,11 @@ class FileValidator:
 
     @staticmethod
     def is_pdf_readable(file_path: Path) -> bool:
-        if file_path.suffix.lower() != '.pdf':
+        if file_path.suffix.lower() != ".pdf":
             return False
 
         try:
-            with open(file_path, 'rb') as file:
+            with open(file_path, "rb") as file:
                 pdf_reader = pypdf.PdfReader(file)
                 if len(pdf_reader.pages) == 0:
                     return False
@@ -41,40 +41,40 @@ class FileValidator:
     @classmethod
     def validate_file(cls, file_path: Path) -> Dict[str, object]:
         result = {
-            'file_path': str(file_path),
-            'exists': file_path.exists(),
-            'valid_extension': False,
-            'valid_size': False,
-            'readable': False,
-            'errors': []
+            "file_path": str(file_path),
+            "exists": file_path.exists(),
+            "valid_extension": False,
+            "valid_size": False,
+            "readable": False,
+            "errors": [],
         }
 
-        if not result['exists']:
-            result['errors'].append('File does not exist')
+        if not result["exists"]:
+            result["errors"].append("File does not exist")
             return result
 
-        result['valid_extension'] = cls.is_valid_extension(file_path)
-        if not result['valid_extension']:
-            result['errors'].append(f'Invalid extension: {file_path.suffix}')
+        result["valid_extension"] = cls.is_valid_extension(file_path)
+        if not result["valid_extension"]:
+            result["errors"].append(f"Invalid extension: {file_path.suffix}")
 
-        result['valid_size'] = cls.is_file_size_valid(file_path)
-        if not result['valid_size']:
+        result["valid_size"] = cls.is_file_size_valid(file_path)
+        if not result["valid_size"]:
             size = cls.get_file_size(file_path)
-            result['errors'].append(f'Invalid size: {size} bytes')
+            result["errors"].append(f"Invalid size: {size} bytes")
 
-        if file_path.suffix.lower() == '.pdf':
-            result['readable'] = cls.is_pdf_readable(file_path)
-            if not result['readable']:
-                result['errors'].append('PDF is not readable or corrupted')
+        if file_path.suffix.lower() == ".pdf":
+            result["readable"] = cls.is_pdf_readable(file_path)
+            if not result["readable"]:
+                result["errors"].append("PDF is not readable or corrupted")
         else:
-            result['readable'] = True
+            result["readable"] = True
 
         return result
 
     @classmethod
     def validate_directory(cls, directory: Path) -> List[Dict[str, object]]:
         results = []
-        for file_path in directory.glob('*'):
+        for file_path in directory.glob("*"):
             if file_path.is_file():
                 validation = cls.validate_file(file_path)
                 results.append(validation)
