@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 
-from src.domain.banks import BANK_DICT_KUSHKI
+from src.domain.constants import BANK_DICT_KUSHKI
 
 
 class BankAccount(BaseModel):

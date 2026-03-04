@@ -3,8 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from src.domain.banks import BANK_DICT_KUSHKI
-from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
+from src.domain.constants import BANK_DICT_KUSHKI, UNKNOWN_ACCOUNT, UNKNOWN_OWNER
 from src.domain.entities import SubmissionData
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
