@@ -80,6 +80,9 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 ## Environment Variables
 
 - `ANTHROPIC_API_KEY` — Required for Claude API calls (backend)
+- `DATABASE_URL` — PostgreSQL connection string (backend)
+- `AWS_ENDPOINT_URL` — S3/LocalStack endpoint (backend)
+- `AWS_S3_BUCKET_NAME` — S3 bucket for PDF uploads (backend)
 - `NEXT_PUBLIC_API_URL` — Backend URL, defaults to `http://localhost:8000` (frontend)
 
 ## Code Style
