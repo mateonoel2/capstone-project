@@ -1,6 +1,6 @@
 # Extracción de Estados de Cuenta Bancarios
 
-Proyecto de *capstone* para la extracción automática de información de estados de cuenta bancarios utilizando diferentes enfoques de procesamiento.
+Proyecto de *capstone* para la extracción automática de información de estados de cuenta bancarios mexicanos utilizando Claude Haiku 4.5.
 
 
 https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
@@ -8,17 +8,19 @@ https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
 
 ## Descripción
 
-Este proyecto implementa un sistema de producción (*FastAPI* + *Next.js*) y una capa de investigación para extraer información estructurada de estados de cuenta bancarios mexicanos en formato PDF. Utiliza 8 *parsers* diferentes (2 seleccionables desde la UI) basados en *Claude Sonnet 4.6*, *LlamaParse*, OCR, expresiones regulares y más.
+Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructurada de estados de cuenta bancarios mexicanos en formato PDF. Utiliza 3 *parsers* basados en *Claude Haiku 4.5* (OCR, texto directo y visión) para extraer nombre del titular, cuenta CLABE y banco.
 
 ## Características
 
-- Aplicación web de producción con *FastAPI* (*backend*) y *Next.js* (*frontend*)
-- Selector de *parser* en la UI (*Claude OCR* 63.8%, *Claude Vision* 54.5%)
-- 8 estrategias de *parsing* para experimentación
-- *Dashboard* con métricas de precisión y correcciones
-- Preprocesamiento y limpieza de datos (OCR, validación)
-- Sistema de experimentación para comparar enfoques
-- Suite de pruebas automatizadas
+- Aplicación web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
+- 3 estrategias de *parsing*: Claude OCR, Claude Text y Claude Vision
+- *Dashboard* con métricas de precisión y correcciones por campo
+- Preprocesamiento OCR (*pdf2image* + *pytesseract*) y validación de archivos
+- Almacenamiento en PostgreSQL con migraciones Alembic
+- Subida de PDFs a S3 (Tigris en producción, LocalStack en desarrollo)
+- Despliegue en Railway (backend) y Vercel (frontend)
+- CI con GitHub Actions (ruff format, lint, tests)
+- Docker Compose para desarrollo local (backend + PostgreSQL + LocalStack)
 
 ## Estructura del Proyecto
 
@@ -30,43 +32,41 @@ capstone-project/
 │   │   ├── domain/                     # Lógica de negocio pura
 │   │   │   ├── schemas.py             # BankAccount (Pydantic)
 │   │   │   ├── constants.py           # Constantes del dominio
-│   │   │   ├── banks.py              # Diccionario de bancos mexicanos
+│   │   │   ├── banks.py              # Diccionario de 91 bancos mexicanos
 │   │   │   ├── validators.py         # Validación de CLABE y bancos
 │   │   │   ├── parser_interface.py   # BaseParser ABC
 │   │   │   ├── entities.py           # SubmissionData, MetricsData
 │   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService
 │   │   ├── infrastructure/            # Integraciones externas
 │   │   │   ├── api/extraction/       # Rutas HTTP y DTOs
-│   │   │   ├── database.py           # Configuración SQLite
+│   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
 │   │   │   ├── models.py             # ORM (ExtractionLog)
 │   │   │   ├── repository.py         # Acceso a datos
-│   │   │   ├── parsers/              # 8 parsers implementados
-│   │   │   ├── preprocessing/        # OCR, validación, descarga
+│   │   │   ├── parsers/              # claude_ocr, claude_text, claude_vision
+│   │   │   ├── preprocessing/        # OCR, validación, limpieza, descarga
 │   │   │   ├── evaluation/           # Experimentos y métricas
 │   │   │   └── data_pipeline/        # Scripts de datos
-│   │   ├── core/                      # Utilidades genéricas
+│   │   ├── core/                      # Utilidades (logger, file_utils)
 │   │   └── tests/                     # Pruebas unitarias
+│   ├── alembic/                       # Migraciones de base de datos
 │   ├── scripts/                       # Scripts ejecutables
-│   └── data/                          # Datos y base de datos SQLite
+│   └── data/                          # Datos de prueba
 │
-└── frontend/                          # Aplicación Next.js
-    ├── app/                           # Pages (App Router)
-    ├── components/                    # Componentes React + shadcn/ui
-    └── lib/                           # API client, Store, Utils
+├── frontend/                          # Next.js 15 (App Router)
+│   ├── app/                           # Páginas (/, /dashboard)
+│   ├── components/                    # Componentes React + shadcn/ui
+│   └── lib/                           # API client, Zustand store, utils
+│
+├── docker-compose.yml                 # Backend + PostgreSQL + LocalStack
+└── localstack/                        # Config de LocalStack (S3)
 ```
 
 ## Requisitos
 
-- Python >= 3.9
-- Dependencias principales:
-  - *llama-index-core*
-  - *llama-parse*
-  - *anthropic*
-  - *pandas*
-  - *pydantic*
-  - *PyPDF2*
-  - *torch*
-  - *sentence-transformers*
+- Python >= 3.12
+- Node.js >= 18
+- Docker y Docker Compose (para desarrollo local)
+- Tesseract OCR (`brew install tesseract` en macOS)
 
 ## Instalación
 
@@ -77,97 +77,67 @@ git clone <repository-url>
 cd capstone-project
 ```
 
-2. Crear un entorno virtual:
-
-```bash
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-```
-
-3. Instalar dependencias:
+2. Backend:
 
 ```bash
 cd backend
-pip install -r requirements.txt
+uv sync                # instalar dependencias
+cp .env.example .env   # configurar ANTHROPIC_API_KEY
 ```
 
-4. Configurar variables de entorno:
+3. Frontend:
 
 ```bash
-cp .env.example .env
-# Editar .env con tus credenciales de API
+cd frontend
+npm install
 ```
 
 ## Uso
 
-### Aplicación web
+### Con Docker Compose (recomendado)
 
 ```bash
-# Backend
+docker compose up   # levanta backend + PostgreSQL + LocalStack
+```
+
+### Sin Docker
+
+```bash
+# Backend (requiere PostgreSQL corriendo)
 cd backend
-pip install -r requirements.txt
 uvicorn src.main:app --reload  # http://localhost:8000
 
 # Frontend
 cd frontend
-npm install
 npm run dev  # http://localhost:3000
-```
-
-### *Scripts* de investigación
-
-```bash
-cd backend
-python scripts/run_extraction.py --parser all --input-dir data/raw/bank_statements
-python scripts/run_extraction.py --parser llama --limit 10
 ```
 
 ## Pruebas
 
-Ejecutar todas las pruebas:
-
 ```bash
-pytest
+cd backend
+pytest                                   # todas las pruebas
+pytest src/tests/test_file_validator.py  # prueba específica
 ```
 
-Ejecutar pruebas específicas:
+## Linting
 
 ```bash
-pytest src/tests/test_file_validator.py
-pytest src/tests/test_data_cleaner.py
+cd backend
+ruff check .    # lint
+ruff format .   # formato
 ```
 
-## Resultados
+## Variables de Entorno
 
-Los resultados de las extracciones se guardan en `data/results/` con:
-
-- Archivos CSV con los datos extraídos
-- Archivos JSON con resúmenes estadísticos
-- *Logs* detallados en `data/results/logs/`
-
-## Desarrollo
-
-### *Linting*
-
-El proyecto utiliza *Ruff* para *linting*:
-
-```bash
-ruff check .
-ruff format .
-```
-
-### Agregar un nuevo *parser*
-
-1. Crear una nueva clase que herede de `BaseParser` en `src/infrastructure/parsers/`
-2. Implementar el método `parse_file()`
-3. Agregar el *parser* a `run_extraction.py`
-
-## Notas
-
-- Los estados de cuenta deben estar en formato PDF
-- Asegúrate de tener las *API keys* necesarias configuradas en el archivo `.env`
-- Los resultados incluyen métricas de tiempo de procesamiento y éxito de extracción
+| Variable | Descripción |
+|---|---|
+| `ANTHROPIC_API_KEY` | API key de Anthropic (backend) |
+| `DATABASE_URL` | URL de PostgreSQL (backend) |
+| `AWS_ENDPOINT_URL` | Endpoint S3 / LocalStack (backend) |
+| `AWS_S3_BUCKET_NAME` | Nombre del bucket S3 (backend) |
+| `NEXT_PUBLIC_API_URL` | URL del backend, default `http://localhost:8000` (frontend) |
 
 ## Licencia
 
-Ver el archivo LICENSE para más detalles.
+Ver el archivo [LICENSE](LICENSE) para más detalles.
