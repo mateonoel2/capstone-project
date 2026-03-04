@@ -10,15 +10,23 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from alembic import command
+from alembic.config import Config
+
 from src.infrastructure.api.extraction.routes import router as extraction_router
-from src.infrastructure.database import init_db
 
 load_dotenv()
 
 
+def run_migrations():
+    alembic_cfg = Config(str(project_root / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
+    command.upgrade(alembic_cfg, "head")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    run_migrations()
     yield
 
 
