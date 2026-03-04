@@ -37,6 +37,13 @@ async def extract_from_pdf(
     parser: Annotated[str, Form()] = "claude_ocr",
 ):
     try:
+        content = await file.read()
+        await file.seek(0)
+
+        from src.infrastructure.storage import save_upload
+
+        save_upload(file, content)
+
         service = ExtractionService()
         result = await service.extract_from_pdf(file, parser)
 
