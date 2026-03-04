@@ -3,7 +3,9 @@ from datetime import datetime
 from pathlib import Path
 
 
-def setup_logger(name: str, log_dir: Path | None = None, level: int = logging.INFO) -> logging.Logger:
+def setup_logger(
+    name: str, log_dir: Path | None = None, level: int = logging.INFO
+) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
 

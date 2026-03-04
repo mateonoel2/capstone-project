@@ -22,7 +22,7 @@ class FileValidator:
                 if len(pdf_reader.pages) == 0:
                     return False
                 first_page = pdf_reader.pages[0]
-                text = first_page.extract_text()
+                first_page.extract_text()
                 return True
         except Exception:
             return False
@@ -32,7 +32,9 @@ class FileValidator:
         return file_path.stat().st_size
 
     @staticmethod
-    def is_file_size_valid(file_path: Path, min_size: int = 1024, max_size: int = 50*1024*1024) -> bool:
+    def is_file_size_valid(
+        file_path: Path, min_size: int = 1024, max_size: int = 50 * 1024 * 1024
+    ) -> bool:
         size = FileValidator.get_file_size(file_path)
         return min_size <= size <= max_size
 

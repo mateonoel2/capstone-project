@@ -36,7 +36,7 @@ def main():
             file_type = detected_type.replace("skip_", "")
             print(f"  → Unsupported type: {file_type}")
             bin_file.unlink()
-            print(f"  ✓ Deleted")
+            print("  ✓ Deleted")
             skipped += 1
 
         elif detected_type:
@@ -48,7 +48,7 @@ def main():
             converted += 1
 
         else:
-            print(f"  ⚠ Unknown type, keeping as .bin")
+            print("  ⚠ Unknown type, keeping as .bin")
             unknown += 1
 
     print("\n" + "=" * 60)

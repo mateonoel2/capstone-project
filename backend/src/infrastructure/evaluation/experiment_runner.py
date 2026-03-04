@@ -5,8 +5,8 @@ from typing import Dict, List
 
 import pandas as pd
 
-from src.domain.parser_interface import BaseParser
 from src.core.logger import setup_logger
+from src.domain.parser_interface import BaseParser
 
 
 class ExperimentRunner:

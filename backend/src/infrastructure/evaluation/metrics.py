@@ -130,7 +130,9 @@ def calculate_metrics(results_df: pd.DataFrame, ground_truth_df: pd.DataFrame) -
 
     for _, row in merged.iterrows():
         owner_correct, owner_type = validate_owner(str(row.get("owner", "")), str(row["Owner"]))
-        clabe_correct, clabe_type = validate_clabe(str(row.get("account_number", "")), str(row["CLABE"]))
+        clabe_correct, clabe_type = validate_clabe(
+            str(row.get("account_number", "")), str(row["CLABE"])
+        )
         bank_correct, bank_type = validate_bank(str(row.get("bank_name", "")), str(row["banco"]))
 
         metrics["owner"][

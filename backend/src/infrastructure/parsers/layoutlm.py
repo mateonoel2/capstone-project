@@ -3,10 +3,10 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import torch
 from pdf2image import convert_from_path
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForTokenClassification
-import torch
+from transformers import AutoModelForTokenClassification, AutoProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class LayoutLMParser(BaseParser):
         encoding = self.processor(image, return_tensors="pt")
 
         with torch.no_grad():
-            outputs = self.model(**encoding)
+            self.model(**encoding)
 
         words = encoding.words[0] if hasattr(encoding, 'words') else []
         text = " ".join(words) if words else ""

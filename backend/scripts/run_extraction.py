@@ -7,8 +7,8 @@ sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
 
-from src.experiments.experiment_runner import ExperimentRunner
-from src.utils.file_utils import get_pdf_files
+from src.core.file_utils import get_pdf_files
+from src.infrastructure.evaluation.experiment_runner import ExperimentRunner
 
 
 def main():
@@ -61,58 +61,58 @@ def main():
 
     if args.parser == "regex":
         print("\nRunning Regex extraction...")
-        from src.extraction.regex_parser import RegexParser
+        from src.infrastructure.parsers.regex import RegexParser
 
         regex_parser = RegexParser()
         experiment.run_experiment(regex_parser, pdf_files, "regex_parser")
 
     elif args.parser == "pdfplumber":
         print("\nRunning PDFPlumber extraction...")
-        from src.extraction.pdfplumber_parser import PDFPlumberParser
+        from src.infrastructure.parsers.pdfplumber import PDFPlumberParser
 
         pdfplumber_parser = PDFPlumberParser()
         experiment.run_experiment(pdfplumber_parser, pdf_files, "pdfplumber_parser")
 
     elif args.parser == "layoutlm":
         print("\nRunning LayoutLM extraction...")
-        from src.extraction.layoutlm_parser import LayoutLMParser
+        from src.infrastructure.parsers.layoutlm import LayoutLMParser
 
         layoutlm_parser = LayoutLMParser()
         experiment.run_experiment(layoutlm_parser, pdf_files, "layoutlm_parser")
 
     elif args.parser == "hybrid":
         print("\nRunning Hybrid (PDFPlumber + Ollama) extraction...")
-        from src.extraction.hybrid_parser import HybridParser
+        from src.infrastructure.parsers.hybrid import HybridParser
 
         hybrid_parser = HybridParser()
         experiment.run_experiment(hybrid_parser, pdf_files, "hybrid_parser")
 
     elif args.parser == "claude":
         print("\nRunning Claude (Haiku) extraction...")
-        from src.extraction.claude_parser import ClaudeParser
+        from src.infrastructure.parsers.claude_text import ClaudeParser
 
         claude_parser = ClaudeParser()
         experiment.run_experiment(claude_parser, pdf_files, "claude_parser")
 
     elif args.parser == "claude_vision":
         print("\nRunning Claude Vision (Haiku) extraction...")
-        from src.extraction.claude_vision_parser import ClaudeVisionParser
+        from src.infrastructure.parsers.claude_vision import ClaudeVisionParser
 
         claude_vision_parser = ClaudeVisionParser()
         experiment.run_experiment(claude_vision_parser, pdf_files, "claude_vision_parser")
 
     elif args.parser == "claude_ocr":
         print("\nRunning Claude with OCR (Tesseract + Haiku) extraction...")
-        from src.extraction.claude_ocr_parser import ClaudeOCRParser
+        from src.infrastructure.parsers.claude_ocr import ClaudeOCRParser
 
         claude_ocr_parser = ClaudeOCRParser()
         experiment.run_experiment(claude_ocr_parser, pdf_files, "claude_ocr_parser")
 
     elif args.parser == "all":
         print("\nRunning comparison of all parsers...")
-        from src.extraction.claude_parser import ClaudeParser
-        from src.extraction.pdfplumber_parser import PDFPlumberParser
-        from src.extraction.regex_parser import RegexParser
+        from src.infrastructure.parsers.claude_text import ClaudeParser
+        from src.infrastructure.parsers.pdfplumber import PDFPlumberParser
+        from src.infrastructure.parsers.regex import RegexParser
 
         parsers = {
             "regex_parser": RegexParser(),
