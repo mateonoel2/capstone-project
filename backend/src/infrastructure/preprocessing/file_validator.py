@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, List
 
-import pypdf
+import pdfplumber
 
 
 class FileValidator:
@@ -17,12 +17,10 @@ class FileValidator:
             return False
 
         try:
-            with open(file_path, "rb") as file:
-                pdf_reader = pypdf.PdfReader(file)
-                if len(pdf_reader.pages) == 0:
+            with pdfplumber.open(file_path) as pdf:
+                if len(pdf.pages) == 0:
                     return False
-                first_page = pdf_reader.pages[0]
-                first_page.extract_text()
+                pdf.pages[0].extract_text()
                 return True
         except Exception:
             return False

@@ -36,7 +36,7 @@ const initialState = {
 
 export const useExtractionStore = create<ExtractionState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
 
       setFile: (file) => {
