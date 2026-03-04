@@ -35,3 +35,6 @@ data/
 # VS Code / Cursor
 .vscode/*
 !.vscode/settings.json
+
+# Diagrams
+diagrams/
