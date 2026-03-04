@@ -7,7 +7,7 @@ El *dashboard* completo con métricas y análisis está completamente funcional.
 ## *Endpoints* del *Backend*
 
 ### 1. GET /extraction/logs
-**Ubicación**: `backend/application/api/extraction.py`
+**Ubicación**: `backend/src/infrastructure/api/extraction/routes.py`
 
 Retorna todos los *logs* de extracción de la base de datos:
 - Ordenados por marca de tiempo (más recientes primero)
@@ -31,7 +31,7 @@ Retorna todos los *logs* de extracción de la base de datos:
 ```
 
 ### 2. GET /extraction/metrics
-**Ubicación**: `backend/application/api/extraction.py`
+**Ubicación**: `backend/src/infrastructure/api/extraction/routes.py`
 
 Calcula y retorna métricas de precisión:
 - Conteo total de extracciones
@@ -107,7 +107,7 @@ Acción del Usuario → API del Backend → Base de Datos SQLite
 ## Archivos Creados/Modificados
 
 ### *Backend*
-- `backend/application/api/extraction.py` - Agregados *endpoints* `/logs` y `/metrics`
+- `backend/src/infrastructure/api/extraction/routes.py` - Agregados *endpoints* `/logs` y `/metrics`
 - Agregados *imports* de *SQLAlchemy* y manejo de *datetime*
 
 ### *Frontend*

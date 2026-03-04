@@ -54,7 +54,7 @@ Implementación exitosa de una aplicación completa de *frontend* en *Next.js* c
 ### Mejoras al *Backend*
 
 #### Capa de Base de Datos
-- **Base de Datos *SQLite*** (`application/database.py`)
+- **Base de Datos *SQLite*** (`src/infrastructure/database.py`)
   - Modelo `ExtractionLog` con *SQLAlchemy*
   - Campos: *filename*, marcas de tiempo, valores extraídos, valores finales
   - *Flags* booleanos para seguimiento de correcciones por campo
@@ -62,14 +62,14 @@ Implementación exitosa de una aplicación completa de *frontend* en *Next.js* c
   - Gestión de sesiones
 
 #### Nuevo *Endpoint* de API
-- **POST /extraction/submit** (`application/api/extraction.py`)
+- **POST /extraction/submit** (`src/infrastructure/api/extraction/routes.py`)
   - Acepta *payload* de envío de extracción
   - Calcula qué campos fueron corregidos
   - Almacena en base de datos *SQLite*
   - Retorna confirmación con ID de *log*
 
 #### Inicio de la Aplicación
-- **Inicialización de Base de Datos** (`application/main.py`)
+- **Inicialización de Base de Datos** (`src/main.py`)
   - Auto-crea base de datos al iniciar
   - Crea tablas si no existen
   - No requiere configuración manual
@@ -150,14 +150,16 @@ capstone-project/
 │   ├── components.json
 │   └── README.md
 ├── backend/
-│   ├── application/
-│   │   ├── database.py             # Nuevo - Configuración de SQLite
-│   │   ├── main.py                 # Modificado - Inicialización de BD
-│   │   └── api/
-│   │       └── extraction.py       # Modificado - Endpoint de submit
+│   ├── src/
+│   │   ├── main.py                     # Entry point (FastAPI)
+│   │   ├── domain/                     # Lógica de negocio
+│   │   ├── infrastructure/
+│   │   │   ├── database.py             # Configuración de SQLite
+│   │   │   └── api/extraction/routes.py # Endpoints
+│   │   └── core/                       # Utilidades
 │   ├── data/
-│   │   └── extractions.db          # Creado al iniciar
-│   └── requirements.txt            # Modificado - Agregado SQLAlchemy
+│   │   └── extractions.db              # Creado al iniciar
+│   └── requirements.txt
 ├── FRONTEND_SETUP.md               # Nuevo - Guía de configuración
 └── ...
 ```

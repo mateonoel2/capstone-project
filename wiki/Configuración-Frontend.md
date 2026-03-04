@@ -229,7 +229,7 @@ Después de que la página de extracción esté funcionando, la Fase 2 agregará
 ## Soporte
 
 Para problemas específicos de:
-- **Lógica de extracción**: Verifica `backend/src/extraction/`
-- ***Endpoints* de API**: Verifica `backend/application/api/`
+- **Lógica de extracción**: Verifica `backend/src/infrastructure/parsers/`
+- ***Endpoints* de API**: Verifica `backend/src/infrastructure/api/extraction/`
 - **Interfaz del *frontend***: Verifica `frontend/components/`
-- **Base de datos**: Verifica `backend/application/database.py`
+- **Base de datos**: Verifica `backend/src/infrastructure/database.py`

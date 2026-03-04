@@ -32,7 +32,7 @@ python scripts/upload_bank_accounts.py
 ### 2. Descargar Estados de Cuenta Bancarios
 
 ```bash
-python src/preprocessing/download_statements.py
+python src/infrastructure/data_pipeline/download_statements.py
 ```
 
 **Qué hace:**
@@ -47,7 +47,7 @@ python src/preprocessing/download_statements.py
 **Se puede ejecutar en segundo plano:**
 
 ```bash
-python src/preprocessing/download_statements.py > download_log.txt 2>&1 &
+python src/infrastructure/data_pipeline/download_statements.py > download_log.txt 2>&1 &
 ```
 
 ---
@@ -122,7 +122,7 @@ El descargador ahora detecta y maneja adecuadamente:
 Si tienes archivos `.bin` existentes de descargas previas:
 
 ```bash
-python src/preprocessing/cleanup_bin_files.py
+python src/infrastructure/data_pipeline/cleanup_bin_files.py
 ```
 
 Esto hará:
@@ -162,7 +162,7 @@ El esquema valida y normaliza automáticamente los nombres de bancos.
 python scripts/upload_bank_accounts.py
 
 # 2. Descargar estados de cuenta
-python src/preprocessing/download_statements.py
+python src/infrastructure/data_pipeline/download_statements.py
 
 # 3. Procesar cuentas
 python scripts/process_accounts.py
@@ -175,7 +175,7 @@ python scripts/run_extraction.py --parser regex --limit 5
 
 ```bash
 python scripts/upload_bank_accounts.py && \
-python src/preprocessing/download_statements.py && \
+python src/infrastructure/data_pipeline/download_statements.py && \
 python scripts/process_accounts.py
 ```
 
@@ -212,7 +212,7 @@ data/
 
 ### Problema: Aparecen archivos .bin
 
-**Solución:** Ejecuta `python src/preprocessing/cleanup_bin_files.py` para identificarlos y manejarlos.
+**Solución:** Ejecuta `python src/infrastructure/data_pipeline/cleanup_bin_files.py` para identificarlos y manejarlos.
 
 ### Problema: Descarga atascada o fallando
 

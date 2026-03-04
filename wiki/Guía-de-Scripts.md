@@ -50,7 +50,7 @@ python scripts/process_accounts.py
 python scripts/upload_bank_accounts.py
 
 # 2. Descargar estados de cuenta (en src/preprocessing)
-python src/preprocessing/download_statements.py
+python src/infrastructure/data_pipeline/download_statements.py
 
 # 3. Procesar y filtrar cuentas
 python scripts/process_accounts.py
@@ -60,7 +60,7 @@ python scripts/process_accounts.py
 
 ```bash
 python scripts/upload_bank_accounts.py && \
-python src/preprocessing/download_statements.py && \
+python src/infrastructure/data_pipeline/download_statements.py && \
 python scripts/process_accounts.py
 ```
 
@@ -122,7 +122,7 @@ python scripts/run_extraction.py --parser all
 
 ---
 
-## Herramientas de Soporte (en `src/preprocessing/`)
+## Herramientas de Soporte (en `src/infrastructure/preprocessing/` y `src/infrastructure/data_pipeline/`)
 
 - `download_statements.py` - Descargar archivos de estados de cuenta bancarios
 - `cleanup_bin_files.py` - Corregir tipos de archivo mal detectados

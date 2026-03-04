@@ -26,23 +26,33 @@ Este proyecto implementa un sistema de producción (*FastAPI* + *Next.js*) y una
 capstone-project/
 ├── backend/
 │   ├── src/
-│   │   ├── application/            # API REST (FastAPI)
-│   │   │   ├── api/                # Endpoints
-│   │   │   ├── modules/            # Servicios, repositorio, entidades
-│   │   │   ├── database.py         # Configuración SQLite
-│   │   │   └── main.py             # Entry point
-│   │   ├── extraction/             # 8 parsers implementados
-│   │   ├── preprocessing/          # Preprocesamiento de datos
-│   │   ├── experiments/            # Sistema de experimentos
-│   │   └── utils/                  # Utilidades
-│   ├── scripts/                    # Scripts ejecutables
-│   ├── tests/                      # Pruebas unitarias
-│   └── data/                       # Datos y base de datos SQLite
+│   │   ├── main.py                     # Entry point (FastAPI)
+│   │   ├── domain/                     # Lógica de negocio pura
+│   │   │   ├── schemas.py             # BankAccount (Pydantic)
+│   │   │   ├── constants.py           # Constantes del dominio
+│   │   │   ├── banks.py              # Diccionario de bancos mexicanos
+│   │   │   ├── validators.py         # Validación de CLABE y bancos
+│   │   │   ├── parser_interface.py   # BaseParser ABC
+│   │   │   ├── entities.py           # SubmissionData, MetricsData
+│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService
+│   │   ├── infrastructure/            # Integraciones externas
+│   │   │   ├── api/extraction/       # Rutas HTTP y DTOs
+│   │   │   ├── database.py           # Configuración SQLite
+│   │   │   ├── models.py             # ORM (ExtractionLog)
+│   │   │   ├── repository.py         # Acceso a datos
+│   │   │   ├── parsers/              # 8 parsers implementados
+│   │   │   ├── preprocessing/        # OCR, validación, descarga
+│   │   │   ├── evaluation/           # Experimentos y métricas
+│   │   │   └── data_pipeline/        # Scripts de datos
+│   │   ├── core/                      # Utilidades genéricas
+│   │   └── tests/                     # Pruebas unitarias
+│   ├── scripts/                       # Scripts ejecutables
+│   └── data/                          # Datos y base de datos SQLite
 │
-└── frontend/                       # Aplicación Next.js
-    ├── app/                        # Pages (App Router)
-    ├── components/                 # Componentes React + shadcn/ui
-    └── lib/                        # API client, Store, Utils
+└── frontend/                          # Aplicación Next.js
+    ├── app/                           # Pages (App Router)
+    ├── components/                    # Componentes React + shadcn/ui
+    └── lib/                           # API client, Store, Utils
 ```
 
 ## Requisitos
@@ -96,7 +106,7 @@ cp .env.example .env
 # Backend
 cd backend
 pip install -r requirements.txt
-uvicorn src.application.main:app --reload  # http://localhost:8000
+uvicorn src.main:app --reload  # http://localhost:8000
 
 # Frontend
 cd frontend
@@ -123,8 +133,8 @@ pytest
 Ejecutar pruebas específicas:
 
 ```bash
-pytest tests/test_file_validator.py
-pytest tests/test_data_cleaner.py
+pytest src/tests/test_file_validator.py
+pytest src/tests/test_data_cleaner.py
 ```
 
 ## Resultados
@@ -148,8 +158,8 @@ ruff format .
 
 ### Agregar un nuevo *parser*
 
-1. Crear una nueva clase que herede de `BaseParser` en `src/extraction/`
-2. Implementar el método `parse()`
+1. Crear una nueva clase que herede de `BaseParser` en `src/infrastructure/parsers/`
+2. Implementar el método `parse_file()`
 3. Agregar el *parser* a `run_extraction.py`
 
 ## Notas

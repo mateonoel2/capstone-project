@@ -59,17 +59,27 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 capstone-project/
 ├── backend/                        # Código del backend
 │   ├── src/
-│   │   ├── application/            # API REST (FastAPI)
-│   │   │   ├── api/                # Endpoints
-│   │   │   ├── modules/            # Servicios, repositorio, entidades
+│   │   ├── main.py                 # Entry point (FastAPI)
+│   │   ├── domain/                 # Lógica de negocio pura
+│   │   │   ├── schemas.py          # BankAccount (Pydantic)
+│   │   │   ├── constants.py        # Constantes del dominio
+│   │   │   ├── banks.py            # Diccionario de bancos
+│   │   │   ├── validators.py       # Validación CLABE/bancos
+│   │   │   ├── parser_interface.py # BaseParser ABC
+│   │   │   ├── entities.py         # SubmissionData, MetricsData
+│   │   │   └── services/           # Servicios de negocio
+│   │   ├── infrastructure/         # Integraciones externas
+│   │   │   ├── api/extraction/     # Rutas HTTP y DTOs
 │   │   │   ├── database.py         # Configuración SQLite
-│   │   │   └── main.py             # Entry point
-│   │   ├── extraction/             # 8 parsers implementados
-│   │   ├── preprocessing/          # Limpieza y OCR
-│   │   ├── experiments/            # ExperimentRunner
-│   │   └── utils/                  # Utilidades
+│   │   │   ├── models.py           # ORM (ExtractionLog)
+│   │   │   ├── repository.py       # Acceso a datos
+│   │   │   ├── parsers/            # 8 parsers implementados
+│   │   │   ├── preprocessing/      # OCR, validación, descarga
+│   │   │   ├── evaluation/         # Experimentos y métricas
+│   │   │   └── data_pipeline/      # Scripts de datos
+│   │   ├── core/                   # Utilidades genéricas
+│   │   └── tests/                  # Tests unitarios
 │   ├── scripts/                    # Scripts ejecutables
-│   ├── tests/                      # Tests unitarios
 │   └── data/                       # Datos y base de datos SQLite
 │
 └── frontend/                       # Aplicación Next.js

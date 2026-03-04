@@ -66,14 +66,14 @@ El proyecto está completamente funcional con todas las funcionalidades principa
 ## Archivos del Sistema
 
 ### *Backend*
-- `backend/application/api/extraction/routes.py` - Todos los *endpoints* implementados
-- `backend/application/api/extraction/dtos.py` - *DTOs* y validación
-- `backend/application/modules/extraction/service.py` - Lógica de negocio
-- `backend/application/modules/extraction/repository.py` - Acceso a datos
-- `backend/application/modules/extraction/models.py` - Modelos ORM de base de datos
-- `backend/application/modules/extraction/entities.py` - Entidades de dominio
-- `backend/application/constants.py` - Diccionario de bancos
-- `backend/src/extraction/` - 9 *parsers* implementados
+- `backend/src/infrastructure/api/extraction/routes.py` - Todos los *endpoints* implementados
+- `backend/src/infrastructure/api/extraction/dtos.py` - *DTOs* y validación
+- `backend/src/domain/services/` - Lógica de negocio (extraction, submission, metrics)
+- `backend/src/infrastructure/repository.py` - Acceso a datos
+- `backend/src/infrastructure/models.py` - Modelos ORM de base de datos
+- `backend/src/domain/entities.py` - Entidades de dominio
+- `backend/src/domain/banks.py` - Diccionario de bancos
+- `backend/src/infrastructure/parsers/` - 8 *parsers* implementados
 
 ### *Frontend*
 - `frontend/app/page.tsx` - Página de extracción

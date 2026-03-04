@@ -78,6 +78,6 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 
 ## Code Style
 
-- Backend: Ruff (line-length 100, rules E/F/W/I), mypy for type checking
+- Backend: Ruff (line-length 100, rules E/F/W/I)
 - Frontend: ESLint with next/core-web-vitals
 - All UI text and prompts are in Spanish
