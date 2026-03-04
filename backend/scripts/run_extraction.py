@@ -19,20 +19,13 @@ def main():
         "--parser",
         type=str,
         choices=[
-            "regex",
-            "pdfplumber",
-            "layoutlm",
-            "hybrid",
             "claude",
             "claude_vision",
             "claude_ocr",
             "all",
         ],
-        default="pdfplumber",
-        help=(
-            "Parser to use: regex, pdfplumber, layoutlm, hybrid, claude, "
-            "claude_vision, claude_ocr, or all"
-        ),
+        default="claude_ocr",
+        help="Parser to use: claude, claude_vision, claude_ocr, or all",
     )
     parser.add_argument(
         "--input-dir",
@@ -59,35 +52,7 @@ def main():
 
     experiment = ExperimentRunner(experiment_name="bank_extraction", output_dir=output_dir)
 
-    if args.parser == "regex":
-        print("\nRunning Regex extraction...")
-        from src.infrastructure.parsers.regex import RegexParser
-
-        regex_parser = RegexParser()
-        experiment.run_experiment(regex_parser, pdf_files, "regex_parser")
-
-    elif args.parser == "pdfplumber":
-        print("\nRunning PDFPlumber extraction...")
-        from src.infrastructure.parsers.pdfplumber import PDFPlumberParser
-
-        pdfplumber_parser = PDFPlumberParser()
-        experiment.run_experiment(pdfplumber_parser, pdf_files, "pdfplumber_parser")
-
-    elif args.parser == "layoutlm":
-        print("\nRunning LayoutLM extraction...")
-        from src.infrastructure.parsers.layoutlm import LayoutLMParser
-
-        layoutlm_parser = LayoutLMParser()
-        experiment.run_experiment(layoutlm_parser, pdf_files, "layoutlm_parser")
-
-    elif args.parser == "hybrid":
-        print("\nRunning Hybrid (PDFPlumber + Ollama) extraction...")
-        from src.infrastructure.parsers.hybrid import HybridParser
-
-        hybrid_parser = HybridParser()
-        experiment.run_experiment(hybrid_parser, pdf_files, "hybrid_parser")
-
-    elif args.parser == "claude":
+    if args.parser == "claude":
         print("\nRunning Claude (Haiku) extraction...")
         from src.infrastructure.parsers.claude_text import ClaudeParser
 
@@ -110,14 +75,14 @@ def main():
 
     elif args.parser == "all":
         print("\nRunning comparison of all parsers...")
+        from src.infrastructure.parsers.claude_ocr import ClaudeOCRParser
         from src.infrastructure.parsers.claude_text import ClaudeParser
-        from src.infrastructure.parsers.pdfplumber import PDFPlumberParser
-        from src.infrastructure.parsers.regex import RegexParser
+        from src.infrastructure.parsers.claude_vision import ClaudeVisionParser
 
         parsers = {
-            "regex_parser": RegexParser(),
-            "pdfplumber_parser": PDFPlumberParser(),
             "claude_parser": ClaudeParser(),
+            "claude_vision_parser": ClaudeVisionParser(),
+            "claude_ocr_parser": ClaudeOCRParser(),
         }
         experiment.compare_parsers(parsers, pdf_files)
 
