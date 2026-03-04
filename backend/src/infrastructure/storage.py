@@ -9,15 +9,15 @@ UPLOADS_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 
 def _get_s3_client():
-    endpoint = os.getenv("BUCKET_ENDPOINT")
+    endpoint = os.getenv("AWS_ENDPOINT_URL")
     if not endpoint:
         return None
     return boto3.client(
         "s3",
         endpoint_url=endpoint,
-        aws_access_key_id=os.getenv("BUCKET_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("BUCKET_SECRET_ACCESS_KEY"),
-        region_name=os.getenv("BUCKET_REGION", "auto"),
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("AWS_DEFAULT_REGION", "auto"),
     )
 
 
@@ -32,7 +32,7 @@ def save_upload(file: UploadFile, content: bytes) -> str:
     s3 = _get_s3_client()
 
     if s3:
-        bucket = os.getenv("BUCKET_NAME", "uploads")
+        bucket = os.getenv("AWS_S3_BUCKET_NAME", "uploads")
         s3.put_object(Bucket=bucket, Key=key, Body=content, ContentType="application/pdf")
     else:
         UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
