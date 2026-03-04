@@ -5,7 +5,6 @@ from pathlib import Path
 import boto3
 from fastapi import UploadFile
 
-
 UPLOADS_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 

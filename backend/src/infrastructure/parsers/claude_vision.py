@@ -131,9 +131,7 @@ NO inventes información. Solo extrae lo que está claramente visible en el docu
         vision_result = self._extract_with_vision(base64_images)
 
         owner = vision_result.get("owner", UNKNOWN_OWNER) or UNKNOWN_OWNER
-        account_number = (
-            vision_result.get("account_number", UNKNOWN_ACCOUNT) or UNKNOWN_ACCOUNT
-        )
+        account_number = vision_result.get("account_number", UNKNOWN_ACCOUNT) or UNKNOWN_ACCOUNT
         bank_name = vision_result.get("bank_name", UNKNOWN_OWNER) or UNKNOWN_OWNER
 
         if not validate_clabe(account_number):

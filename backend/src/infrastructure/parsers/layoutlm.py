@@ -27,7 +27,7 @@ class LayoutLMParser(BaseParser):
         self.bank_patterns = bank_patterns
 
     def _pdf_to_images(self, file_path: Path) -> list[Image.Image]:
-        if file_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+        if file_path.suffix.lower() in [".jpg", ".jpeg", ".png"]:
             return [Image.open(file_path)]
 
         images = convert_from_path(str(file_path), first_page=1, last_page=3)
@@ -39,7 +39,7 @@ class LayoutLMParser(BaseParser):
         with torch.no_grad():
             self.model(**encoding)
 
-        words = encoding.words[0] if hasattr(encoding, 'words') else []
+        words = encoding.words[0] if hasattr(encoding, "words") else []
         text = " ".join(words) if words else ""
 
         return text

@@ -14,9 +14,7 @@ PARSER_MAP = {
 
 
 class ExtractionService:
-    async def extract_from_pdf(
-        self, file: UploadFile, parser: str = "claude_ocr"
-    ) -> BankAccount:
+    async def extract_from_pdf(self, file: UploadFile, parser: str = "claude_ocr") -> BankAccount:
         if not file.filename or not file.filename.lower().endswith(".pdf"):
             raise ValueError("Only PDF files are supported")
         if parser not in PARSER_MAP:
