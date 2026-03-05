@@ -3,6 +3,12 @@
 import { useCallback } from "react";
 import { Upload } from "lucide-react";
 
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+];
+
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
   isLoading?: boolean;
@@ -13,7 +19,7 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
-      if (file && file.type === "application/pdf") {
+      if (file && ACCEPTED_TYPES.includes(file.type)) {
         onFileSelect(file);
       }
     },
@@ -38,7 +44,7 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     >
       <input
         type="file"
-        accept=".pdf"
+        accept=".pdf,.jpg,.jpeg,.png"
         onChange={handleFileInput}
         className="hidden"
         id="file-upload"
@@ -48,12 +54,11 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm text-gray-600">
           {isLoading
-            ? "Processing..."
-            : "Drop your PDF here or click to browse"}
+            ? "Procesando..."
+            : "Arrastra tu archivo aquí o haz clic para buscar"}
         </p>
-        <p className="text-xs text-gray-500 mt-1">PDF files only</p>
+        <p className="text-xs text-gray-500 mt-1">PDF, JPG o PNG</p>
       </label>
     </div>
   );
 }
-

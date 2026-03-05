@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/file-upload";
-import { PDFViewer } from "@/components/pdf-viewer";
+import { FileViewer } from "@/components/file-viewer";
 import { BankCombobox } from "@/components/bank-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -15,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { extractFromPDF, submitExtraction, getBanks, Bank } from "@/lib/api";
+import { extractFromFile, submitExtraction, getBanks, Bank } from "@/lib/api";
 import { useExtractionStore } from "@/lib/store";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -23,11 +22,9 @@ export default function Home() {
   const {
     file,
     extracted,
-    parser,
     formData,
     setFile,
     setExtracted,
-    setParser,
     updateFormField,
     setFormData,
     reset: resetStore,
@@ -58,7 +55,7 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromPDF(selectedFile, parser);
+      const result = await extractFromFile(selectedFile);
       setExtracted(result);
       setFormData({
         owner: result.owner,
@@ -66,7 +63,8 @@ export default function Home() {
         account_number: result.account_number,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Extraction failed");
+      setError(err instanceof Error ? err.message : "La extracción falló");
+      setExtracted(null);
     } finally {
       setIsExtracting(false);
     }
@@ -95,7 +93,7 @@ export default function Home() {
         setSuccess(false);
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
+      setError(err instanceof Error ? err.message : "El envío falló");
     } finally {
       setIsSubmitting(false);
     }
@@ -118,46 +116,30 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Bank Statement Extraction
+            Extracción de Estados de Cuenta
           </h1>
           <p className="text-gray-600 mt-1">
-            Upload a PDF bank statement to extract and verify account
-            information
+            Sube un estado de cuenta bancario (PDF o imagen) para extraer y
+            verificar la información de la cuenta
           </p>
         </div>
 
         {!file ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Label htmlFor="parser-select" className="text-sm font-medium whitespace-nowrap">
-                Parser
-              </Label>
-              <Select
-                id="parser-select"
-                value={parser}
-                onChange={(e) => setParser(e.target.value)}
-                className="w-[220px]"
-              >
-                <option value="claude_ocr">Claude OCR</option>
-                <option value="claude_vision">Claude Vision</option>
-              </Select>
-            </div>
-            <FileUpload
-              onFileSelect={handleFileSelect}
-              isLoading={isExtracting}
-            />
-          </div>
+          <FileUpload
+            onFileSelect={handleFileSelect}
+            isLoading={isExtracting}
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>PDF Document</CardTitle>
+                  <CardTitle>Documento</CardTitle>
                   <CardDescription>{file.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[600px]">
-                    <PDFViewer file={file} />
+                    <FileViewer file={file} />
                   </div>
                 </CardContent>
               </Card>
@@ -166,9 +148,9 @@ export default function Home() {
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Extracted Information</CardTitle>
+                  <CardTitle>Información Extraída</CardTitle>
                   <CardDescription>
-                    Review and correct the extracted data before submitting
+                    Revisa y corrige los datos extraídos antes de enviar
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -176,20 +158,37 @@ export default function Home() {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                       <span className="ml-2 text-gray-600">
-                        Extracting data...
+                        Extrayendo datos...
                       </span>
+                    </div>
+                  ) : error && !extracted ? (
+                    <div className="space-y-4 py-6">
+                      <div className="flex items-start gap-3 text-red-600 bg-red-50 p-4 rounded-lg">
+                        <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium">Error en la extracción</p>
+                          <p className="text-sm mt-1">{error}</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleReset}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Intentar con otro archivo
+                      </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="owner">Account Owner</Label>
+                        <Label htmlFor="owner">Titular de la Cuenta</Label>
                         <Input
                           id="owner"
                           value={formData.owner}
                           onChange={(e) =>
                             updateFormField("owner", e.target.value)
                           }
-                          placeholder="Enter account owner name"
+                          placeholder="Nombre del titular"
                           className={
                             extracted && formData.owner !== extracted.owner
                               ? "border-yellow-400"
@@ -198,13 +197,13 @@ export default function Home() {
                         />
                         {extracted && formData.owner !== extracted.owner && (
                           <p className="text-xs text-yellow-600">
-                            AI extracted: {extracted.owner || "(empty)"}
+                            IA extrajo: {extracted.owner || "(vacío)"}
                           </p>
                         )}
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="bank_name">Bank Name</Label>
+                        <Label htmlFor="bank_name">Banco</Label>
                         <BankCombobox
                           banks={banks}
                           value={formData.bank_name}
@@ -221,20 +220,20 @@ export default function Home() {
                         {extracted &&
                           formData.bank_name !== extracted.bank_name && (
                             <p className="text-xs text-yellow-600">
-                              AI extracted: {extracted.bank_name || "(empty)"}
+                              IA extrajo: {extracted.bank_name || "(vacío)"}
                             </p>
                           )}
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="account_number">Account Number</Label>
+                        <Label htmlFor="account_number">Número de Cuenta (CLABE)</Label>
                         <Input
                           id="account_number"
                           value={formData.account_number}
                           onChange={(e) =>
                             updateFormField("account_number", e.target.value)
                           }
-                          placeholder="Enter account number"
+                          placeholder="CLABE de 18 dígitos"
                           className={
                             extracted &&
                             formData.account_number !== extracted.account_number
@@ -246,7 +245,7 @@ export default function Home() {
                           formData.account_number !==
                             extracted.account_number && (
                             <p className="text-xs text-yellow-600">
-                              AI extracted: {extracted.account_number || "(empty)"}
+                              IA extrajo: {extracted.account_number || "(vacío)"}
                             </p>
                           )}
                       </div>
@@ -262,7 +261,7 @@ export default function Home() {
                         <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded">
                           <CheckCircle className="h-4 w-4" />
                           <span className="text-sm">
-                            Submitted successfully!
+                            Enviado exitosamente!
                           </span>
                         </div>
                       )}
@@ -270,7 +269,7 @@ export default function Home() {
                       {isModified && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
                           <p className="text-sm text-yellow-800">
-                            You have made changes to the extracted data
+                            Has modificado los datos extraídos
                           </p>
                         </div>
                       )}
@@ -284,10 +283,10 @@ export default function Home() {
                           {isSubmitting ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Submitting...
+                              Enviando...
                             </>
                           ) : (
-                            "Submit"
+                            "Enviar"
                           )}
                         </Button>
                         <Button
@@ -296,7 +295,7 @@ export default function Home() {
                           onClick={handleReset}
                           disabled={isSubmitting}
                         >
-                          Reset
+                          Reiniciar
                         </Button>
                       </div>
                     </form>

@@ -79,3 +79,17 @@ class MetricsResponse(BaseModel):
     owner_accuracy: float
     bank_name_accuracy: float
     account_number_accuracy: float
+
+
+class ErrorBreakdownItem(BaseModel):
+    error_type: str
+    count: int
+
+
+class ApiCallMetricsResponse(BaseModel):
+    total_calls: int
+    total_failures: int
+    error_rate: float
+    avg_response_time_ms: float
+    calls_this_week: int
+    error_breakdown: list[ErrorBreakdownItem]
