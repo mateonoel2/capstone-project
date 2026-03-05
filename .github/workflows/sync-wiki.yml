@@ -4,22 +4,21 @@ on:
   push:
     branches: [main]
     paths:
-      - "wiki"
+      - "wiki/**"
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Push wiki changes
         run: |
-          cd wiki
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mateonoel2/capstone-project.wiki.git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin master
-          git rebase origin/master
-          git push origin HEAD:master
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mateonoel2/capstone-project.wiki.git /tmp/wiki-remote
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          cp wiki/*.md /tmp/wiki-remote/
+          cd /tmp/wiki-remote
+          git add -A
+          git diff --cached --quiet || git commit -m "Sync wiki from main repo"
+          git push origin master
