@@ -2,8 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { ExtractionTable } from "@/components/extraction-table";
-import { getMetrics, getExtractionLogs, getApiCallMetrics, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta } from "@/lib/api";
+import { getMetrics, getExtractionLogs, getApiCallMetrics, getParserConfigs, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta, ParserConfig } from "@/lib/api";
 import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2, Zap, Activity, Clock } from "lucide-react";
 
 export default function Dashboard() {
@@ -18,6 +26,10 @@ export default function Dashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [parserConfigs, setParserConfigs] = useState<ParserConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>("all");
+
+  const configIdParam = selectedConfigId === "all" ? undefined : Number(selectedConfigId);
 
   const fetchLogs = useCallback(async (page: number) => {
     try {
@@ -29,26 +41,40 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const [metricsData, apiMetricsData] = await Promise.all([
+        getMetrics(configIdParam),
+        getApiCallMetrics(configIdParam),
+      ]);
+      setMetrics(metricsData);
+      setApiMetrics(apiMetricsData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load metrics");
+    }
+  }, [configIdParam]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [metricsData, apiMetricsData] = await Promise.all([
-          getMetrics(),
-          getApiCallMetrics(),
-          fetchLogs(1),
-        ]);
-        setMetrics(metricsData);
-        setApiMetrics(apiMetricsData);
+        const configs = await getParserConfigs();
+        setParserConfigs(configs);
+        await Promise.all([fetchMetrics(), fetchLogs(1)]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchData();
-  }, [fetchLogs]);
+  }, [fetchMetrics, fetchLogs]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      fetchMetrics();
+    }
+  }, [selectedConfigId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePageChange = async (newPage: number) => {
     setIsLoading(true);
@@ -85,11 +111,31 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Analytics and metrics for extraction accuracy
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">
+              Analytics and metrics for extraction accuracy
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="config-filter" className="text-sm whitespace-nowrap">
+              Filtrar por Parser:
+            </Label>
+            <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+              <SelectTrigger id="config-filter" className="w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los parsers</SelectItem>
+                {parserConfigs.map((config) => (
+                  <SelectItem key={config.id} value={config.id.toString()}>
+                    {config.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -154,106 +200,48 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="flex flex-col items-center justify-center p-6">
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="transform -rotate-90 w-32 h-32">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-gray-200"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - (metrics?.owner_accuracy || 0) / 100)}`}
-                  className="text-blue-500 transition-all duration-1000 ease-out"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900">{metrics?.owner_accuracy || 0}%</span>
-              </div>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900">Owner Name</h3>
-            <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
-          </Card>
-
-          <Card className="flex flex-col items-center justify-center p-6">
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="transform -rotate-90 w-32 h-32">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-gray-200"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - (metrics?.bank_name_accuracy || 0) / 100)}`}
-                  className="text-green-500 transition-all duration-1000 ease-out"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900">{metrics?.bank_name_accuracy || 0}%</span>
-              </div>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900">Bank Name</h3>
-            <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
-          </Card>
-
-          <Card className="flex flex-col items-center justify-center p-6">
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="transform -rotate-90 w-32 h-32">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-gray-200"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - (metrics?.account_number_accuracy || 0) / 100)}`}
-                  className="text-purple-500 transition-all duration-1000 ease-out"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900">{metrics?.account_number_accuracy || 0}%</span>
-              </div>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900">Account Number</h3>
-            <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
-          </Card>
-        </div>
+        {metrics?.field_accuracies && Object.keys(metrics.field_accuracies).length > 0 && (
+          <div className={`grid grid-cols-1 md:grid-cols-${Math.min(Object.keys(metrics.field_accuracies).length, 4)} gap-6 mb-8`}>
+            {Object.entries(metrics.field_accuracies).map(([field, accuracy], idx) => {
+              const colors = ["text-blue-500", "text-green-500", "text-purple-500", "text-orange-500", "text-pink-500"];
+              const color = colors[idx % colors.length];
+              return (
+                <Card key={field} className="flex flex-col items-center justify-center p-6">
+                  <div className="relative w-32 h-32 mb-4">
+                    <svg className="transform -rotate-90 w-32 h-32">
+                      <circle
+                        cx="64"
+                        cy="64"
+                        r="56"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        className="text-gray-200"
+                      />
+                      <circle
+                        cx="64"
+                        cy="64"
+                        r="56"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 56}`}
+                        strokeDashoffset={`${2 * Math.PI * 56 * (1 - (accuracy || 0) / 100)}`}
+                        className={`${color} transition-all duration-1000 ease-out`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-gray-900">{accuracy || 0}%</span>
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">{field.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</h3>
+                  <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
@@ -324,8 +312,8 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ExtractionTable 
-              logs={logs} 
+            <ExtractionTable
+              logs={logs}
               pagination={pagination}
               onPageChange={handlePageChange}
             />
@@ -335,4 +323,3 @@ export default function Dashboard() {
     </main>
   );
 }
-

@@ -9,10 +9,6 @@ from pdf2image import convert_from_path
 from PIL import Image
 
 from src.core.logger import get_logger
-from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
-from src.domain.parser_interface import BaseParser
-from src.domain.schemas import BankAccount, ExtractionOutput
-from src.domain.validators import validate_clabe
 
 logger = get_logger(__name__)
 
@@ -38,23 +34,32 @@ y "000000000000000000" para account_number.
 NO inventes información. Solo extrae lo que está claramente visible en el documento."""
 
 
-class StatementParser(BaseParser):
+class StatementParser:
     def __init__(
         self,
-        api_key: str | None = None,
+        prompt: str = EXTRACTION_PROMPT,
         model: str = "claude-haiku-4-5-20251001",
+        output_schema: dict | None = None,
+        api_key: str | None = None,
         max_tokens: int = 1024,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model_name = model
         self.max_tokens = max_tokens
+        self.prompt = prompt
+        self.output_schema = output_schema
         self.llm = ChatAnthropic(
             model=model,
             api_key=self.api_key,
             max_tokens=max_tokens,
             temperature=0,
         )
-        self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
+        if output_schema:
+            self.structured_llm = self.llm.with_structured_output(output_schema)
+        else:
+            from src.domain.schemas import ExtractionOutput
+
+            self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
 
     def _image_to_base64(self, image: Image.Image) -> str:
         max_dimension = 1568
@@ -77,7 +82,7 @@ class StatementParser(BaseParser):
             image = image.convert("RGB")
         return [self._image_to_base64(image)]
 
-    def _extract_with_vision(self, base64_images: list[str]) -> ExtractionOutput:
+    def _extract_with_vision(self, base64_images: list[str]) -> dict:
         content = [
             {
                 "type": "image",
@@ -85,12 +90,15 @@ class StatementParser(BaseParser):
                 "data": base64_images[0],
                 "mime_type": "image/jpeg",
             },
-            {"type": "text", "text": EXTRACTION_PROMPT},
+            {"type": "text", "text": self.prompt},
         ]
         message = HumanMessage(content=content)
-        return self.structured_llm.invoke([message])
+        result = self.structured_llm.invoke([message])
+        if hasattr(result, "model_dump"):
+            return result.model_dump()
+        return result
 
-    def parse_file(self, file_path: Path) -> BankAccount:
+    def parse_file(self, file_path: Path) -> dict:
         suffix = file_path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
@@ -103,24 +111,4 @@ class StatementParser(BaseParser):
         if not base64_images:
             raise ValueError("No se pudo procesar el archivo")
 
-        result = self._extract_with_vision(base64_images)
-
-        if not result.is_bank_statement:
-            raise ValueError("El documento no es un estado de cuenta bancario")
-
-        owner = result.owner if result.owner != "Unknown" else UNKNOWN_OWNER
-        raw_account = result.account_number
-        account_number = raw_account if raw_account != "000000000000000000" else UNKNOWN_ACCOUNT
-        bank_name = result.bank_name if result.bank_name != "Unknown" else UNKNOWN_OWNER
-
-        if not validate_clabe(account_number):
-            account_number = UNKNOWN_ACCOUNT
-
-        # Fallback: if both bank and account are unknown, it's not a useful extraction
-        if bank_name == UNKNOWN_OWNER and account_number == UNKNOWN_ACCOUNT:
-            raise ValueError(
-                "No se encontró información bancaria útil en el documento. "
-                "Verifica que sea un estado de cuenta o carátula bancaria."
-            )
-
-        return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
+        return self._extract_with_vision(base64_images)

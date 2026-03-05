@@ -1,22 +1,20 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class ExtractionResponse(BaseModel):
-    owner: str
-    bank_name: str
-    account_number: str
+    fields: dict[str, Any] = {}
+    parser_config_id: int | None = None
+    parser_config_name: str = ""
 
 
 class SubmissionRequest(BaseModel):
     filename: str
-    extracted_owner: str
-    extracted_bank_name: str
-    extracted_account_number: str
-    final_owner: str
-    final_bank_name: str
-    final_account_number: str
+    extracted_fields: dict[str, str]
+    final_fields: dict[str, str]
+    parser_config_id: int | None = None
 
 
 class SubmissionResponse(BaseModel):
@@ -39,15 +37,9 @@ class ExtractionLogResponse(BaseModel):
     id: int
     timestamp: str | None
     filename: str
-    extracted_owner: str
-    extracted_bank_name: str
-    extracted_account_number: str
-    final_owner: str
-    final_bank_name: str
-    final_account_number: str
-    owner_corrected: bool
-    bank_name_corrected: bool
-    account_number_corrected: bool
+    extracted_fields: dict[str, Any] = {}
+    final_fields: dict[str, Any] = {}
+    corrected_fields: dict[str, bool] = {}
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -76,9 +68,7 @@ class MetricsResponse(BaseModel):
     total_corrections: int
     accuracy_rate: float
     this_week: int
-    owner_accuracy: float
-    bank_name_accuracy: float
-    account_number_accuracy: float
+    field_accuracies: dict[str, float] = {}
 
 
 class ErrorBreakdownItem(BaseModel):
@@ -93,3 +83,85 @@ class ApiCallMetricsResponse(BaseModel):
     avg_response_time_ms: float
     calls_this_week: int
     error_breakdown: list[ErrorBreakdownItem]
+
+
+class ParserConfigCreateRequest(BaseModel):
+    name: str
+    description: str = ""
+    prompt: str
+    model: str = "claude-haiku-4-5-20251001"
+    output_schema: dict[str, Any]
+    is_default: bool = False
+
+
+class ParserConfigUpdateRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    prompt: str | None = None
+    model: str | None = None
+    output_schema: dict[str, Any] | None = None
+    is_default: bool | None = None
+
+
+class ParserConfigResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None
+    prompt: str
+    model: str
+    output_schema: dict[str, Any]
+    is_default: bool
+    created_at: str | None
+    updated_at: str | None
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def convert_timestamps(cls, v: datetime | str | None) -> str | None:
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
+
+class ParserConfigListResponse(BaseModel):
+    configs: list[ParserConfigResponse]
+
+
+class ParserConfigVersionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    version_number: int
+    prompt: str
+    model: str
+    output_schema: dict[str, Any]
+    created_at: str | None
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def convert_timestamp(cls, v: datetime | str | None) -> str | None:
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
+
+class ModelInfo(BaseModel):
+    id: str
+    name: str
+    tier: str
+    cost_hint: str
+
+
+class ABTestResultItem(BaseModel):
+    parser_config_id: int
+    parser_config_name: str
+    model: str
+    fields: dict[str, Any]
+    response_time_ms: float
+    success: bool
+    error: str | None = None
+
+
+class ABTestResponse(BaseModel):
+    results: list[ABTestResultItem]

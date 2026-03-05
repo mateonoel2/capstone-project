@@ -7,19 +7,14 @@ class SubmissionService:
     def __init__(self, repository: ExtractionRepository):
         self.repository = repository
 
-    def submit_extraction(self, submission: SubmissionData) -> int:
+    def submit_extraction(
+        self, submission: SubmissionData, parser_config_id: int | None = None
+    ) -> int:
         log_entry = ExtractionLog(
             filename=submission.filename,
-            extracted_owner=submission.extracted_owner,
-            extracted_bank_name=submission.extracted_bank_name,
-            extracted_account_number=submission.extracted_account_number,
-            final_owner=submission.final_owner,
-            final_bank_name=submission.final_bank_name,
-            final_account_number=submission.final_account_number,
-            owner_corrected=submission.extracted_owner != submission.final_owner,
-            bank_name_corrected=submission.extracted_bank_name != submission.final_bank_name,
-            account_number_corrected=submission.extracted_account_number
-            != submission.final_account_number,
+            extracted_fields=submission.extracted_fields,
+            final_fields=submission.final_fields,
+            parser_config_id=parser_config_id,
         )
 
         created_log = self.repository.create(log_entry)

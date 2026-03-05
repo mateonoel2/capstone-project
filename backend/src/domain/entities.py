@@ -29,12 +29,19 @@ class ExtractionError(Exception):
 @dataclass
 class SubmissionData:
     filename: str
-    extracted_owner: str
-    extracted_bank_name: str
-    extracted_account_number: str
-    final_owner: str
-    final_bank_name: str
-    final_account_number: str
+    extracted_fields: dict[str, str]
+    final_fields: dict[str, str]
+
+
+@dataclass
+class ParserConfigData:
+    id: int | None
+    name: str
+    description: str
+    prompt: str
+    model: str
+    output_schema: dict
+    is_default: bool
 
 
 @dataclass
@@ -43,6 +50,4 @@ class MetricsData:
     total_corrections: int
     accuracy_rate: float
     this_week: int
-    owner_accuracy: float
-    bank_name_accuracy: float
-    account_number_accuracy: float
+    field_accuracies: dict[str, float] = field(default_factory=dict)

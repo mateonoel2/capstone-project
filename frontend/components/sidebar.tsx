@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileUp, BarChart3 } from "lucide-react";
+import { FileUp, BarChart3, Settings, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Extract PDF", href: "/", icon: FileUp },
+  { name: "Parsers", href: "/parsers", icon: Settings },
+  { name: "Prueba A/B", href: "/ab-test", icon: FlaskConical },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
 ];
 
@@ -45,4 +47,3 @@ export function Sidebar() {
     </div>
   );
 }
-

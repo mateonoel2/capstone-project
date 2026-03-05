@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/file-upload";
 import { FileViewer } from "@/components/file-viewer";
 import { BankCombobox } from "@/components/bank-combobox";
+import { DynamicFieldsForm } from "@/components/dynamic-fields-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { extractFromFile, submitExtraction, getBanks, Bank } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  extractFromFile,
+  submitExtraction,
+  getBanks,
+  getParserConfigs,
+  Bank,
+  ParserConfig,
+} from "@/lib/api";
 import { useExtractionStore } from "@/lib/store";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -23,10 +38,12 @@ export default function Home() {
     file,
     extracted,
     formData,
+    selectedParserId,
     setFile,
     setExtracted,
     updateFormField,
     setFormData,
+    setSelectedParserId,
     reset: resetStore,
   } = useExtractionStore();
 
@@ -35,18 +52,30 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
+  const [parserConfigs, setParserConfigs] = useState<ParserConfig[]>([]);
 
   useEffect(() => {
-    const fetchBanks = async () => {
+    const fetchData = async () => {
       try {
-        const bankList = await getBanks();
+        const [bankList, configs] = await Promise.all([
+          getBanks(),
+          getParserConfigs(),
+        ]);
         setBanks(bankList);
+        setParserConfigs(configs);
+        if (!selectedParserId) {
+          const defaultConfig = configs.find((c) => c.is_default);
+          if (defaultConfig) setSelectedParserId(defaultConfig.id);
+        }
       } catch (err) {
-        console.error("Failed to fetch banks:", err);
+        console.error("Failed to fetch initial data:", err);
       }
     };
-    fetchBanks();
-  }, []);
+    fetchData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedConfig = parserConfigs.find((c) => c.id === selectedParserId);
+  const isDefaultParser = selectedConfig?.is_default ?? true;
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -55,13 +84,14 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromFile(selectedFile);
+      const result = await extractFromFile(selectedFile, selectedParserId);
       setExtracted(result);
-      setFormData({
-        owner: result.owner,
-        bank_name: result.bank_name,
-        account_number: result.account_number,
-      });
+
+      const fields: Record<string, string> = {};
+      for (const [key, value] of Object.entries(result.fields || {})) {
+        fields[key] = String(value ?? "");
+      }
+      setFormData(fields);
     } catch (err) {
       setError(err instanceof Error ? err.message : "La extracción falló");
       setExtracted(null);
@@ -78,14 +108,15 @@ export default function Home() {
     setError(null);
 
     try {
+      const extractedFields: Record<string, string> = {};
+      for (const [key, value] of Object.entries(extracted.fields || {})) {
+        extractedFields[key] = String(value ?? "");
+      }
       await submitExtraction({
         filename: file.name,
-        extracted_owner: extracted.owner,
-        extracted_bank_name: extracted.bank_name,
-        extracted_account_number: extracted.account_number,
-        final_owner: formData.owner,
-        final_bank_name: formData.bank_name,
-        final_account_number: formData.account_number,
+        extracted_fields: extractedFields,
+        final_fields: formData,
+        parser_config_id: selectedParserId,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -107,21 +138,43 @@ export default function Home() {
 
   const isModified =
     extracted &&
-    (formData.owner !== extracted.owner ||
-      formData.bank_name !== extracted.bank_name ||
-      formData.account_number !== extracted.account_number);
+    Object.entries(formData).some(
+      ([key, value]) => value !== String(extracted.fields?.[key] ?? "")
+    );
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Extracción de Estados de Cuenta
+            Extracción de Documentos
           </h1>
           <p className="text-gray-600 mt-1">
-            Sube un estado de cuenta bancario (PDF o imagen) para extraer y
-            verificar la información de la cuenta
+            Sube un documento (PDF o imagen) para extraer y verificar la
+            información
           </p>
+        </div>
+
+        <div className="mb-4">
+          <Label htmlFor="parser-select" className="text-sm font-medium">
+            Parser
+          </Label>
+          <Select
+            value={selectedParserId?.toString() ?? ""}
+            onValueChange={(v) => setSelectedParserId(Number(v))}
+          >
+            <SelectTrigger id="parser-select" className="w-80 mt-1">
+              <SelectValue placeholder="Seleccionar parser..." />
+            </SelectTrigger>
+            <SelectContent>
+              {parserConfigs.map((config) => (
+                <SelectItem key={config.id} value={config.id.toString()}>
+                  {config.name}
+                  {config.is_default ? " (default)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {!file ? (
@@ -150,7 +203,9 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Información Extraída</CardTitle>
                   <CardDescription>
-                    Revisa y corrige los datos extraídos antes de enviar
+                    {isDefaultParser
+                      ? "Revisa y corrige los datos extraídos antes de enviar"
+                      : `Parser: ${selectedConfig?.name}`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -178,26 +233,26 @@ export default function Home() {
                         Intentar con otro archivo
                       </Button>
                     </div>
-                  ) : (
+                  ) : isDefaultParser ? (
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="owner">Titular de la Cuenta</Label>
                         <Input
                           id="owner"
-                          value={formData.owner}
+                          value={formData.owner || ""}
                           onChange={(e) =>
                             updateFormField("owner", e.target.value)
                           }
                           placeholder="Nombre del titular"
                           className={
-                            extracted && formData.owner !== extracted.owner
+                            extracted && formData.owner !== String(extracted.fields?.owner ?? "")
                               ? "border-yellow-400"
                               : ""
                           }
                         />
-                        {extracted && formData.owner !== extracted.owner && (
+                        {extracted && formData.owner !== String(extracted.fields?.owner ?? "") && (
                           <p className="text-xs text-yellow-600">
-                            IA extrajo: {extracted.owner || "(vacío)"}
+                            IA extrajo: {String(extracted.fields?.owner ?? "") || "(vacío)"}
                           </p>
                         )}
                       </div>
@@ -206,46 +261,50 @@ export default function Home() {
                         <Label htmlFor="bank_name">Banco</Label>
                         <BankCombobox
                           banks={banks}
-                          value={formData.bank_name}
+                          value={formData.bank_name || ""}
                           onChange={(value) =>
                             updateFormField("bank_name", value)
                           }
                           className={
                             extracted &&
-                            formData.bank_name !== extracted.bank_name
+                            formData.bank_name !== String(extracted.fields?.bank_name ?? "")
                               ? "border-yellow-400"
                               : ""
                           }
                         />
                         {extracted &&
-                          formData.bank_name !== extracted.bank_name && (
+                          formData.bank_name !== String(extracted.fields?.bank_name ?? "") && (
                             <p className="text-xs text-yellow-600">
-                              IA extrajo: {extracted.bank_name || "(vacío)"}
+                              IA extrajo: {String(extracted.fields?.bank_name ?? "") || "(vacío)"}
                             </p>
                           )}
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="account_number">Número de Cuenta (CLABE)</Label>
+                        <Label htmlFor="account_number">
+                          Número de Cuenta (CLABE)
+                        </Label>
                         <Input
                           id="account_number"
-                          value={formData.account_number}
+                          value={formData.account_number || ""}
                           onChange={(e) =>
                             updateFormField("account_number", e.target.value)
                           }
                           placeholder="CLABE de 18 dígitos"
                           className={
                             extracted &&
-                            formData.account_number !== extracted.account_number
+                            formData.account_number !==
+                              String(extracted.fields?.account_number ?? "")
                               ? "border-yellow-400"
                               : ""
                           }
                         />
                         {extracted &&
                           formData.account_number !==
-                            extracted.account_number && (
+                            String(extracted.fields?.account_number ?? "") && (
                             <p className="text-xs text-yellow-600">
-                              IA extrajo: {extracted.account_number || "(vacío)"}
+                              IA extrajo:{" "}
+                              {String(extracted.fields?.account_number ?? "") || "(vacío)"}
                             </p>
                           )}
                       </div>
@@ -299,6 +358,61 @@ export default function Home() {
                         </Button>
                       </div>
                     </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <DynamicFieldsForm
+                        schema={
+                          selectedConfig?.output_schema as Record<
+                            string,
+                            unknown
+                          >
+                        }
+                        values={formData}
+                        extracted={extracted?.fields as Record<string, unknown>}
+                        onChange={updateFormField}
+                      />
+
+                      {error && (
+                        <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">{error}</span>
+                        </div>
+                      )}
+
+                      {success && (
+                        <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="text-sm">
+                            Enviado exitosamente!
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          onClick={handleSubmit}
+                          disabled={isSubmitting || success}
+                          className="flex-1"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            "Enviar"
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleReset}
+                          disabled={isSubmitting}
+                        >
+                          Reiniciar
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
