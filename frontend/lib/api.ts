@@ -58,12 +58,11 @@ export interface PaginatedLogsResponse {
   pagination: PaginationMeta;
 }
 
-export async function extractFromPDF(file: File, parser: string = "claude_ocr"): Promise<ExtractionResult> {
+export async function extractFromFile(file: File): Promise<ExtractionResult> {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("parser", parser);
 
-  const response = await fetch(`${API_BASE_URL}/extraction/pdf`, {
+  const response = await fetch(`${API_BASE_URL}/extraction/extract`, {
     method: "POST",
     body: formData,
   });
@@ -114,6 +113,30 @@ export async function getExtractionLogs(page: number = 1, pageSize: number = 50)
   return response.json();
 }
 
+export interface ErrorBreakdownItem {
+  error_type: string;
+  count: number;
+}
+
+export interface ApiCallMetrics {
+  total_calls: number;
+  total_failures: number;
+  error_rate: number;
+  avg_response_time_ms: number;
+  calls_this_week: number;
+  error_breakdown: ErrorBreakdownItem[];
+}
+
+export async function getApiCallMetrics(): Promise<ApiCallMetrics> {
+  const response = await fetch(`${API_BASE_URL}/extraction/api-metrics`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch API call metrics");
+  }
+
+  return response.json();
+}
+
 export async function getMetrics(): Promise<Metrics> {
   const response = await fetch(`${API_BASE_URL}/extraction/metrics`);
 
@@ -123,4 +146,3 @@ export async function getMetrics(): Promise<Metrics> {
 
   return response.json();
 }
-

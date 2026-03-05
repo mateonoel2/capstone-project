@@ -16,18 +16,6 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run bank statement extraction")
     parser.add_argument(
-        "--parser",
-        type=str,
-        choices=[
-            "claude",
-            "claude_vision",
-            "claude_ocr",
-            "all",
-        ],
-        default="claude_ocr",
-        help="Parser to use: claude, claude_vision, claude_ocr, or all",
-    )
-    parser.add_argument(
         "--input-dir",
         type=str,
         default="data/processed/pdfs/bank_statements",
@@ -52,39 +40,11 @@ def main():
 
     experiment = ExperimentRunner(experiment_name="bank_extraction", output_dir=output_dir)
 
-    if args.parser == "claude":
-        print("\nRunning Claude (Haiku) extraction...")
-        from src.infrastructure.parsers.claude_text import ClaudeParser
+    print("\nRunning StatementParser extraction...")
+    from src.infrastructure.parsers.statement_parser import StatementParser
 
-        claude_parser = ClaudeParser()
-        experiment.run_experiment(claude_parser, pdf_files, "claude_parser")
-
-    elif args.parser == "claude_vision":
-        print("\nRunning Claude Vision (Haiku) extraction...")
-        from src.infrastructure.parsers.claude_vision import ClaudeVisionParser
-
-        claude_vision_parser = ClaudeVisionParser()
-        experiment.run_experiment(claude_vision_parser, pdf_files, "claude_vision_parser")
-
-    elif args.parser == "claude_ocr":
-        print("\nRunning Claude with OCR (Tesseract + Haiku) extraction...")
-        from src.infrastructure.parsers.claude_ocr import ClaudeOCRParser
-
-        claude_ocr_parser = ClaudeOCRParser()
-        experiment.run_experiment(claude_ocr_parser, pdf_files, "claude_ocr_parser")
-
-    elif args.parser == "all":
-        print("\nRunning comparison of all parsers...")
-        from src.infrastructure.parsers.claude_ocr import ClaudeOCRParser
-        from src.infrastructure.parsers.claude_text import ClaudeParser
-        from src.infrastructure.parsers.claude_vision import ClaudeVisionParser
-
-        parsers = {
-            "claude_parser": ClaudeParser(),
-            "claude_vision_parser": ClaudeVisionParser(),
-            "claude_ocr_parser": ClaudeOCRParser(),
-        }
-        experiment.compare_parsers(parsers, pdf_files)
+    statement_parser = StatementParser()
+    experiment.run_experiment(statement_parser, pdf_files, "statement_parser")
 
     print("\n✓ Extraction complete!")
 

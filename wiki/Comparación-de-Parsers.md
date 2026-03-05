@@ -181,16 +181,22 @@ La comparación revela una perspectiva crítica: **OCR solo no es suficiente**. 
 
 ---
 
-## Próximos Pasos
+## Estado Actual (Marzo 2026)
 
-1. **Desplegar *parser Claude OCR*** en producción
-2. **Monitorear precisión** en nuevos PDFs
-3. **Ajustar configuración de OCR** si es necesario (idioma, DPI, preservación de *layout*)
-4. **Manejar casos extremos**:
-   - PDFs encriptados (1 encontrado)
-   - Imágenes muy grandes (advertencias de compresión)
-   - Estados de cuenta de múltiples páginas
-5. **Considerar enfoque de *ensemble***: Usar *Claude OCR* como primario, recurrir a *Claude Vision* si la confianza de OCR es baja
+Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementParser` basado en vision con *structured output*. Este *parser*:
+- Usa *Claude Haiku 4.5* con `with_structured_output()` de *LangChain*
+- Convierte PDFs a imagenes (*pdf2image*) y las envia directamente a la API de vision
+- Soporta PDFs e imagenes (JPG/PNG)
+- Detecta automaticamente si el documento es un estado de cuenta bancario
+- Registra cada llamada en `api_call_logs` para monitoreo
+
+## Proximos Pasos
+
+1. **Monitorear precision** en nuevos documentos via el *dashboard*
+2. **Manejar casos extremos**:
+   - PDFs encriptados
+   - Imagenes de baja calidad
+   - Estados de cuenta de multiples paginas
 
 ---
 
@@ -218,4 +224,4 @@ El texto OCR tiene problemas que rompen patrones *regex*:
 ---
 
 Generado: 7 de noviembre de 2025
-Última Actualización: 7 de noviembre de 2025 (Agregado análisis de *fallback* de OCR)
+Ultima Actualizacion: Marzo 2026 (Parsers unificados en `StatementParser`)

@@ -3,6 +3,28 @@ from pydantic import BaseModel, Field, field_validator
 from src.domain.constants import BANK_DICT_KUSHKI
 
 
+class ExtractionOutput(BaseModel):
+    """Structured output from Claude for bank statement extraction."""
+
+    is_bank_statement: bool = Field(
+        ...,
+        description="True si el documento es un estado de cuenta o carátula bancaria mexicana, "
+        "False si es otro tipo de documento",
+    )
+    owner: str = Field(
+        ...,
+        description="Nombre completo del titular de la cuenta. Usa 'Unknown' si no se encuentra.",
+    )
+    account_number: str = Field(
+        ...,
+        description="Número CLABE de 18 dígitos. Usa '000000000000000000' si no se encuentra.",
+    )
+    bank_name: str = Field(
+        ...,
+        description="Nombre del banco en mayúsculas. Usa 'Unknown' si no se encuentra.",
+    )
+
+
 class BankAccount(BaseModel):
     owner: str = Field(
         ...,

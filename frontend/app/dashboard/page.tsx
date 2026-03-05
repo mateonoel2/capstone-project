@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExtractionTable } from "@/components/extraction-table";
-import { getMetrics, getExtractionLogs, Metrics, ExtractionLog, PaginationMeta } from "@/lib/api";
-import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2 } from "lucide-react";
+import { getMetrics, getExtractionLogs, getApiCallMetrics, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta } from "@/lib/api";
+import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2, Zap, Activity, Clock } from "lucide-react";
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [apiMetrics, setApiMetrics] = useState<ApiCallMetrics | null>(null);
   const [logs, setLogs] = useState<ExtractionLog[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta>({
     total: 0,
@@ -32,11 +33,13 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [metricsData] = await Promise.all([
+        const [metricsData, apiMetricsData] = await Promise.all([
           getMetrics(),
+          getApiCallMetrics(),
           fetchLogs(1),
         ]);
         setMetrics(metricsData);
+        setApiMetrics(apiMetricsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -251,6 +254,67 @@ export default function Dashboard() {
             <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
           </Card>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">API Calls</CardTitle>
+              <Zap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{apiMetrics?.total_calls || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {apiMetrics?.calls_this_week || 0} this week
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{apiMetrics?.error_rate || 0}%</div>
+              <p className="text-xs text-muted-foreground">
+                {apiMetrics?.total_failures || 0} failures
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {apiMetrics?.avg_response_time_ms
+                  ? (apiMetrics.avg_response_time_ms / 1000).toFixed(1)
+                  : "0"}s
+              </div>
+              <p className="text-xs text-muted-foreground">Claude API latency</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {apiMetrics && apiMetrics.error_breakdown.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Error Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {apiMetrics.error_breakdown.map((item) => (
+                  <div key={item.error_type} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{item.error_type}</span>
+                    <span className="font-medium">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

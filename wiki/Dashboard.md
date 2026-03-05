@@ -92,14 +92,38 @@ Tabla completa con:
 - Muestra valores finales para cada campo
 - Diseño responsivo
 
+### 3. GET /extraction/api-metrics
+**Ubicacion**: `backend/src/infrastructure/api/extraction/routes.py`
+
+Calcula y retorna metricas de llamadas a la API de Claude:
+- Total de llamadas
+- Total de fallos y tasa de error
+- Tiempo de respuesta promedio (ms)
+- Llamadas esta semana
+- Desglose de errores por tipo
+- Ejemplo de respuesta:
+
+```json
+{
+  "total_calls": 50,
+  "total_failures": 3,
+  "error_rate": 6.0,
+  "avg_response_time_ms": 2450.5,
+  "calls_this_week": 12,
+  "error_breakdown": [
+    {"error_type": "InvalidDocument", "count": 2}
+  ]
+}
+```
+
 ## Flujo de Datos
 
 ```
-Acción del Usuario → API del Backend → Base de Datos SQLite
+Accion del Usuario → API del Backend → PostgreSQL
                 ↓
-         Página del Dashboard
+         Pagina del Dashboard
                 ↓
-   Obtener Métricas y Logs (useEffect)
+   Obtener Metricas, Logs y API Metrics (useEffect)
                 ↓
       Mostrar Datos en Tiempo Real
 ```
@@ -169,28 +193,11 @@ npm run dev
 - Ver la tabla con todas las extracciones
 - Probar las funcionalidades de búsqueda/ordenamiento
 
-## Consultas de Base de Datos Utilizadas
+## Repositorios de Datos
 
-```python
-# Total de extracciones
-session.query(func.count(ExtractionLog.id)).scalar()
-
-# Correcciones específicas por campo
-session.query(func.count(ExtractionLog.id)).filter(
-    ExtractionLog.owner_corrected == True
-).scalar()
-
-# Conteo de esta semana
-week_ago = datetime.utcnow() - timedelta(days=7)
-session.query(func.count(ExtractionLog.id)).filter(
-    ExtractionLog.timestamp >= week_ago
-).scalar()
-
-# Todos los logs ordenados
-session.query(ExtractionLog).order_by(
-    ExtractionLog.timestamp.desc()
-).all()
-```
+Las consultas estan encapsuladas en dos repositorios:
+- `ExtractionRepository` — consultas sobre `extraction_logs` (precision, correcciones, paginacion)
+- `ApiCallRepository` — consultas sobre `api_call_logs` (fallos, tiempos de respuesta, desglose de errores)
 
 ## Métricas de Éxito
 
@@ -222,9 +229,10 @@ Acceder a la documentación completa de la API en: http://localhost:8000/docs
 
 Nuevos *endpoints* visibles:
 - `GET /extraction/banks` - Lista de bancos mexicanos
-- `GET /extraction/logs` - Todos los *logs* de extracción
-- `GET /extraction/metrics` - Métricas calculadas
-- `POST /extraction/pdf` - Extraer desde PDF
+- `GET /extraction/logs` - Todos los *logs* de extraccion
+- `GET /extraction/metrics` - Metricas de precision
+- `GET /extraction/api-metrics` - Metricas de llamadas API
+- `POST /extraction/extract` - Extraer desde PDF o imagen
 - `POST /extraction/submit` - Enviar con correcciones
 
 ## Completado

@@ -26,16 +26,11 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 ## Tecnologías Utilizadas
 
 ### *Backend*
-- **Lenguaje**: Python 3.10+
+- **Lenguaje**: Python 3.12+
 - ***Framework* API**: *FastAPI*
-- **Base de Datos**: *SQLite* con *SQLAlchemy*
-- **Extracción**: 8 *parsers* implementados, 2 expuestos en la UI de producción
-  - *Claude* (Sonnet 4.6)
-  - *LlamaParse*
-  - *Tesseract OCR*
-  - *PDFPlumber*, *PyPDF2*
-  - *LayoutLM*
-  - *Ollama* (*Llama 3.2*)
+- **Base de Datos**: *PostgreSQL* con *SQLAlchemy* y migraciones *Alembic*
+- **Extraccion**: *StatementParser* unificado basado en vision con *Claude Haiku 4.5*
+- **Gestion de dependencias**: *uv*
 
 ### *Frontend*
 - ***Framework***: *Next.js* 15 con *App Router*
@@ -47,9 +42,12 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 
 ### *DevOps* y Herramientas
 - **Control de versiones**: *Git* + *GitHub*
-- **Gestión de dependencias**: *pip* (Python), *npm* (*Node.js*)
-- ***Linting***: *Ruff* (Python)
+- **Gestión de dependencias**: *uv* (Python), *npm* (*Node.js*)
+- ***Linting***: *Ruff* (Python), *ESLint* (*Next.js*)
 - **Pruebas**: *pytest*
+- **CI**: *GitHub Actions* (ruff format, lint, tests)
+- **Despliegue**: *Railway* (*backend*), *Vercel* (*frontend*)
+- **Contenedores**: *Docker Compose* (*backend* + *PostgreSQL* + *LocalStack*)
 
 ---
 
@@ -62,34 +60,36 @@ capstone-project/
 │   │   ├── main.py                 # Entry point (FastAPI)
 │   │   ├── domain/                 # Lógica de negocio pura
 │   │   │   ├── schemas.py          # BankAccount (Pydantic)
-│   │   │   ├── constants.py        # Constantes del dominio
-│   │   │   ├── banks.py            # Diccionario de bancos
-│   │   │   ├── validators.py       # Validación CLABE/bancos
+│   │   │   ├── constants.py        # Constantes y diccionario de bancos
+│   │   │   ├── validators.py       # Validacion CLABE/bancos
 │   │   │   ├── parser_interface.py # BaseParser ABC
-│   │   │   ├── entities.py         # SubmissionData, MetricsData
+│   │   │   ├── entities.py         # Entidades de dominio y API calls
 │   │   │   └── services/           # Servicios de negocio
 │   │   ├── infrastructure/         # Integraciones externas
 │   │   │   ├── api/extraction/     # Rutas HTTP y DTOs
-│   │   │   ├── database.py         # Configuración SQLite
-│   │   │   ├── models.py           # ORM (ExtractionLog)
+│   │   │   ├── database.py         # Configuracion PostgreSQL
+│   │   │   ├── models.py           # ORM (ExtractionLog, ApiCallLog)
 │   │   │   ├── repository.py       # Acceso a datos
-│   │   │   ├── parsers/            # 8 parsers implementados
-│   │   │   ├── preprocessing/      # OCR, validación, descarga
-│   │   │   ├── evaluation/         # Experimentos y métricas
+│   │   │   ├── parsers/            # StatementParser (vision unificado)
+│   │   │   ├── preprocessing/      # Validacion y descarga
+│   │   │   ├── evaluation/         # Experimentos y metricas
 │   │   │   └── data_pipeline/      # Scripts de datos
-│   │   ├── core/                   # Utilidades genéricas
+│   │   ├── core/                   # Utilidades genericas
 │   │   └── tests/                  # Tests unitarios
+│   ├── alembic/                    # Migraciones de base de datos
 │   ├── scripts/                    # Scripts ejecutables
-│   └── data/                       # Datos y base de datos SQLite
+│   └── data/                       # Datos de prueba
 │
-└── frontend/                       # Aplicación Next.js
-    ├── app/                        # Pages (Next.js 13+)
-    │   ├── page.tsx                # Extracción
+└── frontend/                       # Aplicacion Next.js
+    ├── app/                        # Pages (Next.js 15 App Router)
+    │   ├── page.tsx                # Extraccion
     │   ├── dashboard/              # Dashboard
     │   └── layout.tsx              # Layout con sidebar
     ├── components/                 # Componentes React + shadcn/ui
-    │   ├── sidebar.tsx             # Navegación
+    │   ├── sidebar.tsx             # Navegacion
     │   ├── extraction-table.tsx    # Tabla de extracciones
+    │   ├── file-viewer.tsx         # Visor de PDF e imagenes
+    │   ├── file-upload.tsx         # Componente de subida
     │   ├── pdf-viewer.tsx          # Visor de PDF
     │   └── ui/                     # Componentes base
     └── lib/                        # API client + Utils + Store
@@ -124,22 +124,17 @@ capstone-project/
 
 ### Completamente Implementado
 
-- Sistema de extracción con 8 *parsers* (2 seleccionables desde la UI)
-- API REST con 7 *endpoints*
-- *Frontend* con extracción, selector de *parser* y *dashboard*
-- Base de datos *SQLite* con *logging*
-- Sistema de métricas y análisis
-- Visor de PDF con controles avanzados
-- Tabla de extracciones con búsqueda y paginación
-- Servicios divididos: `ExtractionService`, `SubmissionService`, `MetricsService`
-
-### *Parser* Recomendado
-
-Según pruebas con 183 PDFs reales:
-- ***Claude OCR Parser***: 63.8% precisión promedio
-  - 80.9% en CLABE (campo más crítico)
-  - 68.9% en Titular
-  - 41.5% en Banco
+- *Parser* unificado (*StatementParser*) basado en vision con *Claude Haiku 4.5*
+- Soporte para PDFs e imagenes (JPG/PNG)
+- API REST con *endpoints* de extraccion, submission, logs, metricas y metricas de API
+- *Frontend* con extraccion, visor de archivos y *dashboard*
+- Base de datos *PostgreSQL* con migraciones *Alembic*
+- Seguimiento de llamadas a la API (*ApiCallLog*)
+- Sistema de metricas de precision y metricas de API
+- Visor de PDF e imagenes con controles avanzados
+- Tabla de extracciones con busqueda y paginacion
+- Servicios divididos: `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`
+- CI con *GitHub Actions*, despliegue en *Railway* + *Vercel*
 
 ---
 
@@ -165,11 +160,9 @@ cd capstone-project
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env  # Configurar API keys
-python scripts/run_api.py
+uv sync                # Instalar dependencias
+cp .env.example .env   # Configurar API keys
+uvicorn src.main:app --reload
 ```
 
 ### 3. Configurar *frontend*

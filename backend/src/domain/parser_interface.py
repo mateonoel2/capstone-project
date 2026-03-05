@@ -1,11 +1,11 @@
-import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
+from src.core.logger import get_logger
 from src.domain.schemas import BankAccount
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class BaseParser(ABC):

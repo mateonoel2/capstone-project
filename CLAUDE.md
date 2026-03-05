@@ -41,21 +41,20 @@ Three layers under `src/`:
 - **`src/main.py`** — FastAPI app entry point with CORS and lifespan
 
 - **`src/domain/`** — Pure business logic (no external dependencies)
-  - `schemas.py` — `BankAccount` Pydantic model
-  - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`
-  - `banks.py` — `BANK_DICT_KUSHKI` (91 Mexican banks)
+  - `schemas.py` — `BankAccount`, `ExtractionOutput` Pydantic models
+  - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`, `BANK_DICT_KUSHKI`
   - `validators.py` — CLABE/bank regex patterns and validation
   - `parser_interface.py` — `BaseParser` ABC
-  - `entities.py` — `SubmissionData`, `MetricsData` dataclasses
-  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`
+  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`
+  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`
 
 - **`src/infrastructure/`** — External integrations
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `ExtractionLog` ORM model
-  - `repository.py` — `ExtractionRepository` data access
-  - `parsers/` — Parser implementations: `claude_ocr`, `claude_text`, `claude_vision`
+  - `models.py` — `ExtractionLog`, `ApiCallLog` ORM models
+  - `repository.py` — `ExtractionRepository`, `ApiCallRepository` data access
+  - `parsers/` — `StatementParser`: unified vision-based parser (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics
   - `data_pipeline/` — Download/cleanup scripts
@@ -66,7 +65,7 @@ Three layers under `src/`:
 
 Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Zustand for state.
 
-- `/` — Main extraction workflow: upload PDF → preview → editable extracted fields → submit
+- `/` — Main extraction workflow: upload file (PDF/JPG/PNG) → preview → editable extracted fields → submit
 - `/dashboard` — Accuracy metrics and extraction history
 - `lib/store.ts` — Zustand store (sessionStorage persistence)
 - `lib/api.ts` — Typed fetch wrappers for backend endpoints
@@ -74,7 +73,7 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 ## Key Domain Concepts
 
 - **CLABE**: 18-digit Mexican interbank account number (validated with `^\d{18}$`)
-- **Extraction flow**: OCR (pdf2image + pytesseract) → Claude prompt → JSON response → user correction → persistence with correction flags
+- **Extraction flow**: PDF/image → vision-based Claude extraction → structured output → user correction → persistence with correction flags
 - **Accuracy metrics**: Calculated from per-field boolean correction flags stored in `ExtractionLog`
 
 ## Environment Variables
@@ -90,3 +89,7 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 - Backend: Ruff (line-length 100, rules E/F/W/I)
 - Frontend: ESLint with next/core-web-vitals
 - All UI text and prompts are in Spanish
+
+## Verification
+
+When finishing a big task, only run linter and tests — do NOT run `npm run build` or other build commands.

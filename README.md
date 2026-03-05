@@ -8,16 +8,17 @@ https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
 
 ## Descripción
 
-Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructurada de estados de cuenta bancarios mexicanos en formato PDF. Utiliza 3 *parsers* basados en *Claude Haiku 4.5* (OCR, texto directo y visión) para extraer nombre del titular, cuenta CLABE y banco.
+Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructurada de estados de cuenta bancarios mexicanos (PDF e imagenes JPG/PNG). Utiliza un *parser* unificado basado en *Claude Haiku 4.5* con extraccion por vision para extraer nombre del titular, cuenta CLABE y banco.
 
 ## Características
 
-- Aplicación web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
-- 3 estrategias de *parsing*: Claude OCR, Claude Text y Claude Vision
-- *Dashboard* con métricas de precisión y correcciones por campo
-- Preprocesamiento OCR (*pdf2image* + *pytesseract*) y validación de archivos
+- Aplicacion web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
+- *Parser* unificado (*StatementParser*) basado en vision con *Claude Haiku 4.5*
+- Soporte para PDFs e imagenes (JPG/PNG) con visor integrado
+- *Dashboard* con metricas de precision, correcciones por campo y metricas de llamadas API
+- Seguimiento de llamadas a la API de Claude (tasa de error, tiempo de respuesta)
 - Almacenamiento en PostgreSQL con migraciones Alembic
-- Subida de PDFs a S3 (Tigris en producción, LocalStack en desarrollo)
+- Subida de archivos a S3 (Tigris en produccion, LocalStack en desarrollo)
 - Despliegue en Railway (backend) y Vercel (frontend)
 - CI con GitHub Actions (ruff format, lint, tests)
 - Docker Compose para desarrollo local (backend + PostgreSQL + LocalStack)
@@ -31,18 +32,17 @@ capstone-project/
 │   │   ├── main.py                     # Entry point (FastAPI)
 │   │   ├── domain/                     # Lógica de negocio pura
 │   │   │   ├── schemas.py             # BankAccount (Pydantic)
-│   │   │   ├── constants.py           # Constantes del dominio
-│   │   │   ├── banks.py              # Diccionario de 91 bancos mexicanos
+│   │   │   ├── constants.py           # Constantes y diccionario de bancos
 │   │   │   ├── validators.py         # Validación de CLABE y bancos
 │   │   │   ├── parser_interface.py   # BaseParser ABC
-│   │   │   ├── entities.py           # SubmissionData, MetricsData
-│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService
+│   │   │   ├── entities.py           # Entidades de dominio y API calls
+│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ApiMetricsService
 │   │   ├── infrastructure/            # Integraciones externas
 │   │   │   ├── api/extraction/       # Rutas HTTP y DTOs
 │   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
-│   │   │   ├── models.py             # ORM (ExtractionLog)
+│   │   │   ├── models.py             # ORM (ExtractionLog, ApiCallLog)
 │   │   │   ├── repository.py         # Acceso a datos
-│   │   │   ├── parsers/              # claude_ocr, claude_text, claude_vision
+│   │   │   ├── parsers/              # StatementParser (vision unificado)
 │   │   │   ├── preprocessing/        # OCR, validación, limpieza, descarga
 │   │   │   ├── evaluation/           # Experimentos y métricas
 │   │   │   └── data_pipeline/        # Scripts de datos
@@ -66,7 +66,7 @@ capstone-project/
 - Python >= 3.12
 - Node.js >= 18
 - Docker y Docker Compose (para desarrollo local)
-- Tesseract OCR (`brew install tesseract` en macOS)
+- Poppler (`brew install poppler` en macOS, para conversion PDF a imagen)
 
 ## Instalación
 

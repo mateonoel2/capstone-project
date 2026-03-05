@@ -1,40 +1,69 @@
 import tempfile
+import time
 from pathlib import Path
 
 from fastapi import UploadFile
 
+from src.domain.entities import ApiCallResult, ExtractionError
 from src.domain.schemas import BankAccount
-from src.infrastructure.parsers.claude_ocr import ClaudeOCRParser
-from src.infrastructure.parsers.claude_vision import ClaudeVisionParser
+from src.infrastructure.parsers.statement_parser import SUPPORTED_EXTENSIONS, StatementParser
 
-PARSER_MAP = {
-    "claude_ocr": ClaudeOCRParser,
-    "claude_vision": ClaudeVisionParser,
-}
+ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
 
 class ExtractionService:
-    async def extract_from_pdf(self, file: UploadFile, parser: str = "claude_ocr") -> BankAccount:
-        if not file.filename or not file.filename.lower().endswith(".pdf"):
-            raise ValueError("Only PDF files are supported")
-        if parser not in PARSER_MAP:
-            raise ValueError(f"Unknown parser: {parser}. Options: {list(PARSER_MAP.keys())}")
+    async def extract(self, file: UploadFile) -> tuple[BankAccount, ApiCallResult]:
+        if not file.filename:
+            raise ValueError("No se proporcionó un archivo")
+
+        suffix = Path(file.filename).suffix.lower()
+        if suffix not in ALLOWED_EXTENSIONS:
+            raise ValueError(
+                f"Tipo de archivo no soportado: {suffix}. "
+                f"Formatos aceptados: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+            )
 
         tmp_file_path = None
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
                 content = await file.read()
                 tmp_file.write(content)
                 tmp_file_path = Path(tmp_file.name)
 
-            parser_instance = PARSER_MAP[parser]()
-            result = parser_instance.parse_file(tmp_file_path)
+            parser = StatementParser()
+            start = time.monotonic()
+            try:
+                result = parser.parse_file(tmp_file_path)
+            except ValueError as e:
+                # ValueError = API worked, but doc is not a valid bank statement
+                elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+                call_result = ApiCallResult(
+                    model=parser.model_name,
+                    success=False,
+                    response_time_ms=elapsed_ms,
+                    error_type="InvalidDocument",
+                    error_message=str(e),
+                )
+                raise ExtractionError(str(e), call_result)
+            except Exception as e:
+                # Other exceptions = API failure
+                elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+                call_result = ApiCallResult(
+                    model=parser.model_name,
+                    success=False,
+                    response_time_ms=elapsed_ms,
+                    error_type=type(e).__name__,
+                    error_message=str(e)[:500],
+                )
+                raise ExtractionError(str(e), call_result)
 
-            tmp_file_path.unlink()
-
-            return result
-
-        except Exception as e:
+            elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+            call_result = ApiCallResult(
+                model=parser.model_name,
+                success=True,
+                response_time_ms=elapsed_ms,
+            )
+            return result, call_result
+        finally:
             if tmp_file_path and tmp_file_path.exists():
                 tmp_file_path.unlink()
-            raise e

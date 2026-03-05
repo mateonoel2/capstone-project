@@ -1,16 +1,19 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.domain.constants import BANK_DICT_KUSHKI, UNKNOWN_ACCOUNT, UNKNOWN_OWNER
-from src.domain.entities import SubmissionData
+from src.domain.entities import ExtractionError, SubmissionData
+from src.domain.services.api_metrics import ApiMetricsService
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
 from src.domain.services.submission import SubmissionService
 from src.infrastructure.api.extraction.dtos import (
+    ApiCallMetricsResponse,
     Bank,
     BanksResponse,
+    ErrorBreakdownItem,
     ExtractionLogResponse,
     ExtractionResponse,
     LogsResponse,
@@ -20,7 +23,7 @@ from src.infrastructure.api.extraction.dtos import (
     SubmissionResponse,
 )
 from src.infrastructure.database import get_db
-from src.infrastructure.repository import ExtractionRepository
+from src.infrastructure.repository import ApiCallRepository, ExtractionRepository
 
 DbDep = Annotated[Session, Depends(get_db)]
 
@@ -31,11 +34,12 @@ def _get_repository(db: Session) -> ExtractionRepository:
     return ExtractionRepository(db)
 
 
-@router.post("/pdf", response_model=ExtractionResponse)
-async def extract_from_pdf(
+@router.post("/extract", response_model=ExtractionResponse)
+async def extract_from_file(
     file: Annotated[UploadFile, File()],
-    parser: Annotated[str, Form()] = "claude_ocr",
+    db: DbDep,
 ):
+    api_repo = ApiCallRepository(db)
     try:
         content = await file.read()
         await file.seek(0)
@@ -45,7 +49,9 @@ async def extract_from_pdf(
         save_upload(file, content)
 
         service = ExtractionService()
-        result = await service.extract_from_pdf(file, parser)
+        result, call_result = await service.extract(file)
+
+        api_repo.create(call_result, filename=file.filename)
 
         return ExtractionResponse(
             owner="" if result.owner == UNKNOWN_OWNER else result.owner,
@@ -54,6 +60,11 @@ async def extract_from_pdf(
             if result.account_number == UNKNOWN_ACCOUNT
             else result.account_number,
         )
+    except ExtractionError as e:
+        api_repo.create(e.call_result, filename=file.filename)
+        if e.call_result.error_type == "InvalidDocument":
+            raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -121,3 +132,24 @@ async def get_metrics(db: DbDep):
         return MetricsResponse.model_validate(metrics)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to calculate metrics: {str(e)}")
+
+
+@router.get("/api-metrics", response_model=ApiCallMetricsResponse)
+async def get_api_metrics(db: DbDep):
+    try:
+        service = ApiMetricsService(ApiCallRepository(db))
+        metrics = service.get_metrics()
+
+        return ApiCallMetricsResponse(
+            total_calls=metrics.total_calls,
+            total_failures=metrics.total_failures,
+            error_rate=metrics.error_rate,
+            avg_response_time_ms=metrics.avg_response_time_ms,
+            calls_this_week=metrics.calls_this_week,
+            error_breakdown=[
+                ErrorBreakdownItem(error_type=str(item["error_type"]), count=int(item["count"]))
+                for item in metrics.error_breakdown
+            ],
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate API metrics: {str(e)}")

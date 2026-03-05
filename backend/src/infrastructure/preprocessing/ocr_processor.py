@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import List
 
@@ -6,7 +5,9 @@ import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image
 
-logger = logging.getLogger(__name__)
+from src.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class OCRProcessor:
