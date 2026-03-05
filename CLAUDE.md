@@ -41,20 +41,19 @@ Three layers under `src/`:
 - **`src/main.py`** — FastAPI app entry point with CORS and lifespan
 
 - **`src/domain/`** — Pure business logic (no external dependencies)
-  - `schemas.py` — `BankAccount` Pydantic model
-  - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`
-  - `banks.py` — `BANK_DICT_KUSHKI` (91 Mexican banks)
+  - `schemas.py` — `BankAccount`, `ExtractionOutput` Pydantic models
+  - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`, `BANK_DICT_KUSHKI`
   - `validators.py` — CLABE/bank regex patterns and validation
   - `parser_interface.py` — `BaseParser` ABC
-  - `entities.py` — `SubmissionData`, `MetricsData` dataclasses
-  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`
+  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`
+  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`
 
 - **`src/infrastructure/`** — External integrations
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `ExtractionLog` ORM model
-  - `repository.py` — `ExtractionRepository` data access
+  - `models.py` — `ExtractionLog`, `ApiCallLog` ORM models
+  - `repository.py` — `ExtractionRepository`, `ApiCallRepository` data access
   - `parsers/` — `StatementParser`: unified vision-based parser (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics

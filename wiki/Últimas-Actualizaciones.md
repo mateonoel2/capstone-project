@@ -1,14 +1,28 @@
 # Últimas Actualizaciones
 
-**Última actualización:** Noviembre 2025
+**Ultima actualizacion:** Marzo 2026
+
+## Actualizacion: *Parser* Unificado y Seguimiento de API (Marzo 2026)
+
+### Cambios principales
+
+- **Parser unificado**: Los 3 *parsers* anteriores (*claude_ocr*, *claude_text*, *claude_vision*) se reemplazaron por un unico `StatementParser` basado en vision con *structured output*
+- **Soporte de imagenes**: El sistema ahora acepta JPG y PNG ademas de PDF
+- **Seguimiento de llamadas API**: Nuevo modelo `ApiCallLog` que registra cada llamada a Claude (exito/error, tiempo de respuesta, tipo de error)
+- **Metricas de API**: Nuevo *endpoint* `GET /extraction/api-metrics` y seccion en el *dashboard*
+- **Visor de archivos**: Nuevo componente `FileViewer` que muestra PDFs e imagenes con controles de zoom y rotacion
+- **`ExtractionOutput`**: Modelo *Pydantic* con *structured output* de *LangChain* para respuestas tipadas de Claude
+- **Migracion Alembic**: Nueva tabla `api_call_logs`
+
+---
 
 ## Estado Actual del Proyecto
 
-El proyecto está completamente funcional con todas las funcionalidades principales implementadas.
+El proyecto esta completamente funcional con todas las funcionalidades principales implementadas.
 
 ## Funcionalidades Implementadas
 
-### 1. Navegación con *Sidebar*
+### 1. Navegacion con *Sidebar*
 - *Sidebar* oscuro con navegación implementado
 - Dos páginas funcionales: "Extraer PDF" y "*Dashboard*"
 - Resaltado de estado activo
@@ -43,25 +57,19 @@ El proyecto está completamente funcional con todas las funcionalidades principa
 - Desplazamiento optimizado para visibilidad completa del documento
 - Iconos para todos los controles
 
-### 5. Sistema de Extracción Robusto
-- 9 *parsers* implementados y funcionales:
-  - *RegexParser*
-  - *PDFPlumberParser*
-  - *ClaudeParser*
-  - *ClaudeOCRParser* (ganador en pruebas)
-  - *ClaudeVisionParser*
-  - *LlamaParser*
-  - *HybridParser*
-  - *LayoutLMParser*
-- *Fallback* automático a OCR cuando es necesario
-- Manejo de errores robusto
+### 5. Sistema de Extraccion
+- *Parser* unificado `StatementParser` basado en vision con *Claude Haiku 4.5*
+- Soporte para PDFs e imagenes (JPG/PNG)
+- *Structured output* via *LangChain* (`ExtractionOutput`)
+- Deteccion automatica de documentos no bancarios
+- Seguimiento de llamadas API con metricas de error y tiempo de respuesta
 
 ### 6. Base de Datos y *Logging*
-- Base de datos *SQLite* completamente funcional
-- Gestión adecuada de sesiones con *SQLAlchemy*
-- *Rollback* automático en errores
-- Bloques *try-finally* para limpieza
-- Seguimiento de correcciones por campo
+- *PostgreSQL* con migraciones *Alembic*
+- Gestion de sesiones con *SQLAlchemy*
+- *Rollback* automatico en errores
+- Seguimiento de correcciones por campo (`ExtractionLog`)
+- Seguimiento de llamadas API (`ApiCallLog`)
 
 ## Archivos del Sistema
 
@@ -72,8 +80,8 @@ El proyecto está completamente funcional con todas las funcionalidades principa
 - `backend/src/infrastructure/repository.py` - Acceso a datos
 - `backend/src/infrastructure/models.py` - Modelos ORM de base de datos
 - `backend/src/domain/entities.py` - Entidades de dominio
-- `backend/src/domain/banks.py` - Diccionario de bancos
-- `backend/src/infrastructure/parsers/` - 8 *parsers* implementados
+- `backend/src/domain/constants.py` - Constantes y diccionario de bancos
+- `backend/src/infrastructure/parsers/statement_parser.py` - *Parser* unificado
 
 ### *Frontend*
 - `frontend/app/page.tsx` - Página de extracción
@@ -91,13 +99,14 @@ El proyecto está completamente funcional con todas las funcionalidades principa
 ### Implementados y Funcionales
 
 ```
-GET  /extraction/banks    - Lista de 91 bancos mexicanos
-POST /extraction/pdf      - Extraer información de PDF
-POST /extraction/submit   - Enviar extracción con correcciones
-GET  /extraction/logs     - Obtener logs con paginación
-GET  /extraction/metrics  - Obtener métricas de precisión
-GET  /health              - Verificación de salud
-GET  /docs                - Documentación interactiva
+GET  /extraction/banks        - Lista de 91 bancos mexicanos
+POST /extraction/extract      - Extraer informacion de PDF o imagen
+POST /extraction/submit       - Enviar extraccion con correcciones
+GET  /extraction/logs         - Obtener logs con paginacion
+GET  /extraction/metrics      - Obtener metricas de precision
+GET  /extraction/api-metrics  - Obtener metricas de llamadas API
+GET  /health                  - Verificacion de salud
+GET  /docs                    - Documentacion interactiva
 ```
 
 ## Cómo Usar
@@ -128,12 +137,9 @@ La aplicación inicia en http://localhost:3000
 
 ## Base de Datos
 
-La base de datos *SQLite* en `backend/data/extractions.db` almacena:
-- Valores extraídos originales
-- Correcciones del usuario
-- *Flags* de corrección por campo
-- Marcas de tiempo y nombres de archivo
-- Historial completo de extracciones
+*PostgreSQL* con dos tablas principales:
+- `extraction_logs`: Valores extraidos, correcciones del usuario, *flags* de correccion por campo
+- `api_call_logs`: Modelo utilizado, exito/error, tiempo de respuesta, tipo de error
 
 ## Métricas y Análisis
 

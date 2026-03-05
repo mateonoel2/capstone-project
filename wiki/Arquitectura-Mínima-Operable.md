@@ -6,9 +6,9 @@
 
 | Componente | Descripción |
 |------------|-------------|
-| **Datos** | Imágenes de documentos (estados de cuenta bancarios) almacenadas en *Backblaze B2* |
-| **Procesamiento** | *Backend* *FastAPI* con *parsers* configurables para extracción de información |
-| **Modelo** | API de LLM (*Claude*, *OpenAI* u otros proveedores) para extracción estructurada de campos |
+| **Datos** | PDFs e imagenes de documentos (estados de cuenta bancarios) almacenados en S3 (Tigris) |
+| **Procesamiento** | *Backend* *FastAPI* con *StatementParser* unificado basado en vision |
+| **Modelo** | *Claude Haiku 4.5* con *structured output* para extraccion de campos |
 | ***Output*** | JSON estructurado con campos validados y metadatos de extracción |
 
 ---
@@ -20,8 +20,9 @@
 - ***Deployment*:** *Railway* (PaaS)
 - ***Backend*:** *FastAPI* (Python)
 - **Base de Datos:** *PostgreSQL* (datos, metadatos y resultados de extracción)
-- **Almacenamiento:** *Backblaze B2* (imágenes de documentos)
-- **Procesamiento:** APIs de LLM (*Claude*, *OpenAI*, etc.) para extracción multimodal
+- **Almacenamiento:** S3 / Tigris (documentos subidos), *LocalStack* en desarrollo
+- **Procesamiento:** *Claude Haiku 4.5* via *LangChain* para extraccion por vision
+- ***Frontend*:** *Next.js* 15 en *Vercel*
 
 ### Arquitectura de Capas
 
@@ -32,25 +33,25 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │         API REST (FastAPI)              │
-│  - Upload endpoint                      │
-│  - Extraction endpoint                  │
-│  - Results endpoint                     │
+│  - POST /extraction/extract             │
+│  - POST /extraction/submit              │
+│  - GET /extraction/metrics, logs, etc.  │
 └─────────────────────────────────────────┘
                    ↓
 ┌─────────────────────────────────────────┐
 │      Capa de Procesamiento              │
-│  - Parser Registry                      │
+│  - StatementParser (vision)             │
 │  - Schema Validation                    │
-│  - LLM Orchestration                    │
+│  - API Call Tracking                    │
 └─────────────────────────────────────────┘
     ↓            ↓            ↓
 ┌────────┐  ┌──────────┐  ┌──────────────┐
-│Postgre │  │Backblaze │  │  LLM APIs    │
-│  SQL   │  │    B2    │  │  (Externas)  │
-│        │  │          │  │  - Claude    │
-│-Schemas│  │ -Images  │  │  - GPT-4     │
-│-Results│  │ -Docs    │  │  - Gemini    │
-│-Meta   │  │          │  │              │
+│Postgre │  │  S3 /    │  │ Claude       │
+│  SQL   │  │  Tigris  │  │ Haiku 4.5    │
+│        │  │          │  │              │
+│-Logs   │  │ -PDFs    │  │ -Vision API  │
+│-API    │  │ -Images  │  │ -Structured  │
+│ Calls  │  │          │  │  Output      │
 └────────┘  └──────────┘  └──────────────┘
 ```
 
@@ -59,29 +60,24 @@
 ## Flujo de Datos
 
 ### 1. Carga de Documento
-1. Usuario sube imagen vía interfaz web
-2. *FastAPI* recibe el archivo y lo almacena temporalmente
-3. Imagen se sube a *Backblaze B2*
-4. Metadatos se registran en *PostgreSQL* (id, nombre de archivo, *timestamp*, estado)
+1. Usuario sube PDF o imagen (JPG/PNG) via interfaz web
+2. *FastAPI* recibe el archivo, lo guarda en S3 y crea archivo temporal
 
-### 2. Extracción de Información
-1. Sistema recupera imagen de B2
-2. Se selecciona *schema* de extracción (*bank_statement*)
-3. *Parser* procesa imagen según configuración:
-   - *Schema-driven*: campos dinámicos según *schema* YAML
-   - API de LLM: envío de imagen + *prompt* estructurado
-4. LLM retorna JSON estructurado
+### 2. Extraccion de Informacion
+1. `StatementParser` convierte el archivo a imagen(es) *base64*
+2. Envia imagen + *prompt* a *Claude Haiku 4.5* via *LangChain*
+3. *Structured output* (`ExtractionOutput`) retorna campos tipados
+4. Se registra la llamada API en `api_call_logs` (tiempo, exito/error)
 
-### 3. Validación y Almacenamiento
-1. Validación de campos extraídos contra *schema*
-2. Verificación de formatos (CLABE 18 dígitos, nombres válidos)
-3. Almacenamiento de resultados en *PostgreSQL*
-4. Generación de *confidence scores*
+### 3. Validacion y Respuesta
+1. Validacion de CLABE (18 digitos) y nombre de banco
+2. Deteccion de documentos no bancarios (`is_bank_statement: false`)
+3. Respuesta al *frontend* con campos extraidos
 
-### 4. Revisión Humana
-1. Interfaz muestra resultados extraídos
-2. Usuario valida o corrige información
-3. Confirmación final actualiza estado en BD
+### 4. Revision Humana y Persistencia
+1. *Frontend* muestra resultados extraidos con campos editables
+2. Usuario valida o corrige informacion
+3. *Submit* registra en `extraction_logs` con *flags* de correccion por campo
 
 ---
 
@@ -89,8 +85,8 @@
 
 **Semi-automatizado:** El sistema extrae automáticamente la información y el usuario valida los resultados a través de la interfaz web antes de confirmar.
 
-**Proceso de validación:**
-1. Sistema asigna *confidence score* a cada campo extraído
-2. Campos con alta confianza (>90%) se marcan como "probables"
-3. Campos con baja confianza (<70%) requieren revisión manual
-4. Usuario revisa y confirma/corrige antes de almacenamiento final
+**Proceso de validacion:**
+1. Sistema extrae campos automaticamente via *Claude* vision
+2. Usuario revisa los campos extraidos en la interfaz web
+3. Usuario corrige los campos que lo necesiten
+4. Al enviar, se calculan *flags* de correccion por campo para metricas de precision
