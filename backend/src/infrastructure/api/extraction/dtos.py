@@ -6,15 +6,18 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 class ExtractionResponse(BaseModel):
     fields: dict[str, Any] = {}
-    parser_config_id: int | None = None
-    parser_config_name: str = ""
+    extractor_config_id: int | None = None
+    extractor_config_name: str = ""
+    extractor_config_version_id: int | None = None
+    extractor_config_version_number: int | None = None
 
 
 class SubmissionRequest(BaseModel):
     filename: str
     extracted_fields: dict[str, str]
     final_fields: dict[str, str]
-    parser_config_id: int | None = None
+    extractor_config_id: int | None = None
+    extractor_config_version_id: int | None = None
 
 
 class SubmissionResponse(BaseModel):
@@ -40,6 +43,7 @@ class ExtractionLogResponse(BaseModel):
     extracted_fields: dict[str, Any] = {}
     final_fields: dict[str, Any] = {}
     corrected_fields: dict[str, bool] = {}
+    extractor_config_version_id: int | None = None
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -85,7 +89,7 @@ class ApiCallMetricsResponse(BaseModel):
     error_breakdown: list[ErrorBreakdownItem]
 
 
-class ParserConfigCreateRequest(BaseModel):
+class ExtractorConfigCreateRequest(BaseModel):
     name: str
     description: str = ""
     prompt: str
@@ -94,7 +98,7 @@ class ParserConfigCreateRequest(BaseModel):
     is_default: bool = False
 
 
-class ParserConfigUpdateRequest(BaseModel):
+class ExtractorConfigUpdateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
     prompt: str | None = None
@@ -103,7 +107,7 @@ class ParserConfigUpdateRequest(BaseModel):
     is_default: bool | None = None
 
 
-class ParserConfigResponse(BaseModel):
+class ExtractorConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -124,11 +128,11 @@ class ParserConfigResponse(BaseModel):
         return v
 
 
-class ParserConfigListResponse(BaseModel):
-    configs: list[ParserConfigResponse]
+class ExtractorConfigListResponse(BaseModel):
+    configs: list[ExtractorConfigResponse]
 
 
-class ParserConfigVersionResponse(BaseModel):
+class ExtractorConfigVersionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -136,6 +140,7 @@ class ParserConfigVersionResponse(BaseModel):
     prompt: str
     model: str
     output_schema: dict[str, Any]
+    is_active: bool = False
     created_at: str | None
 
     @field_validator("created_at", mode="before")
@@ -153,15 +158,23 @@ class ModelInfo(BaseModel):
     cost_hint: str
 
 
-class ABTestResultItem(BaseModel):
-    parser_config_id: int
-    parser_config_name: str
-    model: str
+class GenerateSchemaRequest(BaseModel):
+    description: str
+
+
+class GenerateSchemaResponse(BaseModel):
+    output_schema: dict[str, Any]
+
+
+class GeneratePromptRequest(BaseModel):
+    output_schema: dict[str, Any]
+    document_type: str | None = None
+
+
+class GeneratePromptResponse(BaseModel):
+    prompt: str
+
+
+class TestExtractResponse(BaseModel):
     fields: dict[str, Any]
     response_time_ms: float
-    success: bool
-    error: str | None = None
-
-
-class ABTestResponse(BaseModel):
-    results: list[ABTestResultItem]

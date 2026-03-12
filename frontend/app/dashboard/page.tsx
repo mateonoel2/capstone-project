@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ExtractionTable } from "@/components/extraction-table";
-import { getMetrics, getExtractionLogs, getApiCallMetrics, getParserConfigs, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta, ParserConfig } from "@/lib/api";
+import { getMetrics, getExtractionLogs, getApiCallMetrics, getExtractorConfigs, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta, ExtractorConfig } from "@/lib/api";
 import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2, Zap, Activity, Clock } from "lucide-react";
 
 export default function Dashboard() {
@@ -26,7 +26,7 @@ export default function Dashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [parserConfigs, setParserConfigs] = useState<ParserConfig[]>([]);
+  const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("all");
 
   const configIdParam = selectedConfigId === "all" ? undefined : Number(selectedConfigId);
@@ -58,8 +58,8 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const configs = await getParserConfigs();
-        setParserConfigs(configs);
+        const configs = await getExtractorConfigs();
+        setExtractorConfigs(configs);
         await Promise.all([fetchMetrics(), fetchLogs(1)]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -121,15 +121,15 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="config-filter" className="text-sm whitespace-nowrap">
-              Filtrar por Parser:
+              Filtrar por Extractor:
             </Label>
             <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
               <SelectTrigger id="config-filter" className="w-64">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los parsers</SelectItem>
-                {parserConfigs.map((config) => (
+                <SelectItem value="all">Todos los extractores</SelectItem>
+                {extractorConfigs.map((config) => (
                   <SelectItem key={config.id} value={config.id.toString()}>
                     {config.name}
                   </SelectItem>

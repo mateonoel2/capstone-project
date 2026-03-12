@@ -34,7 +34,7 @@ class SubmissionData:
 
 
 @dataclass
-class ParserConfigData:
+class ExtractorConfigData:
     id: int | None
     name: str
     description: str

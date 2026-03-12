@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mexican bank statement extraction system. Uploads PDF bank statements and extracts structured fields (owner name, CLABE account number, bank name) using Claude Haiku 4.5. Two subsystems: a research/experimentation layer for comparing parser strategies, and a production FastAPI + Next.js application.
+Mexican bank statement extraction system. Uploads PDF bank statements and extracts structured fields (owner name, CLABE account number, bank name) using Claude Haiku 4.5. Two subsystems: a research/experimentation layer for comparing extractor strategies, and a production FastAPI + Next.js application.
 
 ## Commands
 
@@ -44,17 +44,17 @@ Three layers under `src/`:
   - `schemas.py` — `BankAccount`, `ExtractionOutput` Pydantic models
   - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`, `BANK_DICT_KUSHKI`
   - `validators.py` — CLABE/bank regex patterns and validation
-  - `parser_interface.py` — `BaseParser` ABC
-  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`
-  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`
+  - `extractor_interface.py` — `BaseExtractor` ABC
+  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`, `ExtractorConfigData`
+  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`, `ExtractorConfigService`
 
 - **`src/infrastructure/`** — External integrations
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `ExtractionLog`, `ApiCallLog` ORM models
-  - `repository.py` — `ExtractionRepository`, `ApiCallRepository` data access
-  - `parsers/` — `StatementParser`: unified vision-based parser (PDF + images)
+  - `models.py` — `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog` ORM models
+  - `repository.py` — `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository` data access
+  - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics
   - `data_pipeline/` — Download/cleanup scripts
@@ -73,7 +73,7 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 ## Key Domain Concepts
 
 - **CLABE**: 18-digit Mexican interbank account number (validated with `^\d{18}$`)
-- **Extraction flow**: PDF/image → vision-based Claude extraction → structured output → user correction → persistence with correction flags
+- **Extraction flow**: PDF/image → vision-based Claude extractor → structured output → user correction → persistence with correction flags
 - **Accuracy metrics**: Calculated from per-field boolean correction flags stored in `ExtractionLog`
 
 ## Environment Variables

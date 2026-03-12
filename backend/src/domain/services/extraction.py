@@ -5,10 +5,13 @@ from pathlib import Path
 from fastapi import UploadFile
 
 from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
-from src.domain.entities import ApiCallResult, ExtractionError, ParserConfigData
+from src.domain.entities import ApiCallResult, ExtractionError, ExtractorConfigData
 from src.domain.schemas import BankAccount
 from src.domain.validators import validate_clabe
-from src.infrastructure.parsers.statement_parser import SUPPORTED_EXTENSIONS, StatementParser
+from src.infrastructure.extractors.statement_extractor import (
+    SUPPORTED_EXTENSIONS,
+    StatementExtractor,
+)
 
 ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
@@ -52,8 +55,8 @@ def apply_bank_statement_postprocessing(raw: dict) -> dict:
     }
 
 
-def _create_parser(config: ParserConfigData) -> StatementParser:
-    return StatementParser(
+def _create_extractor(config: ExtractorConfigData) -> StatementExtractor:
+    return StatementExtractor(
         prompt=config.prompt,
         model=config.model,
         output_schema=config.output_schema,
@@ -64,8 +67,8 @@ class ExtractionService:
     async def extract(
         self,
         file: UploadFile,
-        config: ParserConfigData | None = None,
-    ) -> tuple[dict, ApiCallResult, ParserConfigData | None]:
+        config: ExtractorConfigData | None = None,
+    ) -> tuple[dict, ApiCallResult, ExtractorConfigData | None]:
         if not file.filename:
             raise ValueError("No se proporcionó un archivo")
 
@@ -84,17 +87,17 @@ class ExtractionService:
                 tmp_file_path = Path(tmp_file.name)
 
             if config:
-                parser = _create_parser(config)
+                extractor = _create_extractor(config)
             else:
-                parser = StatementParser()
+                extractor = StatementExtractor()
 
             start = time.monotonic()
             try:
-                raw_result = parser.parse_file(tmp_file_path)
+                raw_result = extractor.extract_file(tmp_file_path)
             except ValueError as e:
                 elapsed_ms = round((time.monotonic() - start) * 1000, 1)
                 call_result = ApiCallResult(
-                    model=parser.model_name,
+                    model=extractor.model_name,
                     success=False,
                     response_time_ms=elapsed_ms,
                     error_type="InvalidDocument",
@@ -104,7 +107,7 @@ class ExtractionService:
             except Exception as e:
                 elapsed_ms = round((time.monotonic() - start) * 1000, 1)
                 call_result = ApiCallResult(
-                    model=parser.model_name,
+                    model=extractor.model_name,
                     success=False,
                     response_time_ms=elapsed_ms,
                     error_type=type(e).__name__,
@@ -114,14 +117,14 @@ class ExtractionService:
 
             elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
-            # Apply bank statement postprocessing for default parser
+            # Apply bank statement postprocessing for default extractor
             is_default = config is None or config.is_default
             if is_default:
                 try:
                     raw_result = apply_bank_statement_postprocessing(raw_result)
                 except ValueError as e:
                     call_result = ApiCallResult(
-                        model=parser.model_name,
+                        model=extractor.model_name,
                         success=False,
                         response_time_ms=elapsed_ms,
                         error_type="InvalidDocument",
@@ -130,7 +133,7 @@ class ExtractionService:
                     raise ExtractionError(str(e), call_result)
 
             call_result = ApiCallResult(
-                model=parser.model_name,
+                model=extractor.model_name,
                 success=True,
                 response_time_ms=elapsed_ms,
             )

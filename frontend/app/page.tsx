@@ -26,9 +26,9 @@ import {
   extractFromFile,
   submitExtraction,
   getBanks,
-  getParserConfigs,
+  getExtractorConfigs,
   Bank,
-  ParserConfig,
+  ExtractorConfig,
 } from "@/lib/api";
 import { useExtractionStore } from "@/lib/store";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
@@ -38,12 +38,12 @@ export default function Home() {
     file,
     extracted,
     formData,
-    selectedParserId,
+    selectedExtractorId,
     setFile,
     setExtracted,
     updateFormField,
     setFormData,
-    setSelectedParserId,
+    setSelectedExtractorId,
     reset: resetStore,
   } = useExtractionStore();
 
@@ -52,20 +52,20 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
-  const [parserConfigs, setParserConfigs] = useState<ParserConfig[]>([]);
+  const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [bankList, configs] = await Promise.all([
           getBanks(),
-          getParserConfigs(),
+          getExtractorConfigs(),
         ]);
         setBanks(bankList);
-        setParserConfigs(configs);
-        if (!selectedParserId) {
+        setExtractorConfigs(configs);
+        if (!selectedExtractorId) {
           const defaultConfig = configs.find((c) => c.is_default);
-          if (defaultConfig) setSelectedParserId(defaultConfig.id);
+          if (defaultConfig) setSelectedExtractorId(defaultConfig.id);
         }
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
@@ -74,8 +74,8 @@ export default function Home() {
     fetchData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selectedConfig = parserConfigs.find((c) => c.id === selectedParserId);
-  const isDefaultParser = selectedConfig?.is_default ?? true;
+  const selectedConfig = extractorConfigs.find((c) => c.id === selectedExtractorId);
+  const isDefaultExtractor = selectedConfig?.is_default ?? true;
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -84,7 +84,7 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromFile(selectedFile, selectedParserId);
+      const result = await extractFromFile(selectedFile, selectedExtractorId);
       setExtracted(result);
 
       const fields: Record<string, string> = {};
@@ -116,7 +116,8 @@ export default function Home() {
         filename: file.name,
         extracted_fields: extractedFields,
         final_fields: formData,
-        parser_config_id: selectedParserId,
+        extractor_config_id: selectedExtractorId,
+        extractor_config_version_id: extracted.extractor_config_version_id,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -156,18 +157,18 @@ export default function Home() {
         </div>
 
         <div className="mb-4">
-          <Label htmlFor="parser-select" className="text-sm font-medium">
-            Parser
+          <Label htmlFor="extractor-select" className="text-sm font-medium">
+            Extractor
           </Label>
           <Select
-            value={selectedParserId?.toString() ?? ""}
-            onValueChange={(v) => setSelectedParserId(Number(v))}
+            value={selectedExtractorId?.toString() ?? ""}
+            onValueChange={(v) => setSelectedExtractorId(Number(v))}
           >
-            <SelectTrigger id="parser-select" className="w-80 mt-1">
-              <SelectValue placeholder="Seleccionar parser..." />
+            <SelectTrigger id="extractor-select" className="w-80 mt-1">
+              <SelectValue placeholder="Seleccionar extractor..." />
             </SelectTrigger>
             <SelectContent>
-              {parserConfigs.map((config) => (
+              {extractorConfigs.map((config) => (
                 <SelectItem key={config.id} value={config.id.toString()}>
                   {config.name}
                   {config.is_default ? " (default)" : ""}
@@ -203,9 +204,14 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Información Extraída</CardTitle>
                   <CardDescription>
-                    {isDefaultParser
+                    {isDefaultExtractor
                       ? "Revisa y corrige los datos extraídos antes de enviar"
-                      : `Parser: ${selectedConfig?.name}`}
+                      : `Extractor: ${selectedConfig?.name}`}
+                    {extracted?.extractor_config_version_number != null && (
+                      <span className="ml-2 text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                        Versión {extracted.extractor_config_version_number}
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -233,7 +239,7 @@ export default function Home() {
                         Intentar con otro archivo
                       </Button>
                     </div>
-                  ) : isDefaultParser ? (
+                  ) : isDefaultExtractor ? (
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="owner">Titular de la Cuenta</Label>

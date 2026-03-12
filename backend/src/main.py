@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from alembic import command
 from src.core.logger import get_logger
 from src.infrastructure.api.extraction.routes import router as extraction_router
-from src.infrastructure.api.parsers.routes import router as parsers_router
+from src.infrastructure.api.extractors.routes import router as extractors_router
 
 load_dotenv()
 
@@ -50,7 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(extraction_router)
-app.include_router(parsers_router)
+app.include_router(extractors_router)
 
 
 @app.middleware("http")

@@ -12,11 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAvailableModels, ModelInfo, ParserConfig } from "@/lib/api";
+import { getAvailableModels, ModelInfo, ExtractorConfig } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { SchemaBuilder } from "@/components/schema-builder/schema-builder";
 
-interface ParserConfigFormProps {
-  initialData?: ParserConfig | null;
+interface ExtractorConfigFormProps {
+  initialData?: ExtractorConfig | null;
   onSave: (data: {
     name: string;
     description: string;
@@ -40,11 +41,11 @@ const DEFAULT_SCHEMA_EXAMPLE = JSON.stringify(
   2
 );
 
-export function ParserConfigForm({
+export function ExtractorConfigForm({
   initialData,
   onSave,
   onCancel,
-}: ParserConfigFormProps) {
+}: ExtractorConfigFormProps) {
   const [name, setName] = useState(initialData?.name || "");
   const [description, setDescription] = useState(
     initialData?.description || ""
@@ -60,7 +61,6 @@ export function ParserConfigForm({
   );
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [schemaError, setSchemaError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function ParserConfigForm({
   }, []);
 
   const handleSave = async () => {
-    setSchemaError(null);
+
     setError(null);
 
     if (!name.trim()) {
@@ -86,7 +86,7 @@ export function ParserConfigForm({
     try {
       parsedSchema = JSON.parse(schemaText);
     } catch {
-      setSchemaError("JSON Schema inválido");
+      setError("JSON Schema inválido");
       return;
     }
 
@@ -117,7 +117,7 @@ export function ParserConfigForm({
               id="config-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del parser"
+              placeholder="Nombre del extractor"
             />
           </div>
 
@@ -169,24 +169,20 @@ export function ParserConfigForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="config-schema">Output Schema (JSON Schema)</Label>
-            <Textarea
-              id="config-schema"
-              value={schemaText}
-              onChange={(e) => {
-                setSchemaText(e.target.value);
-                setSchemaError(null);
-              }}
-              placeholder="JSON Schema..."
-              className={`font-mono text-sm min-h-[300px] ${
-                schemaError ? "border-red-400" : ""
-              }`}
-            />
-            {schemaError && (
-              <p className="text-xs text-red-600">{schemaError}</p>
-            )}
-          </div>
+          <SchemaBuilder
+            value={(() => {
+              try {
+                return JSON.parse(schemaText);
+              } catch {
+                return {};
+              }
+            })()}
+            onChange={(schema) => {
+              setSchemaText(JSON.stringify(schema, null, 2));
+          
+            }}
+            isNew={!initialData}
+          />
         </div>
       </div>
 

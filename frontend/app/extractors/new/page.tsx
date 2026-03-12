@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ParserConfigForm } from "@/components/parser-config-form";
-import { createParserConfig } from "@/lib/api";
+import { ExtractorConfigForm } from "@/components/extractor-config-form";
+import { createExtractorConfig } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function NewParserPage() {
+export default function NewExtractorPage() {
   const router = useRouter();
 
   const handleCreate = async (data: {
@@ -16,8 +16,8 @@ export default function NewParserPage() {
     model: string;
     output_schema: Record<string, unknown>;
   }) => {
-    await createParserConfig(data);
-    router.push("/parsers");
+    await createExtractorConfig(data);
+    router.push("/extractors");
   };
 
   return (
@@ -25,18 +25,18 @@ export default function NewParserPage() {
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
           <Link
-            href="/parsers"
+            href="/extractors"
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-3"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a Parsers
+            Volver a Extractores
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Crear Parser</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Crear Extractor</h1>
         </div>
 
-        <ParserConfigForm
+        <ExtractorConfigForm
           onSave={handleCreate}
-          onCancel={() => router.push("/parsers")}
+          onCancel={() => router.push("/extractors")}
         />
       </div>
     </main>

@@ -8,12 +8,12 @@ interface ExtractionState {
   fileData: string | null;
   extracted: ExtractionResult | null;
   formData: Record<string, string>;
-  selectedParserId: number | null;
+  selectedExtractorId: number | null;
   setFile: (file: File | null) => void;
   setExtracted: (extracted: ExtractionResult | null) => void;
   setFormData: (formData: Record<string, string>) => void;
   updateFormField: (field: string, value: string) => void;
-  setSelectedParserId: (id: number | null) => void;
+  setSelectedExtractorId: (id: number | null) => void;
   reset: () => void;
 }
 
@@ -23,7 +23,7 @@ const initialState = {
   fileData: null,
   extracted: null,
   formData: {} as Record<string, string>,
-  selectedParserId: null as number | null,
+  selectedExtractorId: null as number | null,
 };
 
 export const useExtractionStore = create<ExtractionState>()(
@@ -60,7 +60,7 @@ export const useExtractionStore = create<ExtractionState>()(
           },
         })),
 
-      setSelectedParserId: (id) => set({ selectedParserId: id }),
+      setSelectedExtractorId: (id) => set({ selectedExtractorId: id }),
 
       reset: () => set(initialState),
     }),
@@ -71,7 +71,7 @@ export const useExtractionStore = create<ExtractionState>()(
         fileName: state.fileName,
         extracted: state.extracted,
         formData: state.formData,
-        selectedParserId: state.selectedParserId,
+        selectedExtractorId: state.selectedExtractorId,
       }),
     }
   )

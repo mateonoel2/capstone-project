@@ -8,17 +8,17 @@ from src.domain.schemas import BankAccount
 logger = get_logger(__name__)
 
 
-class BaseParser(ABC):
+class BaseExtractor(ABC):
     @abstractmethod
-    def parse_file(self, file_path: Path) -> BankAccount:
+    def extract_file(self, file_path: Path) -> BankAccount:
         pass
 
-    def parse_multiple(self, file_paths: List[Path]) -> List[BankAccount]:
+    def extract_multiple(self, file_paths: List[Path]) -> List[BankAccount]:
         results = []
         for file_path in file_paths:
             try:
-                result = self.parse_file(file_path)
+                result = self.extract_file(file_path)
                 results.append(result)
             except Exception as e:
-                logger.error("Error parsing %s: %s", file_path, e)
+                logger.error("Error extracting %s: %s", file_path, e)
         return results

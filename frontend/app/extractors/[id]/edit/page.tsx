@@ -2,32 +2,32 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ParserConfigForm } from "@/components/parser-config-form";
+import { ExtractorWizard } from "@/components/extractor-wizard/extractor-wizard";
 import { VersionHistory } from "@/components/version-history";
 import {
-  getParserConfig,
-  updateParserConfig,
-  deleteParserConfig,
-  ParserConfig,
+  getExtractorConfig,
+  updateExtractorConfig,
+  deleteExtractorConfig,
+  ExtractorConfig,
 } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Star, Trash2, History } from "lucide-react";
+import { ArrowLeft, Loader2, Star, Trash2, History, Settings } from "lucide-react";
 import Link from "next/link";
 
-export default function EditParserPage() {
+export default function EditExtractorPage() {
   const params = useParams();
   const router = useRouter();
   const configId = Number(params.id);
 
-  const [config, setConfig] = useState<ParserConfig | null>(null);
+  const [config, setConfig] = useState<ExtractorConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [formKey, setFormKey] = useState(0);
-  const [showVersions, setShowVersions] = useState(false);
 
   const fetchConfig = useCallback(async () => {
     try {
-      const data = await getParserConfig(configId);
+      const data = await getExtractorConfig(configId);
       setConfig(data);
     } catch (err) {
       console.error("Failed to fetch config:", err);
@@ -47,15 +47,15 @@ export default function EditParserPage() {
     model: string;
     output_schema: Record<string, unknown>;
   }) => {
-    await updateParserConfig(configId, data);
-    router.push("/parsers");
+    await updateExtractorConfig(configId, data);
+    router.push("/extractors");
   };
 
   const handleDelete = async () => {
-    if (!confirm("¿Eliminar este parser?")) return;
+    if (!confirm("¿Eliminar este extractor?")) return;
     try {
-      await deleteParserConfig(configId);
-      router.push("/parsers");
+      await deleteExtractorConfig(configId);
+      router.push("/extractors");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al eliminar");
     }
@@ -71,7 +71,7 @@ export default function EditParserPage() {
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-600">Cargando parser...</span>
+          <span className="ml-2 text-gray-600">Cargando extractor...</span>
         </div>
       </main>
     );
@@ -81,9 +81,9 @@ export default function EditParserPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <p className="text-gray-600">Parser no encontrado.</p>
-          <Link href="/parsers" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-            Volver a Parsers
+          <p className="text-gray-600">Extractor no encontrado.</p>
+          <Link href="/extractors" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+            Volver a Extractores
           </Link>
         </div>
       </main>
@@ -95,11 +95,11 @@ export default function EditParserPage() {
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
           <Link
-            href="/parsers"
+            href="/extractors"
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-3"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a Parsers
+            Volver a Extractores
           </Link>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -126,33 +126,39 @@ export default function EditParserPage() {
           </div>
         </div>
 
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <ParserConfigForm
-              key={formKey}
-              initialData={config}
-              onSave={handleUpdate}
-              onCancel={() => router.push("/parsers")}
-            />
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="config">
+          <TabsList className="mb-4">
+            <TabsTrigger value="config" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Configuración
+            </TabsTrigger>
+            <TabsTrigger value="versions" className="gap-2">
+              <History className="h-4 w-4" />
+              Historial de versiones
+            </TabsTrigger>
+          </TabsList>
 
-        <Card>
-          <CardHeader
-            className="cursor-pointer"
-            onClick={() => setShowVersions(!showVersions)}
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-gray-500" />
-              <CardTitle className="text-lg">Historial de versiones</CardTitle>
-            </div>
-          </CardHeader>
-          {showVersions && (
-            <CardContent className="pt-0">
-              <VersionHistory configId={configId} onRestore={handleRestore} />
-            </CardContent>
-          )}
-        </Card>
+          <TabsContent value="config">
+            <Card>
+              <CardContent className="pt-6">
+                <ExtractorWizard
+                  key={formKey}
+                  initialData={config}
+                  onSave={handleUpdate}
+                  onCancel={() => router.push("/extractors")}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="versions">
+            <Card>
+              <CardContent className="pt-6">
+                <VersionHistory configId={configId} onRestore={handleRestore} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   );

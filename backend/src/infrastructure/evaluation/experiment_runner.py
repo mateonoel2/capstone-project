@@ -6,7 +6,7 @@ from typing import Dict, List
 import pandas as pd
 
 from src.core.logger import setup_logger
-from src.domain.parser_interface import BaseParser
+from src.domain.extractor_interface import BaseExtractor
 
 
 class ExperimentRunner:
@@ -23,10 +23,10 @@ class ExperimentRunner:
         self.errors = []
 
     def run_experiment(
-        self, parser: BaseParser, file_paths: List[Path], parser_name: str
+        self, extractor: BaseExtractor, file_paths: List[Path], extractor_name: str
     ) -> pd.DataFrame:
         self.logger.info(f"Starting experiment: {self.experiment_name}")
-        self.logger.info(f"Parser: {parser_name}")
+        self.logger.info(f"Extractor: {extractor_name}")
         self.logger.info(f"Files to process: {len(file_paths)}")
 
         start_time = datetime.now()
@@ -35,12 +35,12 @@ class ExperimentRunner:
             self.logger.info(f"Processing {i}/{len(file_paths)}: {file_path.name}")
 
             try:
-                result = parser.parse_file(file_path)
+                result = extractor.extract_file(file_path)
 
                 result_dict = {
                     "file_path": str(file_path),
                     "file_name": file_path.name,
-                    "parser": parser_name,
+                    "extractor": extractor_name,
                     "owner": result.owner,
                     "account_number": result.account_number,
                     "bank_name": result.bank_name,
@@ -55,7 +55,7 @@ class ExperimentRunner:
                 error_dict = {
                     "file_path": str(file_path),
                     "file_name": file_path.name,
-                    "parser": parser_name,
+                    "extractor": extractor_name,
                     "owner": None,
                     "account_number": None,
                     "bank_name": None,
@@ -75,20 +75,20 @@ class ExperimentRunner:
         self.logger.info(f"Errors: {len(self.errors)}")
 
         df_results = pd.DataFrame(self.results)
-        self._save_results(df_results, parser_name)
+        self._save_results(df_results, extractor_name)
 
         return df_results
 
-    def _save_results(self, df: pd.DataFrame, parser_name: str):
+    def _save_results(self, df: pd.DataFrame, extractor_name: str):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        csv_path = self.output_dir / f"{self.experiment_name}_{parser_name}_{timestamp}.csv"
+        csv_path = self.output_dir / f"{self.experiment_name}_{extractor_name}_{timestamp}.csv"
         df.to_csv(csv_path, index=False)
         self.logger.info(f"Results saved to: {csv_path}")
 
         summary = {
             "experiment_name": self.experiment_name,
-            "parser": parser_name,
+            "extractor": extractor_name,
             "timestamp": timestamp,
             "total_files": len(df),
             "successful": len(df[df["status"] == "success"]),
@@ -98,24 +98,24 @@ class ExperimentRunner:
         }
 
         json_path = (
-            self.output_dir / f"{self.experiment_name}_{parser_name}_{timestamp}_summary.json"
+            self.output_dir / f"{self.experiment_name}_{extractor_name}_{timestamp}_summary.json"
         )
         with open(json_path, "w") as f:
             json.dump(summary, f, indent=2)
 
         self.logger.info(f"Summary saved to: {json_path}")
 
-    def compare_parsers(
-        self, parsers: Dict[str, BaseParser], file_paths: List[Path]
+    def compare_extractors(
+        self, extractors: Dict[str, BaseExtractor], file_paths: List[Path]
     ) -> pd.DataFrame:
         all_results = []
 
-        for parser_name, parser in parsers.items():
+        for extractor_name, extractor in extractors.items():
             self.logger.info(f"\n{'=' * 60}")
-            self.logger.info(f"Running parser: {parser_name}")
+            self.logger.info(f"Running extractor: {extractor_name}")
             self.logger.info(f"{'=' * 60}")
 
-            results = self.run_experiment(parser, file_paths, parser_name)
+            results = self.run_experiment(extractor, file_paths, extractor_name)
             all_results.append(results)
 
         combined_df = pd.concat(all_results, ignore_index=True)

@@ -34,7 +34,7 @@ y "000000000000000000" para account_number.
 NO inventes información. Solo extrae lo que está claramente visible en el documento."""
 
 
-class StatementParser:
+class StatementExtractor:
     def __init__(
         self,
         prompt: str = EXTRACTION_PROMPT,
@@ -100,7 +100,7 @@ class StatementParser:
             return result.model_dump()
         return result
 
-    def parse_file(self, file_path: Path) -> dict:
+    def extract_file(self, file_path: Path) -> dict:
         suffix = file_path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
