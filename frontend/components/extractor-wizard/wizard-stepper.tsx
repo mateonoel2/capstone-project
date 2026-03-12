@@ -6,7 +6,6 @@ interface WizardStepperProps {
   steps: { label: string; description: string }[];
   currentStep: number;
   completedSteps: Set<number>;
-  freeNavigation?: boolean;
   onStepClick: (step: number) => void;
 }
 
@@ -14,7 +13,6 @@ export function WizardStepper({
   steps,
   currentStep,
   completedSteps,
-  freeNavigation,
   onStepClick,
 }: WizardStepperProps) {
   return (
@@ -23,7 +21,7 @@ export function WizardStepper({
         {steps.map((step, idx) => {
           const isActive = idx === currentStep;
           const isCompleted = completedSteps.has(idx);
-          const isClickable = freeNavigation || isCompleted || idx === currentStep;
+          const isClickable = isCompleted || idx === currentStep;
 
           return (
             <li

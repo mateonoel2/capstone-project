@@ -8,7 +8,6 @@ import { StepIdentity } from "./step-identity";
 import { StepSchema } from "./step-schema";
 import { StepPrompt } from "./step-prompt";
 import { StepTest } from "./step-test";
-import { ExtractorConfig } from "@/lib/api";
 
 const STEPS = [
   { label: "Identidad", description: "Nombre y modelo" },
@@ -26,7 +25,6 @@ interface WizardState {
 }
 
 interface ExtractorWizardProps {
-  initialData?: ExtractorConfig | null;
   onSave: (data: {
     name: string;
     description: string;
@@ -43,22 +41,18 @@ const DEFAULT_SCHEMA: Record<string, unknown> = {
   required: [],
 };
 
-export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWizardProps) {
-  const isEditMode = !!initialData;
-
+export function ExtractorWizard({ onSave, onCancel }: ExtractorWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    isEditMode ? new Set([0, 1, 2, 3]) : new Set()
-  );
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [state, setState] = useState<WizardState>({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    model: initialData?.model || "claude-haiku-4-5-20251001",
-    output_schema: initialData?.output_schema || DEFAULT_SCHEMA,
-    prompt: initialData?.prompt || "",
+    name: "",
+    description: "",
+    model: "claude-haiku-4-5-20251001",
+    output_schema: DEFAULT_SCHEMA,
+    prompt: "",
   });
 
   const updateField = useCallback((field: string, value: string) => {
@@ -95,7 +89,7 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
   };
 
   const handleStepClick = (step: number) => {
-    if (isEditMode || completedSteps.has(step) || step === currentStep) {
+    if (completedSteps.has(step) || step === currentStep) {
       setCurrentStep(step);
     }
   };
@@ -133,7 +127,6 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
         steps={STEPS}
         currentStep={currentStep}
         completedSteps={completedSteps}
-        freeNavigation={isEditMode}
         onStepClick={handleStepClick}
       />
 
@@ -150,7 +143,7 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
           <StepSchema
             schema={state.output_schema}
             onChange={updateSchema}
-            isNew={!isEditMode}
+            isNew={true}
           />
         )}
         {currentStep === 2 && (
@@ -193,10 +186,10 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {isEditMode ? "Guardando..." : "Creando..."}
+                  Creando...
                 </>
               ) : (
-                isEditMode ? "Guardar extractor" : "Crear extractor"
+                "Crear extractor"
               )}
             </Button>
           ) : (
@@ -206,10 +199,10 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
                   {isSaving ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {isEditMode ? "Guardando..." : "Creando..."}
+                      Creando...
                     </>
                   ) : (
-                    isEditMode ? "Saltar prueba y guardar" : "Saltar prueba y crear"
+                    "Saltar prueba y crear"
                   )}
                 </Button>
               )}

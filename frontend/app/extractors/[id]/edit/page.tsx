@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ExtractorWizard } from "@/components/extractor-wizard/extractor-wizard";
+import { ExtractorEditor } from "@/components/extractor-editor";
 import { VersionHistory } from "@/components/version-history";
 import {
   getExtractorConfig,
@@ -141,7 +141,7 @@ export default function EditExtractorPage() {
           <TabsContent value="config">
             <Card>
               <CardContent className="pt-6">
-                <ExtractorWizard
+                <ExtractorEditor
                   key={formKey}
                   initialData={config}
                   onSave={handleUpdate}
