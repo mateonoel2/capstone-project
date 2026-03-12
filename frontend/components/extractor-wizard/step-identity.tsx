@@ -42,7 +42,7 @@ export function StepIdentity({ name, description, model, onChange }: StepIdentit
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="wizard-description">Descripcion</Label>
+        <Label htmlFor="wizard-description">Descripción</Label>
         <Input
           id="wizard-description"
           value={description}
@@ -50,7 +50,7 @@ export function StepIdentity({ name, description, model, onChange }: StepIdentit
           placeholder="Ej: Extrae RFC, total y fecha de facturas mexicanas"
         />
         <p className="text-xs text-muted-foreground">
-          Describe brevemente que hace este extractor y para que documentos se usa
+          Describe brevemente qué hace este extractor y para qué documentos se usa
         </p>
       </div>
 
@@ -73,7 +73,7 @@ export function StepIdentity({ name, description, model, onChange }: StepIdentit
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          El modelo de IA que procesara los documentos
+          El modelo de IA que procesará los documentos
         </p>
       </div>
     </div>

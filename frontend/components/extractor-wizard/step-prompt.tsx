@@ -22,7 +22,7 @@ export function StepPrompt({ prompt, schema, description, onChange }: StepPrompt
 
   const handleGenerate = async () => {
     if (prompt.trim()) {
-      if (!confirm("El prompt actual sera reemplazado. Continuar?")) return;
+      if (!confirm("El prompt actual será reemplazado. ¿Continuar?")) return;
     }
     setIsGenerating(true);
     setAiError(null);
@@ -45,7 +45,7 @@ export function StepPrompt({ prompt, schema, description, onChange }: StepPrompt
       {/* Main: Prompt editor */}
       <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="wizard-prompt">Prompt de extraccion *</Label>
+          <Label htmlFor="wizard-prompt">Prompt de extracción *</Label>
           <Button
             type="button"
             size="sm"

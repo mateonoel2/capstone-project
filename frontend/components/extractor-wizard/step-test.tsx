@@ -38,7 +38,7 @@ export function StepTest({ prompt, model, schema }: StepTestProps) {
       }
       setFormValues(values);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error en la extraccion");
+      setError(err instanceof Error ? err.message : "Error en la extracción");
     } finally {
       setIsExtracting(false);
     }
@@ -87,7 +87,7 @@ export function StepTest({ prompt, model, schema }: StepTestProps) {
               ) : (
                 <>
                   <Play className="h-4 w-4 mr-2" />
-                  Ejecutar extraccion
+                  Ejecutar extracción
                 </>
               )}
             </Button>
@@ -124,7 +124,7 @@ export function StepTest({ prompt, model, schema }: StepTestProps) {
         )}
         {!result && !error && (
           <div className="flex items-center justify-center h-64 border border-dashed rounded-lg text-sm text-muted-foreground">
-            Sube un archivo y ejecuta la extraccion para ver los resultados
+            Sube un archivo y ejecuta la extracción para ver los resultados
           </div>
         )}
       </div>

@@ -193,10 +193,10 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
+                  {isEditMode ? "Guardando..." : "Creando..."}
                 </>
               ) : (
-                "Guardar extractor"
+                isEditMode ? "Guardar extractor" : "Crear extractor"
               )}
             </Button>
           ) : (
@@ -206,10 +206,10 @@ export function ExtractorWizard({ initialData, onSave, onCancel }: ExtractorWiza
                   {isSaving ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
+                      {isEditMode ? "Guardando..." : "Creando..."}
                     </>
                   ) : (
-                    "Saltar prueba y guardar"
+                    isEditMode ? "Saltar prueba y guardar" : "Saltar prueba y crear"
                   )}
                 </Button>
               )}

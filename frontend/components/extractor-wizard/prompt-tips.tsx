@@ -26,7 +26,7 @@ export function PromptTips() {
       {isOpen && (
         <div className="px-4 pb-3 text-sm text-gray-600 space-y-2">
           <ul className="list-disc list-inside space-y-1">
-            <li>Se especifico sobre que tipo de documento se analizara</li>
+            <li>Sé específico sobre qué tipo de documento se analizará</li>
             <li>Indica exactamente que campos extraer y donde suelen ubicarse</li>
             <li>Especifica el formato esperado (ej: &quot;18 digitos numericos&quot;)</li>
             <li>Incluye instrucciones para cuando un campo no se encuentre</li>

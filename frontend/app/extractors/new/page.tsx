@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ExtractorConfigForm } from "@/components/extractor-config-form";
+import { ExtractorWizard } from "@/components/extractor-wizard/extractor-wizard";
 import { createExtractorConfig } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function NewExtractorPage() {
   const router = useRouter();
@@ -34,10 +35,14 @@ export default function NewExtractorPage() {
           <h1 className="text-2xl font-bold text-gray-900">Crear Extractor</h1>
         </div>
 
-        <ExtractorConfigForm
-          onSave={handleCreate}
-          onCancel={() => router.push("/extractors")}
-        />
+        <Card>
+          <CardContent className="pt-6">
+            <ExtractorWizard
+              onSave={handleCreate}
+              onCancel={() => router.push("/extractors")}
+            />
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
