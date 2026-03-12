@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/file-upload";
 import { FileViewer } from "@/components/file-viewer";
 import { BankCombobox } from "@/components/bank-combobox";
+import { DynamicFieldsForm } from "@/components/dynamic-fields-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { extractFromFile, submitExtraction, getBanks, Bank } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  extractFromFile,
+  submitExtraction,
+  getBanks,
+  getExtractorConfigs,
+  Bank,
+  ExtractorConfig,
+} from "@/lib/api";
+import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -23,10 +39,12 @@ export default function Home() {
     file,
     extracted,
     formData,
+    selectedExtractorId,
     setFile,
     setExtracted,
     updateFormField,
     setFormData,
+    setSelectedExtractorId,
     reset: resetStore,
   } = useExtractionStore();
 
@@ -35,18 +53,30 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
+  const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
 
   useEffect(() => {
-    const fetchBanks = async () => {
+    const fetchData = async () => {
       try {
-        const bankList = await getBanks();
+        const [bankList, configs] = await Promise.all([
+          getBanks(),
+          getExtractorConfigs(),
+        ]);
         setBanks(bankList);
+        setExtractorConfigs(configs);
+        if (!selectedExtractorId) {
+          const defaultConfig = configs.find((c) => c.is_default);
+          if (defaultConfig) setSelectedExtractorId(defaultConfig.id);
+        }
       } catch (err) {
-        console.error("Failed to fetch banks:", err);
+        console.error("Failed to fetch initial data:", err);
       }
     };
-    fetchBanks();
-  }, []);
+    fetchData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedConfig = extractorConfigs.find((c) => c.id === selectedExtractorId);
+  const isDefaultExtractor = selectedConfig?.is_default ?? true;
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -55,13 +85,14 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromFile(selectedFile);
+      const result = await extractFromFile(selectedFile, selectedExtractorId);
       setExtracted(result);
-      setFormData({
-        owner: result.owner,
-        bank_name: result.bank_name,
-        account_number: result.account_number,
-      });
+
+      const fields: Record<string, string> = {};
+      for (const [key, value] of Object.entries(result.fields || {})) {
+        fields[key] = toStr(value);
+      }
+      setFormData(fields);
     } catch (err) {
       setError(err instanceof Error ? err.message : "La extracción falló");
       setExtracted(null);
@@ -78,14 +109,16 @@ export default function Home() {
     setError(null);
 
     try {
+      const extractedFields: Record<string, string> = {};
+      for (const [key, value] of Object.entries(extracted.fields || {})) {
+        extractedFields[key] = toStr(value);
+      }
       await submitExtraction({
         filename: file.name,
-        extracted_owner: extracted.owner,
-        extracted_bank_name: extracted.bank_name,
-        extracted_account_number: extracted.account_number,
-        final_owner: formData.owner,
-        final_bank_name: formData.bank_name,
-        final_account_number: formData.account_number,
+        extracted_fields: extractedFields,
+        final_fields: formData,
+        extractor_config_id: selectedExtractorId,
+        extractor_config_version_id: extracted.extractor_config_version_id,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -107,21 +140,49 @@ export default function Home() {
 
   const isModified =
     extracted &&
-    (formData.owner !== extracted.owner ||
-      formData.bank_name !== extracted.bank_name ||
-      formData.account_number !== extracted.account_number);
+    Object.entries(formData).some(
+      ([key, value]) => value !== toStr(extracted.fields?.[key])
+    );
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Extracción de Estados de Cuenta
+            Extracción de Documentos
           </h1>
           <p className="text-gray-600 mt-1">
-            Sube un estado de cuenta bancario (PDF o imagen) para extraer y
-            verificar la información de la cuenta
+            Sube un documento (PDF o imagen) para extraer y verificar la
+            información
           </p>
+        </div>
+
+        <div className="mb-4">
+          <Label htmlFor="extractor-select" className="text-sm font-medium">
+            Extractor
+          </Label>
+          <Select
+            value={selectedExtractorId?.toString() ?? ""}
+            onValueChange={(v) => {
+              setSelectedExtractorId(Number(v));
+              setExtracted(null);
+              setFormData({});
+              setError(null);
+              setSuccess(false);
+            }}
+          >
+            <SelectTrigger id="extractor-select" className="w-80 mt-1">
+              <SelectValue placeholder="Seleccionar extractor..." />
+            </SelectTrigger>
+            <SelectContent>
+              {extractorConfigs.map((config) => (
+                <SelectItem key={config.id} value={config.id.toString()}>
+                  {config.name}
+                  {config.is_default ? " (default)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {!file ? (
@@ -150,7 +211,14 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Información Extraída</CardTitle>
                   <CardDescription>
-                    Revisa y corrige los datos extraídos antes de enviar
+                    {isDefaultExtractor
+                      ? "Revisa y corrige los datos extraídos antes de enviar"
+                      : `Extractor: ${selectedConfig?.name}`}
+                    {extracted?.extractor_config_version_number != null && (
+                      <span className="ml-2 text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                        Versión {extracted.extractor_config_version_number}
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -180,75 +248,95 @@ export default function Home() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="owner">Titular de la Cuenta</Label>
-                        <Input
-                          id="owner"
-                          value={formData.owner}
-                          onChange={(e) =>
-                            updateFormField("owner", e.target.value)
-                          }
-                          placeholder="Nombre del titular"
-                          className={
-                            extracted && formData.owner !== extracted.owner
-                              ? "border-yellow-400"
-                              : ""
-                          }
-                        />
-                        {extracted && formData.owner !== extracted.owner && (
-                          <p className="text-xs text-yellow-600">
-                            IA extrajo: {extracted.owner || "(vacío)"}
-                          </p>
-                        )}
-                      </div>
+                      {isDefaultExtractor ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="owner">Titular de la Cuenta</Label>
+                            <Input
+                              id="owner"
+                              value={formData.owner || ""}
+                              onChange={(e) =>
+                                updateFormField("owner", e.target.value)
+                              }
+                              placeholder="Nombre del titular"
+                              className={
+                                extracted && formData.owner !== toStr(extracted.fields?.owner)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted && formData.owner !== toStr(extracted.fields?.owner) && (
+                              <p className="text-xs text-yellow-600">
+                                IA extrajo: {toStr(extracted.fields?.owner) || "(vacío)"}
+                              </p>
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="bank_name">Banco</Label>
-                        <BankCombobox
-                          banks={banks}
-                          value={formData.bank_name}
-                          onChange={(value) =>
-                            updateFormField("bank_name", value)
-                          }
-                          className={
-                            extracted &&
-                            formData.bank_name !== extracted.bank_name
-                              ? "border-yellow-400"
-                              : ""
-                          }
-                        />
-                        {extracted &&
-                          formData.bank_name !== extracted.bank_name && (
-                            <p className="text-xs text-yellow-600">
-                              IA extrajo: {extracted.bank_name || "(vacío)"}
-                            </p>
-                          )}
-                      </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bank_name">Banco</Label>
+                            <BankCombobox
+                              banks={banks}
+                              value={formData.bank_name || ""}
+                              onChange={(value) =>
+                                updateFormField("bank_name", value)
+                              }
+                              className={
+                                extracted &&
+                                formData.bank_name !== toStr(extracted.fields?.bank_name)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted &&
+                              formData.bank_name !== toStr(extracted.fields?.bank_name) && (
+                                <p className="text-xs text-yellow-600">
+                                  IA extrajo: {toStr(extracted.fields?.bank_name) || "(vacío)"}
+                                </p>
+                              )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="account_number">Número de Cuenta (CLABE)</Label>
-                        <Input
-                          id="account_number"
-                          value={formData.account_number}
-                          onChange={(e) =>
-                            updateFormField("account_number", e.target.value)
+                          <div className="space-y-2">
+                            <Label htmlFor="account_number">
+                              Número de Cuenta (CLABE)
+                            </Label>
+                            <Input
+                              id="account_number"
+                              value={formData.account_number || ""}
+                              onChange={(e) =>
+                                updateFormField("account_number", e.target.value)
+                              }
+                              placeholder="CLABE de 18 dígitos"
+                              className={
+                                extracted &&
+                                formData.account_number !==
+                                  toStr(extracted.fields?.account_number)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted &&
+                              formData.account_number !==
+                                toStr(extracted.fields?.account_number) && (
+                                <p className="text-xs text-yellow-600">
+                                  IA extrajo:{" "}
+                                  {toStr(extracted.fields?.account_number) || "(vacío)"}
+                                </p>
+                              )}
+                          </div>
+                        </>
+                      ) : (
+                        <DynamicFieldsForm
+                          schema={
+                            selectedConfig?.output_schema as Record<
+                              string,
+                              unknown
+                            >
                           }
-                          placeholder="CLABE de 18 dígitos"
-                          className={
-                            extracted &&
-                            formData.account_number !== extracted.account_number
-                              ? "border-yellow-400"
-                              : ""
-                          }
+                          values={formData}
+                          extracted={extracted?.fields as Record<string, unknown>}
+                          onChange={updateFormField}
                         />
-                        {extracted &&
-                          formData.account_number !==
-                            extracted.account_number && (
-                            <p className="text-xs text-yellow-600">
-                              IA extrajo: {extracted.account_number || "(vacío)"}
-                            </p>
-                          )}
-                      </div>
+                      )}
 
                       {error && (
                         <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded">

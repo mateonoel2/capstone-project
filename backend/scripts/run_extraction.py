@@ -40,11 +40,11 @@ def main():
 
     experiment = ExperimentRunner(experiment_name="bank_extraction", output_dir=output_dir)
 
-    print("\nRunning StatementParser extraction...")
-    from src.infrastructure.parsers.statement_parser import StatementParser
+    print("\nRunning StatementExtractor extraction...")
+    from src.infrastructure.extractors.statement_extractor import StatementExtractor
 
-    statement_parser = StatementParser()
-    experiment.run_experiment(statement_parser, pdf_files, "statement_parser")
+    statement_extractor = StatementExtractor()
+    experiment.run_experiment(statement_extractor, pdf_files, "statement_extractor")
 
     print("\n✓ Extraction complete!")
 

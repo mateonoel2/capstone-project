@@ -1,10 +1,16 @@
+import random
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from src.domain.constants import BANK_DICT_KUSHKI, UNKNOWN_ACCOUNT, UNKNOWN_OWNER
-from src.domain.entities import ExtractionError, SubmissionData
+from src.domain.constants import BANK_DICT_KUSHKI
+from src.domain.entities import (
+    ExtractionError,
+    ExtractorConfigData,
+    ExtractorConfigVersionData,
+    SubmissionData,
+)
 from src.domain.services.api_metrics import ApiMetricsService
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
@@ -23,7 +29,11 @@ from src.infrastructure.api.extraction.dtos import (
     SubmissionResponse,
 )
 from src.infrastructure.database import get_db
-from src.infrastructure.repository import ApiCallRepository, ExtractionRepository
+from src.infrastructure.repository import (
+    ApiCallRepository,
+    ExtractionRepository,
+    ExtractorConfigRepository,
+)
 
 DbDep = Annotated[Session, Depends(get_db)]
 
@@ -34,12 +44,63 @@ def _get_repository(db: Session) -> ExtractionRepository:
     return ExtractionRepository(db)
 
 
+def _load_config(db: Session, config_id: int | None) -> ExtractorConfigData | None:
+    if config_id is None:
+        return None
+    repo = ExtractorConfigRepository(db)
+    config = repo.get_by_id(config_id)
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Extractor config {config_id} no encontrado")
+    return config
+
+
+def _select_variant(
+    config: ExtractorConfigData, active_versions: list[ExtractorConfigVersionData]
+) -> tuple[ExtractorConfigData, int | None, int | None]:
+    """Pick a variant randomly from current config + active versions.
+
+    Returns (config_to_use, version_id, version_number).
+    version_id=None means the current config was selected.
+    """
+    if not active_versions:
+        return config, None, None
+
+    # Build list: None = current config, or a version object
+    candidates: list[ExtractorConfigVersionData | None] = [None] + list(active_versions)
+    chosen = random.choice(candidates)
+
+    if chosen is None:
+        return config, None, None
+
+    version_config = ExtractorConfigData(
+        id=config.id,
+        name=config.name,
+        description=config.description,
+        prompt=chosen.prompt,
+        model=chosen.model,
+        output_schema=chosen.output_schema,
+        is_default=config.is_default,
+    )
+    return version_config, chosen.id, chosen.version_number
+
+
 @router.post("/extract", response_model=ExtractionResponse)
 async def extract_from_file(
     file: Annotated[UploadFile, File()],
     db: DbDep,
+    extractor_config_id: Annotated[int | None, Form()] = None,
 ):
     api_repo = ApiCallRepository(db)
+    config_data = _load_config(db, extractor_config_id)
+
+    # Select A/B variant if active versions exist
+    version_id = None
+    version_number = None
+    if config_data and config_data.id is not None:
+        ec_repo = ExtractorConfigRepository(db)
+        active_versions = ec_repo.get_active_versions(config_data.id)
+        config_data, version_id, version_number = _select_variant(config_data, active_versions)
+
     try:
         content = await file.read()
         await file.seek(0)
@@ -49,19 +110,39 @@ async def extract_from_file(
         save_upload(file, content)
 
         service = ExtractionService()
-        result, call_result = await service.extract(file)
+        result, call_result, _ = await service.extract(file, config=config_data)
 
-        api_repo.create(call_result, filename=file.filename)
+        api_repo.create(
+            call_result,
+            filename=file.filename,
+            extractor_config_id=extractor_config_id,
+            extractor_config_version_id=version_id,
+        )
+
+        # Determine extractor config info for the response
+        if config_data:
+            ec_id = extractor_config_id or config_data.id
+            ec_name = config_data.name
+        else:
+            ec_repo = ExtractorConfigRepository(db)
+            default_config = ec_repo.get_default()
+            ec_id = default_config.id if default_config else None
+            ec_name = default_config.name if default_config else "Default"
 
         return ExtractionResponse(
-            owner="" if result.owner == UNKNOWN_OWNER else result.owner,
-            bank_name="" if result.bank_name == UNKNOWN_OWNER else result.bank_name,
-            account_number=""
-            if result.account_number == UNKNOWN_ACCOUNT
-            else result.account_number,
+            fields=result,
+            extractor_config_id=ec_id,
+            extractor_config_name=ec_name,
+            extractor_config_version_id=version_id,
+            extractor_config_version_number=version_number,
         )
     except ExtractionError as e:
-        api_repo.create(e.call_result, filename=file.filename)
+        api_repo.create(
+            e.call_result,
+            filename=file.filename,
+            extractor_config_id=extractor_config_id,
+            extractor_config_version_id=version_id,
+        )
         if e.call_result.error_type == "InvalidDocument":
             raise HTTPException(status_code=400, detail=str(e))
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
@@ -78,15 +159,15 @@ async def submit_extraction(submission: SubmissionRequest, db: DbDep):
 
         submission_data = SubmissionData(
             filename=submission.filename,
-            extracted_owner=submission.extracted_owner,
-            extracted_bank_name=submission.extracted_bank_name,
-            extracted_account_number=submission.extracted_account_number,
-            final_owner=submission.final_owner,
-            final_bank_name=submission.final_bank_name,
-            final_account_number=submission.final_account_number,
+            extracted_fields=submission.extracted_fields,
+            final_fields=submission.final_fields,
         )
 
-        log_id = service.submit_extraction(submission_data)
+        log_id = service.submit_extraction(
+            submission_data,
+            submission.extractor_config_id,
+            submission.extractor_config_version_id,
+        )
 
         return SubmissionResponse(message="Submission recorded successfully", id=log_id)
     except Exception as e:
@@ -101,10 +182,12 @@ async def get_banks():
 
 
 @router.get("/logs", response_model=LogsResponse)
-async def get_extraction_logs(db: DbDep, page: int = 1, page_size: int = 50):
+async def get_extraction_logs(
+    db: DbDep, page: int = 1, page_size: int = 50, extractor_config_id: int | None = None
+):
     try:
         service = SubmissionService(_get_repository(db))
-        logs, total, total_pages = service.get_extraction_logs(page, page_size)
+        logs, total, total_pages = service.get_extraction_logs(page, page_size, extractor_config_id)
 
         logs_data = [ExtractionLogResponse.model_validate(log) for log in logs]
 
@@ -124,10 +207,10 @@ async def get_extraction_logs(db: DbDep, page: int = 1, page_size: int = 50):
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics(db: DbDep):
+async def get_metrics(db: DbDep, extractor_config_id: int | None = None):
     try:
         service = MetricsService(_get_repository(db))
-        metrics = service.get_metrics()
+        metrics = service.get_metrics(extractor_config_id=extractor_config_id)
 
         return MetricsResponse.model_validate(metrics)
     except Exception as e:
@@ -135,10 +218,10 @@ async def get_metrics(db: DbDep):
 
 
 @router.get("/api-metrics", response_model=ApiCallMetricsResponse)
-async def get_api_metrics(db: DbDep):
+async def get_api_metrics(db: DbDep, extractor_config_id: int | None = None):
     try:
         service = ApiMetricsService(ApiCallRepository(db))
-        metrics = service.get_metrics()
+        metrics = service.get_metrics(extractor_config_id=extractor_config_id)
 
         return ApiCallMetricsResponse(
             total_calls=metrics.total_calls,

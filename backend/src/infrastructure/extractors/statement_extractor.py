@@ -5,14 +5,9 @@ from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
-from pdf2image import convert_from_path
 from PIL import Image
 
 from src.core.logger import get_logger
-from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
-from src.domain.parser_interface import BaseParser
-from src.domain.schemas import BankAccount, ExtractionOutput
-from src.domain.validators import validate_clabe
 
 logger = get_logger(__name__)
 
@@ -20,13 +15,16 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 PDF_EXTENSIONS = {".pdf"}
 SUPPORTED_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS
 
-EXTRACTION_PROMPT = """Analiza esta imagen de un documento y determina si es un estado de
+EXTRACTION_PROMPT = """Analiza este documento y determina si es un estado de
 cuenta o carátula bancaria mexicana.
 
 Si ES un estado de cuenta o carátula bancaria, extrae:
 1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa)
 2. CLABE: Número de 18 dígitos (CLABE interbancaria).
-   IMPORTANTE: debe ser exactamente 18 dígitos numéricos consecutivos.
+   IMPORTANTE: La CLABE puede aparecer con espacios entre grupos de dígitos
+   (ej: "072 691 00844421773 3"). Elimina todos los espacios y devuelve solo
+   los 18 dígitos consecutivos. Si el resultado tiene más de 18 dígitos, toma
+   los primeros 18.
 3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
    BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
@@ -38,23 +36,34 @@ y "000000000000000000" para account_number.
 NO inventes información. Solo extrae lo que está claramente visible en el documento."""
 
 
-class StatementParser(BaseParser):
+class StatementExtractor:
     def __init__(
         self,
-        api_key: str | None = None,
+        prompt: str = EXTRACTION_PROMPT,
         model: str = "claude-haiku-4-5-20251001",
+        output_schema: dict | None = None,
+        api_key: str | None = None,
         max_tokens: int = 1024,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model_name = model
         self.max_tokens = max_tokens
+        self.prompt = prompt
+        self.output_schema = output_schema
         self.llm = ChatAnthropic(
             model=model,
             api_key=self.api_key,
             max_tokens=max_tokens,
             temperature=0,
         )
-        self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
+        if output_schema:
+            if isinstance(output_schema, dict) and "title" not in output_schema:
+                output_schema = {"title": "extraction_output", **output_schema}
+            self.structured_llm = self.llm.with_structured_output(output_schema)
+        else:
+            from src.domain.schemas import ExtractionOutput
+
+            self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
 
     def _image_to_base64(self, image: Image.Image) -> str:
         max_dimension = 1568
@@ -67,17 +76,31 @@ class StatementParser(BaseParser):
         image.save(buffer, format="JPEG", quality=85)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    def _pdf_to_base64_images(self, pdf_path: Path, max_pages: int = 2) -> list[str]:
-        images = convert_from_path(str(pdf_path), dpi=150, first_page=1, last_page=max_pages)
-        return [self._image_to_base64(img) for img in images]
-
     def _load_image_file(self, image_path: Path) -> list[str]:
         image = Image.open(image_path)
         if image.mode != "RGB":
             image = image.convert("RGB")
         return [self._image_to_base64(image)]
 
-    def _extract_with_vision(self, base64_images: list[str]) -> ExtractionOutput:
+    def _extract_with_pdf(self, pdf_path: Path) -> dict:
+        pdf_data = pdf_path.read_bytes()
+        pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
+        content = [
+            {
+                "type": "file",
+                "source_type": "base64",
+                "mime_type": "application/pdf",
+                "data": pdf_base64,
+            },
+            {"type": "text", "text": self.prompt},
+        ]
+        message = HumanMessage(content=content)
+        result = self.structured_llm.invoke([message])
+        if hasattr(result, "model_dump"):
+            return result.model_dump()
+        return result
+
+    def _extract_with_vision(self, base64_images: list[str]) -> dict:
         content = [
             {
                 "type": "image",
@@ -85,42 +108,24 @@ class StatementParser(BaseParser):
                 "data": base64_images[0],
                 "mime_type": "image/jpeg",
             },
-            {"type": "text", "text": EXTRACTION_PROMPT},
+            {"type": "text", "text": self.prompt},
         ]
         message = HumanMessage(content=content)
-        return self.structured_llm.invoke([message])
+        result = self.structured_llm.invoke([message])
+        if hasattr(result, "model_dump"):
+            return result.model_dump()
+        return result
 
-    def parse_file(self, file_path: Path) -> BankAccount:
+    def extract_file(self, file_path: Path) -> dict:
         suffix = file_path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
 
         if suffix in PDF_EXTENSIONS:
-            base64_images = self._pdf_to_base64_images(file_path)
-        else:
-            base64_images = self._load_image_file(file_path)
+            return self._extract_with_pdf(file_path)
 
+        base64_images = self._load_image_file(file_path)
         if not base64_images:
             raise ValueError("No se pudo procesar el archivo")
 
-        result = self._extract_with_vision(base64_images)
-
-        if not result.is_bank_statement:
-            raise ValueError("El documento no es un estado de cuenta bancario")
-
-        owner = result.owner if result.owner != "Unknown" else UNKNOWN_OWNER
-        raw_account = result.account_number
-        account_number = raw_account if raw_account != "000000000000000000" else UNKNOWN_ACCOUNT
-        bank_name = result.bank_name if result.bank_name != "Unknown" else UNKNOWN_OWNER
-
-        if not validate_clabe(account_number):
-            account_number = UNKNOWN_ACCOUNT
-
-        # Fallback: if both bank and account are unknown, it's not a useful extraction
-        if bank_name == UNKNOWN_OWNER and account_number == UNKNOWN_ACCOUNT:
-            raise ValueError(
-                "No se encontró información bancaria útil en el documento. "
-                "Verifica que sea un estado de cuenta o carátula bancaria."
-            )
-
-        return BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
+        return self._extract_with_vision(base64_images)

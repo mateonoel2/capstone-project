@@ -21,6 +21,19 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
     );
   }, [logs, searchTerm]);
 
+  const fieldKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const log of logs) {
+      for (const key of Object.keys(log.final_fields || {})) {
+        keys.add(key);
+      }
+      for (const key of Object.keys(log.extracted_fields || {})) {
+        keys.add(key);
+      }
+    }
+    return Array.from(keys);
+  }, [logs]);
+
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleString("en-US", {
@@ -32,19 +45,23 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
     });
   };
 
+  const formatFieldName = (field: string) => {
+    return field.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   const CorrectionBadge = ({ corrected }: { corrected: boolean }) => {
     if (corrected) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
           <AlertCircle className="h-3 w-3" />
-          Corrected
+          Corregido
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
         <CheckCircle className="h-3 w-3" />
-        Accurate
+        Preciso
       </span>
     );
   };
@@ -80,15 +97,11 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
               <th className="px-4 py-3 text-left font-medium text-gray-700">
                 Date
               </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-700">
-                Owner
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-700">
-                Bank Name
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-700">
-                Account Number
-              </th>
+              {fieldKeys.map((field) => (
+                <th key={field} className="px-4 py-3 text-left font-medium text-gray-700">
+                  {formatFieldName(field)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -98,26 +111,14 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
                 <td className="px-4 py-3 text-gray-600">
                   {formatDate(log.timestamp)}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="space-y-1">
-                    <div className="text-gray-900">{log.final_owner}</div>
-                    <CorrectionBadge corrected={log.owner_corrected} />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="space-y-1">
-                    <div className="text-gray-900">{log.final_bank_name}</div>
-                    <CorrectionBadge corrected={log.bank_name_corrected} />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="space-y-1">
-                    <div className="text-gray-900">
-                      {log.final_account_number}
+                {fieldKeys.map((field) => (
+                  <td key={field} className="px-4 py-3">
+                    <div className="space-y-1">
+                      <div className="text-gray-900">{(log.final_fields || {})[field] ?? ""}</div>
+                      <CorrectionBadge corrected={(log.corrected_fields || {})[field] ?? false} />
                     </div>
-                    <CorrectionBadge corrected={log.account_number_corrected} />
-                  </div>
-                </td>
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -128,7 +129,7 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
         <div className="text-sm text-gray-600">
           Showing {((pagination.page - 1) * pagination.page_size) + 1} to {Math.min(pagination.page * pagination.page_size, pagination.total)} of {pagination.total} extractions
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -143,7 +144,7 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
       <div className="text-sm text-gray-600">
             Page {pagination.page} of {pagination.total_pages}
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -158,4 +159,3 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
     </div>
   );
 }
-

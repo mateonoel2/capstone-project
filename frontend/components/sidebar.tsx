@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileUp, BarChart3 } from "lucide-react";
+import { FileUp, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Extract PDF", href: "/", icon: FileUp },
+  { name: "Extraer PDF", href: "/", icon: FileUp },
+  { name: "Extractores", href: "/extractors", icon: Settings },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
 ];
 
@@ -21,7 +22,10 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}
@@ -45,4 +49,3 @@ export function Sidebar() {
     </div>
   );
 }
-

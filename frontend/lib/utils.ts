@@ -5,3 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function toStr(value: unknown): string {
+  return String(value ?? "");
+}
+

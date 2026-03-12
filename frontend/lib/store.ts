@@ -7,15 +7,13 @@ interface ExtractionState {
   fileName: string | null;
   fileData: string | null;
   extracted: ExtractionResult | null;
-  formData: {
-    owner: string;
-    bank_name: string;
-    account_number: string;
-  };
+  formData: Record<string, string>;
+  selectedExtractorId: number | null;
   setFile: (file: File | null) => void;
   setExtracted: (extracted: ExtractionResult | null) => void;
-  setFormData: (formData: { owner: string; bank_name: string; account_number: string }) => void;
-  updateFormField: (field: keyof ExtractionState["formData"], value: string) => void;
+  setFormData: (formData: Record<string, string>) => void;
+  updateFormField: (field: string, value: string) => void;
+  setSelectedExtractorId: (id: number | null) => void;
   reset: () => void;
 }
 
@@ -24,11 +22,8 @@ const initialState = {
   fileName: null,
   fileData: null,
   extracted: null,
-  formData: {
-    owner: "",
-    bank_name: "",
-    account_number: "",
-  },
+  formData: {} as Record<string, string>,
+  selectedExtractorId: null as number | null,
 };
 
 export const useExtractionStore = create<ExtractionState>()(
@@ -65,6 +60,8 @@ export const useExtractionStore = create<ExtractionState>()(
           },
         })),
 
+      setSelectedExtractorId: (id) => set({ selectedExtractorId: id }),
+
       reset: () => set(initialState),
     }),
     {
@@ -74,6 +71,7 @@ export const useExtractionStore = create<ExtractionState>()(
         fileName: state.fileName,
         extracted: state.extracted,
         formData: state.formData,
+        selectedExtractorId: state.selectedExtractorId,
       }),
     }
   )
