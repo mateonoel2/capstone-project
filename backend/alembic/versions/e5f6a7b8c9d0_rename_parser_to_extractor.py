@@ -22,30 +22,22 @@ def _is_sqlite() -> bool:
     return op.get_bind().dialect.name == "sqlite"
 
 
+def _drop_all_fks(table_name: str) -> None:
+    """Drop all foreign key constraints on a table, using introspection."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    for fk in inspector.get_foreign_keys(table_name):
+        if fk.get("name"):
+            op.drop_constraint(fk["name"], table_name, type_="foreignkey")
+
+
 def upgrade() -> None:
     if not _is_sqlite():
-        # 1. Drop FK constraints (PostgreSQL only)
-        op.drop_constraint(
-            "extraction_logs_parser_config_id_fkey", "extraction_logs", type_="foreignkey"
-        )
-        op.drop_constraint(
-            "extraction_logs_parser_config_version_id_fkey",
-            "extraction_logs",
-            type_="foreignkey",
-        )
-        op.drop_constraint(
-            "api_call_logs_parser_config_id_fkey", "api_call_logs", type_="foreignkey"
-        )
-        op.drop_constraint(
-            "api_call_logs_parser_config_version_id_fkey",
-            "api_call_logs",
-            type_="foreignkey",
-        )
-        op.drop_constraint(
-            "parser_config_versions_parser_config_id_fkey",
-            "parser_config_versions",
-            type_="foreignkey",
-        )
+        # 1. Drop FK constraints (PostgreSQL only) — use introspection
+        #    because constraint names vary depending on how they were created
+        _drop_all_fks("extraction_logs")
+        _drop_all_fks("api_call_logs")
+        _drop_all_fks("parser_config_versions")
 
     # 2. Rename tables
     op.rename_table("parser_configs", "extractor_configs")

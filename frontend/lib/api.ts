@@ -251,6 +251,35 @@ export async function testExtract(
   return response.json();
 }
 
+export async function generateSchema(description: string): Promise<{ output_schema: Record<string, unknown> }> {
+  const response = await fetch(`${API_BASE_URL}/extractors/generate-schema`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to generate schema");
+  }
+  return response.json();
+}
+
+export async function generatePrompt(
+  output_schema: Record<string, unknown>,
+  document_type: string | null
+): Promise<{ prompt: string }> {
+  const response = await fetch(`${API_BASE_URL}/extractors/generate-prompt`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ output_schema, document_type }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to generate prompt");
+  }
+  return response.json();
+}
+
 export async function toggleVersionActive(
   configId: number,
   versionId: number,
