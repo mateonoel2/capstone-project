@@ -54,14 +54,14 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
           <AlertCircle className="h-3 w-3" />
-          Corrected
+          Corregido
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
         <CheckCircle className="h-3 w-3" />
-        Accurate
+        Preciso
       </span>
     );
   };

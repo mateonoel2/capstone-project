@@ -26,7 +26,7 @@ export function DynamicFieldsForm({
 
   return (
     <div className="space-y-4">
-      {Object.entries(properties).map(([key, prop]) => {
+      {Object.entries(properties).filter(([key]) => key !== "is_bank_statement").map(([key, prop]) => {
         const currentValue = values[key] || "";
         const extractedValue = extracted ? String(extracted[key] ?? "") : "";
         const isModified = extracted && currentValue !== extractedValue;

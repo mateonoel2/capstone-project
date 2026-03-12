@@ -178,3 +178,7 @@ class GeneratePromptResponse(BaseModel):
 class TestExtractResponse(BaseModel):
     fields: dict[str, Any]
     response_time_ms: float
+
+
+class SetActiveRequest(BaseModel):
+    is_active: bool

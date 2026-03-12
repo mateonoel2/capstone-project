@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +53,7 @@ function genId() {
 }
 
 export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
-  const parsed = fromJsonSchema(value as Parameters<typeof fromJsonSchema>[0]);
+  const parsed = useMemo(() => fromJsonSchema(value as Parameters<typeof fromJsonSchema>[0]), []); // eslint-disable-line react-hooks/exhaustive-deps
   const initialFields = useRef(parsed.fields);
   const initialSupported = useRef(parsed.supported);
 

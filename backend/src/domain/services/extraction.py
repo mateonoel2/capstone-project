@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_OWNER
+from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_BANK, UNKNOWN_OWNER
 from src.domain.entities import ApiCallResult, ExtractionError, ExtractorConfigData
 from src.domain.schemas import BankAccount
 from src.domain.validators import validate_clabe
@@ -28,12 +28,17 @@ def apply_bank_statement_postprocessing(raw: dict) -> dict:
         owner = UNKNOWN_OWNER
 
     account_number = raw.get("account_number", "000000000000000000")
+    # Strip spaces/dashes (Banorte formats CLABE as "072 691 00844421773 3")
+    account_number = "".join(c for c in account_number if c.isdigit())
+    # Take first 18 digits if extra check digit was included
+    if len(account_number) > 18:
+        account_number = account_number[:18]
     if account_number == "000000000000000000":
         account_number = UNKNOWN_ACCOUNT
 
     bank_name = raw.get("bank_name", "Unknown")
     if bank_name == "Unknown":
-        bank_name = UNKNOWN_OWNER
+        bank_name = UNKNOWN_BANK
 
     if not validate_clabe(account_number):
         account_number = UNKNOWN_ACCOUNT
@@ -42,7 +47,7 @@ def apply_bank_statement_postprocessing(raw: dict) -> dict:
     bank_account = BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
     bank_name = bank_account.bank_name
 
-    if bank_name == UNKNOWN_OWNER and account_number == UNKNOWN_ACCOUNT:
+    if bank_name == UNKNOWN_BANK and account_number == UNKNOWN_ACCOUNT:
         raise ValueError(
             "No se encontró información bancaria útil en el documento. "
             "Verifica que sea un estado de cuenta o carátula bancaria."

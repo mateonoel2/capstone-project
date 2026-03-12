@@ -6,7 +6,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi import File as FastAPIFile
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.domain.entities import ExtractorConfigData
@@ -26,6 +25,7 @@ from src.infrastructure.api.extraction.dtos import (
     GenerateSchemaRequest,
     GenerateSchemaResponse,
     ModelInfo,
+    SetActiveRequest,
     TestExtractResponse,
 )
 from src.infrastructure.database import get_db
@@ -115,6 +115,10 @@ async def test_extract(
         raise HTTPException(status_code=400, detail="El prompt es requerido")
     if not output_schema:
         raise HTTPException(status_code=400, detail="El schema es requerido")
+
+    valid_model_ids = {m.id for m in AVAILABLE_MODELS}
+    if model not in valid_model_ids:
+        raise HTTPException(status_code=400, detail=f"Modelo no soportado: {model}")
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="No se proporcionó un archivo")
@@ -217,10 +221,6 @@ async def delete_extractor_config(config_id: int, db: DbDep):
     if not success:
         raise HTTPException(status_code=400, detail="No se pudo eliminar el extractor")
     return {"message": "Extractor eliminado exitosamente"}
-
-
-class SetActiveRequest(BaseModel):
-    is_active: bool
 
 
 @router.patch(

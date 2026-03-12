@@ -23,7 +23,7 @@ export function StepIdentity({ name, description, model, onChange }: StepIdentit
   const [models, setModels] = useState<ModelInfo[]>([]);
 
   useEffect(() => {
-    getAvailableModels().then(setModels).catch(() => {});
+    getAvailableModels().then(setModels).catch((err) => console.error("Error cargando modelos:", err));
   }, []);
 
   return (

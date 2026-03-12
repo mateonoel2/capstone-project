@@ -16,7 +16,7 @@ export function WizardStepper({
   onStepClick,
 }: WizardStepperProps) {
   return (
-    <nav className="mb-8">
+    <nav className="mb-8" aria-label="Pasos del asistente">
       <ol className="flex items-center w-full">
         {steps.map((step, idx) => {
           const isActive = idx === currentStep;
@@ -32,6 +32,8 @@ export function WizardStepper({
                 type="button"
                 onClick={() => isClickable && onStepClick(idx)}
                 disabled={!isClickable}
+                aria-label={step.label}
+                aria-current={isActive ? "step" : undefined}
                 className={`flex items-center gap-2 group ${
                   isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                 }`}

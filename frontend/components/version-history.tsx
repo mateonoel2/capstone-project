@@ -33,7 +33,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
     setIsLoading(true);
     getExtractorVersions(configId)
       .then(setVersions)
-      .catch(() => {})
+      .catch((err) => console.error("Error cargando versiones:", err))
       .finally(() => setIsLoading(false));
   }, [configId]);
 

@@ -365,7 +365,7 @@ export default function Home() {
                       </div>
                     </form>
                   ) : (
-                    <div className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                       <DynamicFieldsForm
                         schema={
                           selectedConfig?.output_schema as Record<
@@ -394,9 +394,17 @@ export default function Home() {
                         </div>
                       )}
 
+                      {isModified && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                          <p className="text-sm text-yellow-800">
+                            Has modificado los datos extraídos
+                          </p>
+                        </div>
+                      )}
+
                       <div className="flex gap-2 pt-4">
                         <Button
-                          onClick={handleSubmit}
+                          type="submit"
                           disabled={isSubmitting || success}
                           className="flex-1"
                         >
@@ -418,7 +426,7 @@ export default function Home() {
                           Reiniciar
                         </Button>
                       </div>
-                    </div>
+                    </form>
                   )}
                 </CardContent>
               </Card>

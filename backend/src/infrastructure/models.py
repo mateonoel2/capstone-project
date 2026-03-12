@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
 
 Base = declarative_base()
 
@@ -54,14 +53,14 @@ class ExtractionLog(Base):
         Integer, ForeignKey("extractor_config_versions.id"), nullable=True
     )
 
-    @hybrid_property
+    @property
     def corrected_fields(self) -> dict[str, bool]:
         extracted = self.extracted_fields or {}
         final = self.final_fields or {}
         all_keys = set(extracted.keys()) | set(final.keys())
         return {k: str(extracted.get(k, "")) != str(final.get(k, "")) for k in all_keys}
 
-    @hybrid_property
+    @property
     def has_any_correction(self) -> bool:
         return any(self.corrected_fields.values())
 

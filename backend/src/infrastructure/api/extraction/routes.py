@@ -46,7 +46,7 @@ def _load_config(db: Session, config_id: int | None) -> ExtractorConfigData | No
     repo = ExtractorConfigRepository(db)
     config = repo.get_by_id(config_id)
     if not config:
-        return None
+        raise HTTPException(status_code=404, detail=f"Extractor config {config_id} no encontrado")
     return ExtractorConfigData(
         id=config.id,
         name=config.name,

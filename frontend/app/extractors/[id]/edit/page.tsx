@@ -23,13 +23,17 @@ export default function EditExtractorPage() {
 
   const [config, setConfig] = useState<ExtractorConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
   const fetchConfig = useCallback(async () => {
     try {
+      setLoadError(null);
       const data = await getExtractorConfig(configId);
       setConfig(data);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al cargar extractor";
+      setLoadError(msg);
       console.error("Failed to fetch config:", err);
     } finally {
       setIsLoading(false);
@@ -81,7 +85,7 @@ export default function EditExtractorPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <p className="text-gray-600">Extractor no encontrado.</p>
+          <p className="text-gray-600">{loadError || "Extractor no encontrado."}</p>
           <Link href="/extractors" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
             Volver a Extractores
           </Link>

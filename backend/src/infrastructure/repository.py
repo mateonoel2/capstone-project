@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -50,6 +50,7 @@ class ExtractionRepository:
         self, extractor_config_id: int | None = None
     ) -> tuple[int, dict[str, int], int]:
         """Returns (any_corrected_count, {field: correction_count}, total)."""
+        # TODO: optimize for large datasets — this loads all rows into memory
         logs = self._base_query(extractor_config_id).all()
         total = len(logs)
         field_corrections: dict[str, int] = {}
@@ -68,7 +69,7 @@ class ExtractionRepository:
         return any_corrected, field_corrections, total
 
     def count_this_week(self, extractor_config_id: int | None = None) -> int:
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ExtractionLog.id)).filter(
             ExtractionLog.timestamp >= week_ago
         )
@@ -246,7 +247,7 @@ class ApiCallRepository:
         return round(result, 1) if result else 0.0
 
     def count_this_week(self, extractor_config_id: int | None = None) -> int:
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.timestamp >= week_ago)
         if extractor_config_id is not None:
             q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)

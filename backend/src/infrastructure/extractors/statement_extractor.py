@@ -5,7 +5,6 @@ from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
-from pdf2image import convert_from_path
 from PIL import Image
 
 from src.core.logger import get_logger
@@ -16,13 +15,16 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 PDF_EXTENSIONS = {".pdf"}
 SUPPORTED_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS
 
-EXTRACTION_PROMPT = """Analiza esta imagen de un documento y determina si es un estado de
+EXTRACTION_PROMPT = """Analiza este documento y determina si es un estado de
 cuenta o carátula bancaria mexicana.
 
 Si ES un estado de cuenta o carátula bancaria, extrae:
 1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa)
 2. CLABE: Número de 18 dígitos (CLABE interbancaria).
-   IMPORTANTE: debe ser exactamente 18 dígitos numéricos consecutivos.
+   IMPORTANTE: La CLABE puede aparecer con espacios entre grupos de dígitos
+   (ej: "072 691 00844421773 3"). Elimina todos los espacios y devuelve solo
+   los 18 dígitos consecutivos. Si el resultado tiene más de 18 dígitos, toma
+   los primeros 18.
 3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
    BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
@@ -74,15 +76,29 @@ class StatementExtractor:
         image.save(buffer, format="JPEG", quality=85)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    def _pdf_to_base64_images(self, pdf_path: Path, max_pages: int = 2) -> list[str]:
-        images = convert_from_path(str(pdf_path), dpi=150, first_page=1, last_page=max_pages)
-        return [self._image_to_base64(img) for img in images]
-
     def _load_image_file(self, image_path: Path) -> list[str]:
         image = Image.open(image_path)
         if image.mode != "RGB":
             image = image.convert("RGB")
         return [self._image_to_base64(image)]
+
+    def _extract_with_pdf(self, pdf_path: Path) -> dict:
+        pdf_data = pdf_path.read_bytes()
+        pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
+        content = [
+            {
+                "type": "file",
+                "source_type": "base64",
+                "mime_type": "application/pdf",
+                "data": pdf_base64,
+            },
+            {"type": "text", "text": self.prompt},
+        ]
+        message = HumanMessage(content=content)
+        result = self.structured_llm.invoke([message])
+        if hasattr(result, "model_dump"):
+            return result.model_dump()
+        return result
 
     def _extract_with_vision(self, base64_images: list[str]) -> dict:
         content = [
@@ -106,10 +122,9 @@ class StatementExtractor:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
 
         if suffix in PDF_EXTENSIONS:
-            base64_images = self._pdf_to_base64_images(file_path)
-        else:
-            base64_images = self._load_image_file(file_path)
+            return self._extract_with_pdf(file_path)
 
+        base64_images = self._load_image_file(file_path)
         if not base64_images:
             raise ValueError("No se pudo procesar el archivo")
 

@@ -12,8 +12,16 @@ down_revision = "b2c3d4e5f6a7"
 
 
 def upgrade() -> None:
-    op.execute("UPDATE extraction_logs SET parser_config_id = 1 WHERE parser_config_id IS NULL")
-    op.execute("UPDATE api_call_logs SET parser_config_id = 1 WHERE parser_config_id IS NULL")
+    op.execute(
+        "UPDATE extraction_logs SET parser_config_id = "
+        "(SELECT id FROM parser_configs WHERE is_default = true LIMIT 1) "
+        "WHERE parser_config_id IS NULL"
+    )
+    op.execute(
+        "UPDATE api_call_logs SET parser_config_id = "
+        "(SELECT id FROM parser_configs WHERE is_default = true LIMIT 1) "
+        "WHERE parser_config_id IS NULL"
+    )
 
 
 def downgrade() -> None:

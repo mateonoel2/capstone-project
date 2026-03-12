@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -29,7 +29,10 @@ export default function Dashboard() {
   const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("all");
 
-  const configIdParam = selectedConfigId === "all" ? undefined : Number(selectedConfigId);
+  const configIdParam = useMemo(
+    () => selectedConfigId === "all" ? undefined : Number(selectedConfigId),
+    [selectedConfigId]
+  );
 
   const fetchLogs = useCallback(async (page: number) => {
     try {
@@ -143,14 +146,14 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Extractions
+                Extracciones Totales
               </CardTitle>
               <FileCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.total_extractions || 0}</div>
               <p className="text-xs text-muted-foreground">
-                All time
+                Total histórico
               </p>
             </CardContent>
           </Card>
@@ -158,14 +161,14 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Corrections Made
+                Correcciones Realizadas
               </CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.total_corrections || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Required manual correction
+                Requirieron corrección manual
               </p>
             </CardContent>
           </Card>
@@ -173,14 +176,14 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Accuracy Rate
+                Tasa de Precisión
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.accuracy_rate || 0}%</div>
               <p className="text-xs text-muted-foreground">
-                Fields extracted correctly
+                Campos extraídos correctamente
               </p>
             </CardContent>
           </Card>
@@ -188,21 +191,21 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                This Week
+                Esta Semana
               </CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.this_week || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Last 7 days
+                Últimos 7 días
               </p>
             </CardContent>
           </Card>
         </div>
 
         {metrics?.field_accuracies && Object.keys(metrics.field_accuracies).length > 0 && (
-          <div className={`grid grid-cols-1 md:grid-cols-${Math.min(Object.keys(metrics.field_accuracies).length, 4)} gap-6 mb-8`}>
+          <div className={`grid grid-cols-1 ${{1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4"}[Math.min(Object.keys(metrics.field_accuracies).length, 4)] ?? "md:grid-cols-4"} gap-6 mb-8`}>
             {Object.entries(metrics.field_accuracies).map(([field, accuracy], idx) => {
               const colors = ["text-blue-500", "text-green-500", "text-purple-500", "text-orange-500", "text-pink-500"];
               const color = colors[idx % colors.length];
@@ -237,7 +240,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900">{field.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</h3>
-                  <p className="text-xs text-gray-500 mt-1">Accuracy Rate</p>
+                  <p className="text-xs text-gray-500 mt-1">Tasa de Precisión</p>
                 </Card>
               );
             })}
@@ -247,7 +250,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">API Calls</CardTitle>
+              <CardTitle className="text-sm font-medium">Llamadas API</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -260,7 +263,7 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Tasa de Error</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -273,7 +276,7 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+              <CardTitle className="text-sm font-medium">Tiempo de Respuesta Promedio</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -290,7 +293,7 @@ export default function Dashboard() {
         {apiMetrics && apiMetrics.error_breakdown.length > 0 && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Error Breakdown</CardTitle>
+              <CardTitle className="text-sm font-medium">Desglose de Errores</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -307,9 +310,9 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Extractions</CardTitle>
+            <CardTitle>Extracciones Recientes</CardTitle>
             <CardDescription>
-              View and analyze your recent PDF extractions
+              Visualiza y analiza tus extracciones recientes
             </CardDescription>
           </CardHeader>
           <CardContent>

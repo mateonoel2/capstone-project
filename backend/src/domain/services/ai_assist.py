@@ -22,8 +22,8 @@ def generate_schema_from_description(description: str) -> dict:
 Dado una descripción en lenguaje natural de los campos a extraer, genera un JSON Schema válido.
 
 Reglas:
-- Siempre incluye un campo booleano "is_bank_statement" (o similar campo de validación)
-  como primer campo, con description que indique qué tipo de documento validar
+- Siempre incluye un campo booleano de validación del tipo de documento como primer campo
+  (ej: "is_bank_statement", "is_invoice"), con description que indique qué validar
 - Los tipos permitidos son: "string", "number", "integer", "boolean"
 - Cada campo debe tener "type" y "description" (en español)
 - Los nombres de campo deben ser snake_case en inglés
@@ -56,7 +56,7 @@ def generate_prompt_from_schema(output_schema: dict, document_type: str | None =
     properties = output_schema.get("properties", {})
     fields_desc = []
     for name, prop in properties.items():
-        if name == "is_bank_statement":
+        if prop.get("type") == "boolean" and name.startswith("is_"):
             continue
         desc = prop.get("description", "")
         field_type = prop.get("type", "string")
