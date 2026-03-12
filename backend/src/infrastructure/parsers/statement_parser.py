@@ -55,6 +55,8 @@ class StatementParser:
             temperature=0,
         )
         if output_schema:
+            if isinstance(output_schema, dict) and "title" not in output_schema:
+                output_schema = {"title": "extraction_output", **output_schema}
             self.structured_llm = self.llm.with_structured_output(output_schema)
         else:
             from src.domain.schemas import ExtractionOutput

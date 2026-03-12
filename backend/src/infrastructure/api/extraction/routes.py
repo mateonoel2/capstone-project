@@ -245,10 +245,12 @@ async def get_banks():
 
 
 @router.get("/logs", response_model=LogsResponse)
-async def get_extraction_logs(db: DbDep, page: int = 1, page_size: int = 50):
+async def get_extraction_logs(
+    db: DbDep, page: int = 1, page_size: int = 50, parser_config_id: int | None = None
+):
     try:
         service = SubmissionService(_get_repository(db))
-        logs, total, total_pages = service.get_extraction_logs(page, page_size)
+        logs, total, total_pages = service.get_extraction_logs(page, page_size, parser_config_id)
 
         logs_data = [ExtractionLogResponse.model_validate(log) for log in logs]
 

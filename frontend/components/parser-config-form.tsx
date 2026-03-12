@@ -107,71 +107,87 @@ export function ParserConfigForm({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="config-name">Nombre</Label>
-        <Input
-          id="config-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre del parser"
-        />
-      </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column: Name, Description, Model */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="config-name">Nombre</Label>
+            <Input
+              id="config-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nombre del parser"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="config-description">Descripción</Label>
-        <Input
-          id="config-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Descripción breve"
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="config-description">Descripción</Label>
+            <Input
+              id="config-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descripción breve"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="config-model">Modelo</Label>
-        <Select value={model} onValueChange={setModel}>
-          <SelectTrigger id="config-model">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {models.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.name} ({m.tier}) - {m.cost_hint}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="config-model">Modelo</Label>
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger id="config-model">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((m) => {
+                  const isAvailable = m.id.includes("haiku");
+                  return (
+                    <SelectItem
+                      key={m.id}
+                      value={m.id}
+                      disabled={!isAvailable}
+                    >
+                      {m.name} ({m.tier}) - {m.cost_hint}
+                      {!isAvailable && " — Pronto"}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="config-prompt">Prompt</Label>
-        <Textarea
-          id="config-prompt"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Prompt de extracción..."
-          className="font-mono text-sm min-h-[200px]"
-        />
-      </div>
+        {/* Right column: Prompt, Schema */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="config-prompt">Prompt</Label>
+            <Textarea
+              id="config-prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Prompt de extracción..."
+              className="font-mono text-sm min-h-[350px]"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="config-schema">Output Schema (JSON Schema)</Label>
-        <Textarea
-          id="config-schema"
-          value={schemaText}
-          onChange={(e) => {
-            setSchemaText(e.target.value);
-            setSchemaError(null);
-          }}
-          placeholder="JSON Schema..."
-          className={`font-mono text-sm min-h-[200px] ${
-            schemaError ? "border-red-400" : ""
-          }`}
-        />
-        {schemaError && (
-          <p className="text-xs text-red-600">{schemaError}</p>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="config-schema">Output Schema (JSON Schema)</Label>
+            <Textarea
+              id="config-schema"
+              value={schemaText}
+              onChange={(e) => {
+                setSchemaText(e.target.value);
+                setSchemaError(null);
+              }}
+              placeholder="JSON Schema..."
+              className={`font-mono text-sm min-h-[300px] ${
+                schemaError ? "border-red-400" : ""
+              }`}
+            />
+            {schemaError && (
+              <p className="text-xs text-red-600">{schemaError}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -181,7 +197,7 @@ export function ParserConfigForm({
       )}
 
       <div className="flex gap-2 pt-2">
-        <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+        <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

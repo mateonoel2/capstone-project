@@ -33,13 +33,13 @@ export default function Dashboard() {
 
   const fetchLogs = useCallback(async (page: number) => {
     try {
-      const logsResponse = await getExtractionLogs(page, 50);
+      const logsResponse = await getExtractionLogs(page, 50, configIdParam);
       setLogs(logsResponse.logs);
       setPagination(logsResponse.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load logs");
     }
-  }, []);
+  }, [configIdParam]);
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -73,6 +73,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isLoading) {
       fetchMetrics();
+      fetchLogs(1);
     }
   }, [selectedConfigId]); // eslint-disable-line react-hooks/exhaustive-deps
 

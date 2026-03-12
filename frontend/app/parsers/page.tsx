@@ -4,34 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ParserConfigForm } from "@/components/parser-config-form";
-import { VersionHistory } from "@/components/version-history";
-import {
   getParserConfigs,
-  createParserConfig,
-  updateParserConfig,
   deleteParserConfig,
   ParserConfig,
 } from "@/lib/api";
-import { Loader2, Plus, Trash2, Star, History } from "lucide-react";
+import { Loader2, Plus, Trash2, Star } from "lucide-react";
+import Link from "next/link";
 
 export default function ParsersPage() {
   const [configs, setConfigs] = useState<ParserConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [editingConfig, setEditingConfig] = useState<ParserConfig | null>(null);
-  const [showVersions, setShowVersions] = useState<number | null>(null);
 
   const fetchConfigs = useCallback(async () => {
     try {
@@ -47,31 +34,6 @@ export default function ParsersPage() {
   useEffect(() => {
     fetchConfigs();
   }, [fetchConfigs]);
-
-  const handleCreate = async (data: {
-    name: string;
-    description: string;
-    prompt: string;
-    model: string;
-    output_schema: Record<string, unknown>;
-  }) => {
-    await createParserConfig(data);
-    setShowCreate(false);
-    fetchConfigs();
-  };
-
-  const handleUpdate = async (data: {
-    name: string;
-    description: string;
-    prompt: string;
-    model: string;
-    output_schema: Record<string, unknown>;
-  }) => {
-    if (!editingConfig) return;
-    await updateParserConfig(editingConfig.id, data);
-    setEditingConfig(null);
-    fetchConfigs();
-  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("¿Eliminar este parser?")) return;
@@ -104,9 +66,11 @@ export default function ParsersPage() {
               Configura parsers con prompts, modelos y esquemas personalizados
             </p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Crear Parser
+          <Button asChild>
+            <Link href="/parsers/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Parser
+            </Link>
           </Button>
         </div>
 
@@ -128,20 +92,8 @@ export default function ParsersPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowVersions(showVersions === config.id ? null : config.id)}
-                    >
-                      <History className="h-4 w-4 mr-1" />
-                      Versiones
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingConfig(config)}
-                    >
-                      Editar
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/parsers/${config.id}/edit`}>Editar</Link>
                     </Button>
                     {!config.is_default && (
                       <Button
@@ -159,54 +111,9 @@ export default function ParsersPage() {
                   <CardDescription>{config.description}</CardDescription>
                 )}
               </CardHeader>
-              {showVersions === config.id && (
-                <CardContent className="pt-0">
-                  <div className="border-t pt-3">
-                    <h4 className="text-sm font-medium mb-2">
-                      Historial de versiones
-                    </h4>
-                    <VersionHistory
-                      configId={config.id}
-                      onRestore={fetchConfigs}
-                    />
-                  </div>
-                </CardContent>
-              )}
             </Card>
           ))}
         </div>
-
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Crear Parser</DialogTitle>
-            </DialogHeader>
-            <ParserConfigForm
-              onSave={handleCreate}
-              onCancel={() => setShowCreate(false)}
-            />
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
-          open={editingConfig !== null}
-          onOpenChange={(open) => {
-            if (!open) setEditingConfig(null);
-          }}
-        >
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Parser</DialogTitle>
-            </DialogHeader>
-            {editingConfig && (
-              <ParserConfigForm
-                initialData={editingConfig}
-                onSave={handleUpdate}
-                onCancel={() => setEditingConfig(null)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </main>
   );

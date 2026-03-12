@@ -140,8 +140,10 @@ export async function getBanks(): Promise<Bank[]> {
   return data.banks;
 }
 
-export async function getExtractionLogs(page: number = 1, pageSize: number = 50): Promise<PaginatedLogsResponse> {
-  const response = await fetch(`${API_BASE_URL}/extraction/logs?page=${page}&page_size=${pageSize}`);
+export async function getExtractionLogs(page: number = 1, pageSize: number = 50, parserConfigId?: number | null): Promise<PaginatedLogsResponse> {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (parserConfigId != null) params.set("parser_config_id", String(parserConfigId));
+  const response = await fetch(`${API_BASE_URL}/extraction/logs?${params}`);
   if (!response.ok) throw new Error("Failed to fetch extraction logs");
   return response.json();
 }

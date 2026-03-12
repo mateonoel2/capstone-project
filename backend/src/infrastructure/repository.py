@@ -17,16 +17,13 @@ class ExtractionRepository:
             q = q.filter(ExtractionLog.parser_config_id == parser_config_id)
         return q
 
-    def get_all_paginated(self, page: int, page_size: int) -> tuple[list[ExtractionLog], int]:
-        total = self.session.query(func.count(ExtractionLog.id)).scalar() or 0
+    def get_all_paginated(
+        self, page: int, page_size: int, parser_config_id: int | None = None
+    ) -> tuple[list[ExtractionLog], int]:
+        q = self._base_query(parser_config_id)
+        total = q.count()
         offset = (page - 1) * page_size
-        logs = (
-            self.session.query(ExtractionLog)
-            .order_by(ExtractionLog.timestamp.desc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        logs = q.order_by(ExtractionLog.timestamp.desc()).offset(offset).limit(page_size).all()
         return logs, total
 
     def get_by_id(self, log_id: int) -> ExtractionLog | None:
