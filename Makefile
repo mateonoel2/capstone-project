@@ -1,4 +1,4 @@
-.PHONY: dev lint format test migrate
+.PHONY: dev lint format test migrate up down logs
 
 # Backend
 dev:
@@ -15,6 +15,16 @@ test:
 
 migrate:
 	cd backend && uv run alembic upgrade head
+
+# Docker
+up:
+	docker compose up --build -d
+
+down:
+	docker compose down
+
+logs:
+	docker compose logs -f
 
 %:
 	@:
