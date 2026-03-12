@@ -42,6 +42,20 @@ class ExtractorConfigData:
     model: str
     output_schema: dict
     is_default: bool
+    created_at: object | None = None
+    updated_at: object | None = None
+
+
+@dataclass
+class ExtractorConfigVersionData:
+    id: int
+    extractor_config_id: int
+    version_number: int
+    prompt: str
+    model: str
+    output_schema: dict
+    is_active: bool
+    created_at: object | None = None
 
 
 @dataclass

@@ -1,12 +1,15 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List, Protocol
 
 import pandas as pd
 
 from src.core.logger import setup_logger
-from src.domain.extractor_interface import BaseExtractor
+
+
+class Extractor(Protocol):
+    def extract_file(self, file_path: Path) -> Any: ...
 
 
 class ExperimentRunner:
@@ -23,7 +26,7 @@ class ExperimentRunner:
         self.errors = []
 
     def run_experiment(
-        self, extractor: BaseExtractor, file_paths: List[Path], extractor_name: str
+        self, extractor: Extractor, file_paths: List[Path], extractor_name: str
     ) -> pd.DataFrame:
         self.logger.info(f"Starting experiment: {self.experiment_name}")
         self.logger.info(f"Extractor: {extractor_name}")
@@ -106,7 +109,7 @@ class ExperimentRunner:
         self.logger.info(f"Summary saved to: {json_path}")
 
     def compare_extractors(
-        self, extractors: Dict[str, BaseExtractor], file_paths: List[Path]
+        self, extractors: Dict[str, Extractor], file_paths: List[Path]
     ) -> pd.DataFrame:
         all_results = []
 

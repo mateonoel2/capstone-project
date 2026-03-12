@@ -89,6 +89,14 @@ class ApiCallMetricsResponse(BaseModel):
     error_breakdown: list[ErrorBreakdownItem]
 
 
+def _validate_output_schema(v: dict[str, Any]) -> dict[str, Any]:
+    if "properties" not in v or not isinstance(v["properties"], dict):
+        raise ValueError("output_schema debe tener 'properties' como objeto")
+    if "required" not in v or not isinstance(v["required"], list):
+        raise ValueError("output_schema debe tener 'required' como lista")
+    return v
+
+
 class ExtractorConfigCreateRequest(BaseModel):
     name: str
     description: str = ""
@@ -96,6 +104,11 @@ class ExtractorConfigCreateRequest(BaseModel):
     model: str = "claude-haiku-4-5-20251001"
     output_schema: dict[str, Any]
     is_default: bool = False
+
+    @field_validator("output_schema")
+    @classmethod
+    def validate_schema(cls, v: dict[str, Any]) -> dict[str, Any]:
+        return _validate_output_schema(v)
 
 
 class ExtractorConfigUpdateRequest(BaseModel):
@@ -105,6 +118,13 @@ class ExtractorConfigUpdateRequest(BaseModel):
     model: str | None = None
     output_schema: dict[str, Any] | None = None
     is_default: bool | None = None
+
+    @field_validator("output_schema")
+    @classmethod
+    def validate_schema(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
+        if v is not None:
+            return _validate_output_schema(v)
+        return v
 
 
 class ExtractorConfigResponse(BaseModel):
@@ -156,6 +176,7 @@ class ModelInfo(BaseModel):
     name: str
     tier: str
     cost_hint: str
+    is_available: bool = True
 
 
 class GenerateSchemaRequest(BaseModel):

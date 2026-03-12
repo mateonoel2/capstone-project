@@ -30,6 +30,7 @@ import {
   Bank,
   ExtractorConfig,
 } from "@/lib/api";
+import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -89,7 +90,7 @@ export default function Home() {
 
       const fields: Record<string, string> = {};
       for (const [key, value] of Object.entries(result.fields || {})) {
-        fields[key] = String(value ?? "");
+        fields[key] = toStr(value);
       }
       setFormData(fields);
     } catch (err) {
@@ -110,7 +111,7 @@ export default function Home() {
     try {
       const extractedFields: Record<string, string> = {};
       for (const [key, value] of Object.entries(extracted.fields || {})) {
-        extractedFields[key] = String(value ?? "");
+        extractedFields[key] = toStr(value);
       }
       await submitExtraction({
         filename: file.name,
@@ -140,7 +141,7 @@ export default function Home() {
   const isModified =
     extracted &&
     Object.entries(formData).some(
-      ([key, value]) => value !== String(extracted.fields?.[key] ?? "")
+      ([key, value]) => value !== toStr(extracted.fields?.[key])
     );
 
   return (
@@ -162,7 +163,13 @@ export default function Home() {
           </Label>
           <Select
             value={selectedExtractorId?.toString() ?? ""}
-            onValueChange={(v) => setSelectedExtractorId(Number(v))}
+            onValueChange={(v) => {
+              setSelectedExtractorId(Number(v));
+              setExtracted(null);
+              setFormData({});
+              setError(null);
+              setSuccess(false);
+            }}
           >
             <SelectTrigger id="extractor-select" className="w-80 mt-1">
               <SelectValue placeholder="Seleccionar extractor..." />
@@ -239,144 +246,97 @@ export default function Home() {
                         Intentar con otro archivo
                       </Button>
                     </div>
-                  ) : isDefaultExtractor ? (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="owner">Titular de la Cuenta</Label>
-                        <Input
-                          id="owner"
-                          value={formData.owner || ""}
-                          onChange={(e) =>
-                            updateFormField("owner", e.target.value)
-                          }
-                          placeholder="Nombre del titular"
-                          className={
-                            extracted && formData.owner !== String(extracted.fields?.owner ?? "")
-                              ? "border-yellow-400"
-                              : ""
-                          }
-                        />
-                        {extracted && formData.owner !== String(extracted.fields?.owner ?? "") && (
-                          <p className="text-xs text-yellow-600">
-                            IA extrajo: {String(extracted.fields?.owner ?? "") || "(vacío)"}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="bank_name">Banco</Label>
-                        <BankCombobox
-                          banks={banks}
-                          value={formData.bank_name || ""}
-                          onChange={(value) =>
-                            updateFormField("bank_name", value)
-                          }
-                          className={
-                            extracted &&
-                            formData.bank_name !== String(extracted.fields?.bank_name ?? "")
-                              ? "border-yellow-400"
-                              : ""
-                          }
-                        />
-                        {extracted &&
-                          formData.bank_name !== String(extracted.fields?.bank_name ?? "") && (
-                            <p className="text-xs text-yellow-600">
-                              IA extrajo: {String(extracted.fields?.bank_name ?? "") || "(vacío)"}
-                            </p>
-                          )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="account_number">
-                          Número de Cuenta (CLABE)
-                        </Label>
-                        <Input
-                          id="account_number"
-                          value={formData.account_number || ""}
-                          onChange={(e) =>
-                            updateFormField("account_number", e.target.value)
-                          }
-                          placeholder="CLABE de 18 dígitos"
-                          className={
-                            extracted &&
-                            formData.account_number !==
-                              String(extracted.fields?.account_number ?? "")
-                              ? "border-yellow-400"
-                              : ""
-                          }
-                        />
-                        {extracted &&
-                          formData.account_number !==
-                            String(extracted.fields?.account_number ?? "") && (
-                            <p className="text-xs text-yellow-600">
-                              IA extrajo:{" "}
-                              {String(extracted.fields?.account_number ?? "") || "(vacío)"}
-                            </p>
-                          )}
-                      </div>
-
-                      {error && (
-                        <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded">
-                          <AlertCircle className="h-4 w-4" />
-                          <span className="text-sm">{error}</span>
-                        </div>
-                      )}
-
-                      {success && (
-                        <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="text-sm">
-                            Enviado exitosamente!
-                          </span>
-                        </div>
-                      )}
-
-                      {isModified && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                          <p className="text-sm text-yellow-800">
-                            Has modificado los datos extraídos
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2 pt-4">
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting || success}
-                          className="flex-1"
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando...
-                            </>
-                          ) : (
-                            "Enviar"
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleReset}
-                          disabled={isSubmitting}
-                        >
-                          Reiniciar
-                        </Button>
-                      </div>
-                    </form>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                      <DynamicFieldsForm
-                        schema={
-                          selectedConfig?.output_schema as Record<
-                            string,
-                            unknown
-                          >
-                        }
-                        values={formData}
-                        extracted={extracted?.fields as Record<string, unknown>}
-                        onChange={updateFormField}
-                      />
+                      {isDefaultExtractor ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="owner">Titular de la Cuenta</Label>
+                            <Input
+                              id="owner"
+                              value={formData.owner || ""}
+                              onChange={(e) =>
+                                updateFormField("owner", e.target.value)
+                              }
+                              placeholder="Nombre del titular"
+                              className={
+                                extracted && formData.owner !== toStr(extracted.fields?.owner)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted && formData.owner !== toStr(extracted.fields?.owner) && (
+                              <p className="text-xs text-yellow-600">
+                                IA extrajo: {toStr(extracted.fields?.owner) || "(vacío)"}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="bank_name">Banco</Label>
+                            <BankCombobox
+                              banks={banks}
+                              value={formData.bank_name || ""}
+                              onChange={(value) =>
+                                updateFormField("bank_name", value)
+                              }
+                              className={
+                                extracted &&
+                                formData.bank_name !== toStr(extracted.fields?.bank_name)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted &&
+                              formData.bank_name !== toStr(extracted.fields?.bank_name) && (
+                                <p className="text-xs text-yellow-600">
+                                  IA extrajo: {toStr(extracted.fields?.bank_name) || "(vacío)"}
+                                </p>
+                              )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="account_number">
+                              Número de Cuenta (CLABE)
+                            </Label>
+                            <Input
+                              id="account_number"
+                              value={formData.account_number || ""}
+                              onChange={(e) =>
+                                updateFormField("account_number", e.target.value)
+                              }
+                              placeholder="CLABE de 18 dígitos"
+                              className={
+                                extracted &&
+                                formData.account_number !==
+                                  toStr(extracted.fields?.account_number)
+                                  ? "border-yellow-400"
+                                  : ""
+                              }
+                            />
+                            {extracted &&
+                              formData.account_number !==
+                                toStr(extracted.fields?.account_number) && (
+                                <p className="text-xs text-yellow-600">
+                                  IA extrajo:{" "}
+                                  {toStr(extracted.fields?.account_number) || "(vacío)"}
+                                </p>
+                              )}
+                          </div>
+                        </>
+                      ) : (
+                        <DynamicFieldsForm
+                          schema={
+                            selectedConfig?.output_schema as Record<
+                              string,
+                              unknown
+                            >
+                          }
+                          values={formData}
+                          extracted={extracted?.fields as Record<string, unknown>}
+                          onChange={updateFormField}
+                        />
+                      )}
 
                       {error && (
                         <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded">

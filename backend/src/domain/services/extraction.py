@@ -15,9 +15,6 @@ from src.infrastructure.extractors.statement_extractor import (
 
 ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
-# ID of the seeded default config
-DEFAULT_CONFIG_ID = 1
-
 
 def apply_bank_statement_postprocessing(raw: dict) -> dict:
     if not raw.get("is_bank_statement"):

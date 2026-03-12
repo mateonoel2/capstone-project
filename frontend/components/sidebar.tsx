@@ -6,7 +6,7 @@ import { FileUp, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Extract PDF", href: "/", icon: FileUp },
+  { name: "Extraer PDF", href: "/", icon: FileUp },
   { name: "Extractores", href: "/extractors", icon: Settings },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
 ];

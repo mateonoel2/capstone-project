@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.domain.entities import ApiCallResult, ExtractorConfigData
+from src.domain.entities import ApiCallResult, ExtractorConfigData, ExtractorConfigVersionData
 from src.infrastructure.models import (
     ApiCallLog,
     ExtractionLog,
@@ -50,13 +50,12 @@ class ExtractionRepository:
         self, extractor_config_id: int | None = None
     ) -> tuple[int, dict[str, int], int]:
         """Returns (any_corrected_count, {field: correction_count}, total)."""
-        # TODO: optimize for large datasets — this loads all rows into memory
-        logs = self._base_query(extractor_config_id).all()
-        total = len(logs)
+        q = self._base_query(extractor_config_id)
+        total = q.count()
         field_corrections: dict[str, int] = {}
         any_corrected = 0
 
-        for log in logs:
+        for log in q.yield_per(500):
             corrected = log.corrected_fields
             if any(corrected.values()):
                 any_corrected += 1
@@ -82,18 +81,51 @@ class ExtractorConfigRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_all(self) -> list[ExtractorConfig]:
-        return self.session.query(ExtractorConfig).order_by(ExtractorConfig.id).all()
-
-    def get_by_id(self, config_id: int) -> ExtractorConfig | None:
-        return self.session.query(ExtractorConfig).filter(ExtractorConfig.id == config_id).first()
-
-    def get_default(self) -> ExtractorConfig | None:
-        return (
-            self.session.query(ExtractorConfig).filter(ExtractorConfig.is_default.is_(True)).first()
+    @staticmethod
+    def _to_entity(config: ExtractorConfig) -> ExtractorConfigData:
+        return ExtractorConfigData(
+            id=config.id,
+            name=config.name,
+            description=config.description or "",
+            prompt=config.prompt,
+            model=config.model,
+            output_schema=config.output_schema,
+            is_default=config.is_default,
+            created_at=config.created_at,
+            updated_at=config.updated_at,
         )
 
-    def create(self, data: ExtractorConfigData) -> ExtractorConfig:
+    @staticmethod
+    def _version_to_entity(version: ExtractorConfigVersion) -> ExtractorConfigVersionData:
+        return ExtractorConfigVersionData(
+            id=version.id,
+            extractor_config_id=version.extractor_config_id,
+            version_number=version.version_number,
+            prompt=version.prompt,
+            model=version.model,
+            output_schema=version.output_schema,
+            is_active=version.is_active,
+            created_at=version.created_at,
+        )
+
+    def get_all(self) -> list[ExtractorConfigData]:
+        configs = self.session.query(ExtractorConfig).order_by(ExtractorConfig.id).all()
+        return [self._to_entity(c) for c in configs]
+
+    def _get_orm_by_id(self, config_id: int) -> ExtractorConfig | None:
+        return self.session.query(ExtractorConfig).filter(ExtractorConfig.id == config_id).first()
+
+    def get_by_id(self, config_id: int) -> ExtractorConfigData | None:
+        config = self._get_orm_by_id(config_id)
+        return self._to_entity(config) if config else None
+
+    def get_default(self) -> ExtractorConfigData | None:
+        config = (
+            self.session.query(ExtractorConfig).filter(ExtractorConfig.is_default.is_(True)).first()
+        )
+        return self._to_entity(config) if config else None
+
+    def create(self, data: ExtractorConfigData) -> ExtractorConfigData:
         config = ExtractorConfig(
             name=data.name,
             description=data.description,
@@ -105,10 +137,10 @@ class ExtractorConfigRepository:
         self.session.add(config)
         self.session.commit()
         self.session.refresh(config)
-        return config
+        return self._to_entity(config)
 
-    def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfig | None:
-        config = self.get_by_id(config_id)
+    def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfigData | None:
+        config = self._get_orm_by_id(config_id)
         if not config:
             return None
 
@@ -137,14 +169,29 @@ class ExtractorConfigRepository:
         self.session.commit()
         self.session.refresh(config)
 
-        self.deactivate_incompatible_versions(config_id, data.output_schema)
+        self._deactivate_incompatible_versions(config_id, data.output_schema)
 
-        return config
+        return self._to_entity(config)
 
     def delete(self, config_id: int) -> bool:
-        config = self.get_by_id(config_id)
+        config = self._get_orm_by_id(config_id)
         if not config or config.is_default:
             return False
+        # Nullify FK references in logs before deleting
+        self.session.query(ExtractionLog).filter(
+            ExtractionLog.extractor_config_id == config_id
+        ).update(
+            {
+                ExtractionLog.extractor_config_id: None,
+                ExtractionLog.extractor_config_version_id: None,
+            }
+        )
+        self.session.query(ApiCallLog).filter(ApiCallLog.extractor_config_id == config_id).update(
+            {
+                ApiCallLog.extractor_config_id: None,
+                ApiCallLog.extractor_config_version_id: None,
+            }
+        )
         self.session.query(ExtractorConfigVersion).filter(
             ExtractorConfigVersion.extractor_config_id == config_id
         ).delete()
@@ -152,15 +199,20 @@ class ExtractorConfigRepository:
         self.session.commit()
         return True
 
-    def get_versions(self, config_id: int) -> list[ExtractorConfigVersion]:
-        return (
+    def get_versions(self, config_id: int) -> list[ExtractorConfigVersionData]:
+        versions = (
             self.session.query(ExtractorConfigVersion)
             .filter(ExtractorConfigVersion.extractor_config_id == config_id)
             .order_by(ExtractorConfigVersion.version_number.desc())
             .all()
         )
+        return [self._version_to_entity(v) for v in versions]
 
-    def get_active_versions(self, config_id: int) -> list[ExtractorConfigVersion]:
+    def get_active_versions(self, config_id: int) -> list[ExtractorConfigVersionData]:
+        versions = self._get_active_versions_orm(config_id)
+        return [self._version_to_entity(v) for v in versions]
+
+    def _get_active_versions_orm(self, config_id: int) -> list[ExtractorConfigVersion]:
         return (
             self.session.query(ExtractorConfigVersion)
             .filter(
@@ -170,7 +222,9 @@ class ExtractorConfigRepository:
             .all()
         )
 
-    def set_version_active(self, version_id: int, active: bool) -> ExtractorConfigVersion | None:
+    def set_version_active(
+        self, version_id: int, active: bool
+    ) -> ExtractorConfigVersionData | None:
         version = (
             self.session.query(ExtractorConfigVersion)
             .filter(ExtractorConfigVersion.id == version_id)
@@ -181,11 +235,11 @@ class ExtractorConfigRepository:
         version.is_active = active
         self.session.commit()
         self.session.refresh(version)
-        return version
+        return self._version_to_entity(version)
 
-    def deactivate_incompatible_versions(self, config_id: int, schema: dict) -> None:
+    def _deactivate_incompatible_versions(self, config_id: int, schema: dict) -> None:
         current_keys = sorted(schema.get("properties", {}).keys())
-        active_versions = self.get_active_versions(config_id)
+        active_versions = self._get_active_versions_orm(config_id)
         for version in active_versions:
             version_keys = sorted(version.output_schema.get("properties", {}).keys())
             if version_keys != current_keys:

@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toStr } from "@/lib/utils";
 
 interface JsonSchema {
   properties?: Record<string, { type?: string; description?: string }>;
@@ -28,7 +29,7 @@ export function DynamicFieldsForm({
     <div className="space-y-4">
       {Object.entries(properties).filter(([key]) => key !== "is_bank_statement").map(([key, prop]) => {
         const currentValue = values[key] || "";
-        const extractedValue = extracted ? String(extracted[key] ?? "") : "";
+        const extractedValue = extracted ? toStr(extracted[key]) : "";
         const isModified = extracted && currentValue !== extractedValue;
 
         return (

@@ -9,11 +9,11 @@ from fastapi import File as FastAPIFile
 from sqlalchemy.orm import Session
 
 from src.domain.entities import ExtractorConfigData
-from src.domain.services.ai_assist import (
+from src.domain.services.extractor_config import ExtractorConfigService
+from src.infrastructure.ai_assist import (
     generate_prompt_from_schema,
     generate_schema_from_description,
 )
-from src.domain.services.extractor_config import ExtractorConfigService
 from src.infrastructure.api.extraction.dtos import (
     ExtractorConfigCreateRequest,
     ExtractorConfigListResponse,
@@ -45,18 +45,21 @@ AVAILABLE_MODELS = [
         name="Claude Haiku 4.5",
         tier="fast",
         cost_hint="$0.80 / $4.00 por 1M tokens",
+        is_available=True,
     ),
     ModelInfo(
         id="claude-sonnet-4-6",
         name="Claude Sonnet 4.6",
         tier="balanced",
         cost_hint="$3.00 / $15.00 por 1M tokens",
+        is_available=False,
     ),
     ModelInfo(
         id="claude-opus-4-6",
         name="Claude Opus 4.6",
         tier="powerful",
         cost_hint="$15.00 / $75.00 por 1M tokens",
+        is_available=False,
     ),
 ]
 

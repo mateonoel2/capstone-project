@@ -1,5 +1,14 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json();
+    return body.detail || fallback;
+  } catch {
+    return `${fallback} (HTTP ${response.status})`;
+  }
+}
+
 export interface ExtractionResult {
   fields: Record<string, unknown>;
   extractor_config_id: number | null;
@@ -91,6 +100,7 @@ export interface ModelInfo {
   name: string;
   tier: string;
   cost_hint: string;
+  is_available: boolean;
 }
 
 // Extraction
@@ -107,8 +117,7 @@ export async function extractFromFile(file: File, extractorConfigId?: number | n
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Extraction failed");
+    throw new Error(await parseErrorDetail(response, "Extraction failed"));
   }
 
   return response.json();
@@ -122,8 +131,7 @@ export async function submitExtraction(payload: SubmissionPayload): Promise<void
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Submission failed");
+    throw new Error(await parseErrorDetail(response, "Submission failed"));
   }
 }
 
@@ -184,8 +192,7 @@ export async function createExtractorConfig(config: {
     body: JSON.stringify(config),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to create extractor config");
+    throw new Error(await parseErrorDetail(response, "Failed to create extractor config"));
   }
   return response.json();
 }
@@ -204,8 +211,7 @@ export async function updateExtractorConfig(id: number, config: {
     body: JSON.stringify(config),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to update extractor config");
+    throw new Error(await parseErrorDetail(response, "Failed to update extractor config"));
   }
   return response.json();
 }
@@ -213,8 +219,7 @@ export async function updateExtractorConfig(id: number, config: {
 export async function deleteExtractorConfig(id: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/extractors/${id}`, { method: "DELETE" });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to delete extractor config");
+    throw new Error(await parseErrorDetail(response, "Failed to delete extractor config"));
   }
 }
 
@@ -244,8 +249,7 @@ export async function testExtract(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Test extraction failed");
+    throw new Error(await parseErrorDetail(response, "Test extraction failed"));
   }
 
   return response.json();
@@ -258,8 +262,7 @@ export async function generateSchema(description: string): Promise<{ output_sche
     body: JSON.stringify({ description }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to generate schema");
+    throw new Error(await parseErrorDetail(response, "Failed to generate schema"));
   }
   return response.json();
 }
@@ -274,8 +277,7 @@ export async function generatePrompt(
     body: JSON.stringify({ output_schema, document_type }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to generate prompt");
+    throw new Error(await parseErrorDetail(response, "Failed to generate prompt"));
   }
   return response.json();
 }
@@ -295,8 +297,7 @@ export async function toggleVersionActive(
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to toggle version");
+    throw new Error(await parseErrorDetail(response, "Failed to toggle version"));
   }
 
   return response.json();

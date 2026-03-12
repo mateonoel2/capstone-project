@@ -61,15 +61,12 @@ export function StepIdentity({ name, description, model, onChange }: StepIdentit
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {models.map((m) => {
-              const isAvailable = m.id.includes("haiku");
-              return (
-                <SelectItem key={m.id} value={m.id} disabled={!isAvailable}>
-                  {m.name} ({m.tier}) - {m.cost_hint}
-                  {!isAvailable && " — Pronto"}
-                </SelectItem>
-              );
-            })}
+            {models.map((m) => (
+              <SelectItem key={m.id} value={m.id} disabled={!m.is_available}>
+                {m.name} ({m.tier}) - {m.cost_hint}
+                {!m.is_available && " — Pronto"}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">

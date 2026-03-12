@@ -58,27 +58,19 @@ export default function Dashboard() {
   }, [configIdParam]);
 
   useEffect(() => {
+    getExtractorConfigs().then(setExtractorConfigs).catch((err) => {
+      console.error("Failed to load extractor configs:", err);
+    });
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const configs = await getExtractorConfigs();
-        setExtractorConfigs(configs);
-        await Promise.all([fetchMetrics(), fetchLogs(1)]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      } finally {
-        setIsLoading(false);
-      }
+      setIsLoading(true);
+      await Promise.all([fetchMetrics(), fetchLogs(1)]);
+      setIsLoading(false);
     };
     fetchData();
   }, [fetchMetrics, fetchLogs]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      fetchMetrics();
-      fetchLogs(1);
-    }
-  }, [selectedConfigId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePageChange = async (newPage: number) => {
     setIsLoading(true);

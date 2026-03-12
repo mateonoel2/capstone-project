@@ -46,7 +46,10 @@ Responde SOLO con el JSON Schema, sin explicaciones ni markdown."""
         lines = [line for line in lines if not line.startswith("```")]
         text = "\n".join(lines)
 
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"El modelo generó un JSON inválido: {e}") from e
 
 
 def generate_prompt_from_schema(output_schema: dict, document_type: str | None = None) -> str:

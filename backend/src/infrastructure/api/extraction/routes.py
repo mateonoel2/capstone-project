@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.domain.constants import BANK_DICT_KUSHKI
-from src.domain.entities import ExtractionError, ExtractorConfigData, SubmissionData
+from src.domain.entities import (
+    ExtractionError,
+    ExtractorConfigData,
+    ExtractorConfigVersionData,
+    SubmissionData,
+)
 from src.domain.services.api_metrics import ApiMetricsService
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
@@ -24,7 +29,6 @@ from src.infrastructure.api.extraction.dtos import (
     SubmissionResponse,
 )
 from src.infrastructure.database import get_db
-from src.infrastructure.models import ExtractorConfigVersion
 from src.infrastructure.repository import (
     ApiCallRepository,
     ExtractionRepository,
@@ -47,19 +51,11 @@ def _load_config(db: Session, config_id: int | None) -> ExtractorConfigData | No
     config = repo.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail=f"Extractor config {config_id} no encontrado")
-    return ExtractorConfigData(
-        id=config.id,
-        name=config.name,
-        description=config.description or "",
-        prompt=config.prompt,
-        model=config.model,
-        output_schema=config.output_schema,
-        is_default=config.is_default,
-    )
+    return config
 
 
 def _select_variant(
-    config: ExtractorConfigData, active_versions: list[ExtractorConfigVersion]
+    config: ExtractorConfigData, active_versions: list[ExtractorConfigVersionData]
 ) -> tuple[ExtractorConfigData, int | None, int | None]:
     """Pick a variant randomly from current config + active versions.
 
@@ -70,7 +66,7 @@ def _select_variant(
         return config, None, None
 
     # Build list: None = current config, or a version object
-    candidates: list[ExtractorConfigVersion | None] = [None] + list(active_versions)
+    candidates: list[ExtractorConfigVersionData | None] = [None] + list(active_versions)
     chosen = random.choice(candidates)
 
     if chosen is None:
