@@ -1,27 +1,28 @@
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
-_configured = False
+_handler: logging.Handler | None = None
 
 
-def _configure_root():
-    global _configured
-    if _configured:
-        return
-    _configured = True
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s — %(message)s",
-        datefmt="%H:%M:%S",
-        force=True,
-    )
+def _get_handler() -> logging.Handler:
+    global _handler
+    if _handler is None:
+        _handler = logging.StreamHandler(sys.stderr)
+        _handler.setLevel(logging.INFO)
+        fmt = "%(asctime)s %(levelname)s %(name)s — %(message)s"
+        _handler.setFormatter(logging.Formatter(fmt, datefmt="%H:%M:%S"))
+    return _handler
 
 
 def get_logger(name: str) -> logging.Logger:
-    _configure_root()
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False  # Don't let root logger (WARNING) filter our messages
+    if not logger.handlers:
+        logger.addHandler(_get_handler())
+    return logger
 
 
 def setup_logger(
