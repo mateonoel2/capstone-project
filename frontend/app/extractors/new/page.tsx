@@ -2,13 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { ExtractorWizard } from "@/components/extractor-wizard/extractor-wizard";
-import { createExtractorConfig } from "@/lib/api";
+import { useCreateExtractorConfig } from "@/lib/hooks";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function NewExtractorPage() {
   const router = useRouter();
+  const createMutation = useCreateExtractorConfig();
 
   const handleCreate = async (data: {
     name: string;
@@ -17,7 +18,7 @@ export default function NewExtractorPage() {
     model: string;
     output_schema: Record<string, unknown>;
   }) => {
-    await createExtractorConfig(data);
+    await createMutation.mutateAsync(data);
     router.push("/extractors");
   };
 

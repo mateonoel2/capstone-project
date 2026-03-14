@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,12 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getExtractorVersions,
-  updateExtractorConfig,
-  toggleVersionActive,
-  ExtractorConfigVersion,
-} from "@/lib/api";
+import { useExtractorVersions, useUpdateExtractorConfig, useToggleVersionActive } from "@/lib/hooks";
 import { Loader2, RotateCcw } from "lucide-react";
 
 interface VersionHistoryProps {
@@ -23,54 +18,41 @@ interface VersionHistoryProps {
 }
 
 export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
-  const [versions, setVersions] = useState<ExtractorConfigVersion[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: versions = [], isLoading } = useExtractorVersions(configId);
+  const updateMutation = useUpdateExtractorConfig();
+  const toggleMutation = useToggleVersionActive();
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [restoringId, setRestoringId] = useState<number | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  const loadVersions = useCallback(() => {
-    setIsLoading(true);
-    getExtractorVersions(configId)
-      .then(setVersions)
-      .catch((err) => console.error("Error cargando versiones:", err))
-      .finally(() => setIsLoading(false));
-  }, [configId]);
-
-  useEffect(() => {
-    loadVersions();
-  }, [loadVersions]);
-
-  const handleRestore = async (version: ExtractorConfigVersion) => {
-    setRestoringId(version.id);
+  const handleRestore = async (version: typeof versions[number]) => {
     try {
-      await updateExtractorConfig(configId, {
-        prompt: version.prompt,
-        model: version.model,
-        output_schema: version.output_schema,
+      await updateMutation.mutateAsync({
+        id: configId,
+        config: {
+          prompt: version.prompt,
+          model: version.model,
+          output_schema: version.output_schema,
+        },
       });
       onRestore?.();
     } catch (err) {
       console.error("Failed to restore version:", err);
-    } finally {
-      setRestoringId(null);
     }
   };
 
-  const handleToggleActive = async (version: ExtractorConfigVersion) => {
-    setTogglingId(version.id);
+  const handleToggleActive = async (version: typeof versions[number]) => {
     try {
-      await toggleVersionActive(configId, version.id, !version.is_active);
-      loadVersions();
+      await toggleMutation.mutateAsync({
+        configId,
+        versionId: version.id,
+        isActive: !version.is_active,
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al cambiar estado");
-    } finally {
-      setTogglingId(null);
     }
   };
 
   const activeVersions = versions.filter((v) => v.is_active);
-  const totalVariants = activeVersions.length + 1; // +1 for current config
+  const totalVariants = activeVersions.length + 1;
   const pct = Math.round(100 / totalVariants);
 
   if (isLoading) {
@@ -143,9 +125,9 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
                     e.stopPropagation();
                     handleToggleActive(version);
                   }}
-                  disabled={togglingId === version.id}
+                  disabled={toggleMutation.isPending}
                 >
-                  {togglingId === version.id ? (
+                  {toggleMutation.isPending ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : version.is_active ? (
                     "Desactivar"
@@ -160,9 +142,9 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
                     e.stopPropagation();
                     handleRestore(version);
                   }}
-                  disabled={restoringId === version.id}
+                  disabled={updateMutation.isPending}
                 >
-                  {restoringId === version.id ? (
+                  {updateMutation.isPending ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     <>

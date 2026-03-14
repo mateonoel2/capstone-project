@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,38 +7,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getExtractorConfigs,
-  deleteExtractorConfig,
-  ExtractorConfig,
-} from "@/lib/api";
+import { useExtractorConfigs, useDeleteExtractorConfig } from "@/lib/hooks";
 import { Loader2, Plus, Trash2, Star } from "lucide-react";
 import Link from "next/link";
 
 export default function ExtractorsPage() {
-  const [configs, setConfigs] = useState<ExtractorConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchConfigs = useCallback(async () => {
-    try {
-      const data = await getExtractorConfigs();
-      setConfigs(data);
-    } catch (err) {
-      console.error("Failed to fetch configs:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+  const { data: configs = [], isLoading } = useExtractorConfigs();
+  const deleteMutation = useDeleteExtractorConfig();
 
   const handleDelete = async (id: number) => {
     if (!confirm("¿Eliminar este extractor?")) return;
     try {
-      await deleteExtractorConfig(id);
-      fetchConfigs();
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al eliminar");
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -11,71 +11,34 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ExtractionTable } from "@/components/extraction-table";
-import { getMetrics, getExtractionLogs, getApiCallMetrics, getExtractorConfigs, Metrics, ApiCallMetrics, ExtractionLog, PaginationMeta, ExtractorConfig } from "@/lib/api";
+import { useMetrics, useApiCallMetrics, useExtractionLogs, useExtractorConfigs } from "@/lib/hooks";
 import { BarChart3, TrendingUp, FileCheck, AlertCircle, Loader2, Zap, Activity, Clock } from "lucide-react";
 
 export default function Dashboard() {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [apiMetrics, setApiMetrics] = useState<ApiCallMetrics | null>(null);
-  const [logs, setLogs] = useState<ExtractionLog[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta>({
-    total: 0,
-    page: 1,
-    page_size: 50,
-    total_pages: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
   const configIdParam = useMemo(
     () => selectedConfigId === "all" ? undefined : Number(selectedConfigId),
     [selectedConfigId]
   );
 
-  const fetchLogs = useCallback(async (page: number) => {
-    try {
-      const logsResponse = await getExtractionLogs(page, 50, configIdParam);
-      setLogs(logsResponse.logs);
-      setPagination(logsResponse.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load logs");
-    }
-  }, [configIdParam]);
+  const { data: extractorConfigs = [] } = useExtractorConfigs();
+  const { data: metrics, isLoading: metricsLoading } = useMetrics(configIdParam);
+  const { data: apiMetrics } = useApiCallMetrics(configIdParam);
+  const { data: logsData, isLoading: logsLoading } = useExtractionLogs(page, 50, configIdParam);
 
-  const fetchMetrics = useCallback(async () => {
-    try {
-      const [metricsData, apiMetricsData] = await Promise.all([
-        getMetrics(configIdParam),
-        getApiCallMetrics(configIdParam),
-      ]);
-      setMetrics(metricsData);
-      setApiMetrics(apiMetricsData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load metrics");
-    }
-  }, [configIdParam]);
+  const logs = logsData?.logs ?? [];
+  const pagination = logsData?.pagination ?? { total: 0, page: 1, page_size: 50, total_pages: 0 };
+  const isLoading = metricsLoading && logsLoading;
 
-  useEffect(() => {
-    getExtractorConfigs().then(setExtractorConfigs).catch((err) => {
-      console.error("Failed to load extractor configs:", err);
-    });
-  }, []);
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchMetrics(), fetchLogs(1)]);
-      setIsLoading(false);
-    };
-    fetchData();
-  }, [fetchMetrics, fetchLogs]);
-
-  const handlePageChange = async (newPage: number) => {
-    setIsLoading(true);
-    await fetchLogs(newPage);
-    setIsLoading(false);
+  const handleConfigChange = (value: string) => {
+    setSelectedConfigId(value);
+    setPage(1);
   };
 
   if (isLoading) {
@@ -85,19 +48,6 @@ export default function Dashboard() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             <span className="ml-2 text-gray-600">Loading dashboard...</span>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12 text-red-600">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4" />
-            <p>{error}</p>
           </div>
         </div>
       </main>
@@ -118,7 +68,7 @@ export default function Dashboard() {
             <Label htmlFor="config-filter" className="text-sm whitespace-nowrap">
               Filtrar por Extractor:
             </Label>
-            <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+            <Select value={selectedConfigId} onValueChange={handleConfigChange}>
               <SelectTrigger id="config-filter" className="w-64">
                 <SelectValue />
               </SelectTrigger>

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles } from "lucide-react";
-import { generatePrompt } from "@/lib/api";
+import { useGeneratePrompt } from "@/lib/hooks";
 import { SchemaSummary } from "./schema-summary";
 import { PromptTips } from "./prompt-tips";
 
@@ -17,23 +16,20 @@ interface StepPromptProps {
 }
 
 export function StepPrompt({ prompt, schema, description, onChange }: StepPromptProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const generateMutation = useGeneratePrompt();
 
   const handleGenerate = async () => {
     if (prompt.trim()) {
       if (!confirm("El prompt actual será reemplazado. ¿Continuar?")) return;
     }
-    setIsGenerating(true);
-    setAiError(null);
-    try {
-      const result = await generatePrompt(schema, description || null);
-      onChange(result.prompt);
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : "Error al generar prompt");
-    } finally {
-      setIsGenerating(false);
-    }
+    generateMutation.mutate(
+      { output_schema: schema, document_type: description || null },
+      {
+        onSuccess: (result) => {
+          onChange(result.prompt);
+        },
+      }
+    );
   };
 
   const hasSchemaFields = Object.keys(
@@ -51,10 +47,10 @@ export function StepPrompt({ prompt, schema, description, onChange }: StepPrompt
             size="sm"
             variant="outline"
             onClick={handleGenerate}
-            disabled={isGenerating || !hasSchemaFields}
+            disabled={generateMutation.isPending || !hasSchemaFields}
             title={!hasSchemaFields ? "Define campos en el schema primero" : ""}
           >
-            {isGenerating ? (
+            {generateMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 Generando...
@@ -74,7 +70,11 @@ export function StepPrompt({ prompt, schema, description, onChange }: StepPrompt
           placeholder="Escribe las instrucciones para extraer datos del documento..."
           className="font-mono text-sm min-h-[350px]"
         />
-        {aiError && <p className="text-xs text-red-600">{aiError}</p>}
+        {generateMutation.error && (
+          <p className="text-xs text-red-600">
+            {generateMutation.error instanceof Error ? generateMutation.error.message : "Error al generar prompt"}
+          </p>
+        )}
         <PromptTips />
       </div>
 

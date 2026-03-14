@@ -1,15 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ExtractorEditor } from "@/components/extractor-editor";
 import { VersionHistory } from "@/components/version-history";
-import {
-  getExtractorConfig,
-  updateExtractorConfig,
-  deleteExtractorConfig,
-  ExtractorConfig,
-} from "@/lib/api";
+import { useExtractorConfig, useUpdateExtractorConfig, useDeleteExtractorConfig } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,28 +16,10 @@ export default function EditExtractorPage() {
   const router = useRouter();
   const configId = Number(params.id);
 
-  const [config, setConfig] = useState<ExtractorConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: config, isLoading, error: loadError, refetch } = useExtractorConfig(configId);
+  const updateMutation = useUpdateExtractorConfig();
+  const deleteMutation = useDeleteExtractorConfig();
   const [formKey, setFormKey] = useState(0);
-
-  const fetchConfig = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await getExtractorConfig(configId);
-      setConfig(data);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al cargar extractor";
-      setLoadError(msg);
-      console.error("Failed to fetch config:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [configId]);
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
 
   const handleUpdate = async (data: {
     name: string;
@@ -51,14 +28,14 @@ export default function EditExtractorPage() {
     model: string;
     output_schema: Record<string, unknown>;
   }) => {
-    await updateExtractorConfig(configId, data);
+    await updateMutation.mutateAsync({ id: configId, config: data });
     router.push("/extractors");
   };
 
   const handleDelete = async () => {
     if (!confirm("¿Eliminar este extractor?")) return;
     try {
-      await deleteExtractorConfig(configId);
+      await deleteMutation.mutateAsync(configId);
       router.push("/extractors");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al eliminar");
@@ -66,7 +43,7 @@ export default function EditExtractorPage() {
   };
 
   const handleRestore = async () => {
-    await fetchConfig();
+    await refetch();
     setFormKey((k) => k + 1);
   };
 
@@ -85,7 +62,7 @@ export default function EditExtractorPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <p className="text-gray-600">{loadError || "Extractor no encontrado."}</p>
+          <p className="text-gray-600">{loadError instanceof Error ? loadError.message : "Extractor no encontrado."}</p>
           <Link href="/extractors" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
             Volver a Extractores
           </Link>
