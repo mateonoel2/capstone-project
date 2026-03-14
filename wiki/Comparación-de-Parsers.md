@@ -183,7 +183,7 @@ La comparación revela una perspectiva crítica: **OCR solo no es suficiente**. 
 
 ## Estado Actual (Marzo 2026)
 
-Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementParser` basado en vision con *structured output*. Este *parser*:
+Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` basado en vision con *structured output*. Este *parser*:
 - Usa *Claude Haiku 4.5* con `with_structured_output()` de *LangChain*
 - Convierte PDFs a imagenes (*pdf2image*) y las envia directamente a la API de vision
 - Soporta PDFs e imagenes (JPG/PNG)
@@ -224,4 +224,4 @@ El texto OCR tiene problemas que rompen patrones *regex*:
 ---
 
 Generado: 7 de noviembre de 2025
-Ultima Actualizacion: Marzo 2026 (Parsers unificados en `StatementParser`)
+Ultima Actualizacion: Marzo 2026 (Parsers unificados en `StatementExtractor`)

@@ -13,12 +13,12 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 ## Características
 
 - Aplicacion web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
-- *Parser* unificado (*StatementParser*) basado en vision con *Claude Haiku 4.5*
+- *Parser* unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
 - Soporte para PDFs e imagenes (JPG/PNG) con visor integrado
 - *Dashboard* con metricas de precision, correcciones por campo y metricas de llamadas API
 - Seguimiento de llamadas a la API de Claude (tasa de error, tiempo de respuesta)
 - Almacenamiento en PostgreSQL con migraciones Alembic
-- Subida de archivos a S3 (Tigris en produccion, LocalStack en desarrollo)
+- Subida de archivos a S3 con *presigned URLs* (subida directa desde el navegador, con *fallback* via *backend*)
 - Despliegue en Railway (backend) y Vercel (frontend)
 - CI con GitHub Actions (ruff format, lint, tests)
 - Docker Compose para desarrollo local (backend + PostgreSQL + LocalStack)
@@ -34,7 +34,7 @@ capstone-project/
 │   │   │   ├── schemas.py             # BankAccount (Pydantic)
 │   │   │   ├── constants.py           # Constantes y diccionario de bancos
 │   │   │   ├── validators.py         # Validación de CLABE y bancos
-│   │   │   ├── parser_interface.py   # BaseParser ABC
+│   │   │   ├── extractor_interface.py # BaseExtractor ABC
 │   │   │   ├── entities.py           # Entidades de dominio y API calls
 │   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ApiMetricsService
 │   │   ├── infrastructure/            # Integraciones externas
@@ -42,7 +42,8 @@ capstone-project/
 │   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
 │   │   │   ├── models.py             # ORM (ExtractionLog, ApiCallLog)
 │   │   │   ├── repository.py         # Acceso a datos
-│   │   │   ├── parsers/              # StatementParser (vision unificado)
+│   │   │   ├── storage.py            # StorageBackend (S3 / local)
+│   │   │   ├── extractors/           # StatementExtractor (vision unificado)
 │   │   │   ├── preprocessing/        # OCR, validación, limpieza, descarga
 │   │   │   ├── evaluation/           # Experimentos y métricas
 │   │   │   └── data_pipeline/        # Scripts de datos
@@ -135,6 +136,7 @@ ruff format .   # formato
 | `ANTHROPIC_API_KEY` | API key de Anthropic (backend) |
 | `DATABASE_URL` | URL de PostgreSQL (backend) |
 | `AWS_ENDPOINT_URL` | Endpoint S3 / LocalStack (backend) |
+| `AWS_PUBLIC_ENDPOINT_URL` | Endpoint S3 accesible desde el navegador para *presigned URLs* (default: `AWS_ENDPOINT_URL`) |
 | `AWS_S3_BUCKET_NAME` | Nombre del bucket S3 (backend) |
 | `NEXT_PUBLIC_API_URL` | URL del backend, default `http://localhost:8000` (frontend) |
 
