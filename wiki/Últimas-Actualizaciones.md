@@ -2,6 +2,22 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Extractores Configurables, Asistente IA y *React Query* (Marzo 2026)
+
+### Cambios principales
+
+- **Extractores configurables**: Los usuarios ahora crean extractores personalizados con *schemas*, *prompts* y modelos a traves de un *wizard* multi-paso (`/extractors/new`). Soporte para estado *draft*/*active* y versionado con pruebas A/B
+- **Asistente de IA**: Nuevo *sidebar* (`AssistantSidebar`) que genera *schemas* JSON a partir de descripciones en texto natural, crea *prompts* de extraccion a partir de *schemas*, y refina *prompts* existentes. Alimentado por `ai_assist.py` en el *backend*
+- ***React Query***: Se agrego `@tanstack/react-query` para gestion de estado del servidor. Nuevos *hooks* en `lib/hooks.ts` para configs, versiones, generacion IA, extraccion y subida. *Zustand* se mantiene para estado de UI
+- **Visor de archivos mejorado**: Reescritura con `react-zoom-pan-pinch` para *zoom*, *pan* y rotacion de imagenes. PDFs se muestran en *iframe*
+- **Rutas de extractores**: Nuevas paginas `/extractors`, `/extractors/new`, `/extractors/[id]/edit` para gestion CRUD
+- **Extracciones de prueba**: Nuevo modelo `TestExtractionLog` y *endpoint* `POST /test-extract` para probar extractores con registro detallado
+- **Rutas del *backend***: Nuevo modulo `api/extractors/routes.py` con CRUD, versionado, generacion IA y pruebas
+- **Renombrado**: `is_bank_statement` → `is_valid_document` para soportar tipos de documentos genericos
+- **Modelos disponibles**: Nuevo *endpoint* `GET /models` que lista modelos Claude disponibles con indicadores de costo
+
+---
+
 ## Actualizacion: Subida con *Presigned URLs* y Abstraccion de *Storage* (Marzo 2026)
 
 ### Cambios principales
@@ -99,31 +115,42 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 - `backend/src/infrastructure/storage.py` - Abstraccion de *storage* (S3 / local)
 
 ### *Frontend*
-- `frontend/app/page.tsx` - Página de extracción
+- `frontend/app/page.tsx` - Pagina de extraccion
+- `frontend/app/extractors/` - Gestion de extractores (CRUD + *wizard*)
 - `frontend/app/dashboard/page.tsx` - *Dashboard* completo
 - `frontend/app/layout.tsx` - *Layout* con *sidebar*
-- `frontend/components/sidebar.tsx` - Navegación
-- `frontend/components/extraction-table.tsx` - Tabla de extracciones
-- `frontend/components/pdf-viewer.tsx` - Visor con controles
-- `frontend/components/bank-combobox.tsx` - Selector de bancos
+- `frontend/components/assistant/` - Sidebar de asistente IA
+- `frontend/components/extractor-wizard/` - *Wizard* multi-paso para extractores
+- `frontend/components/file-viewer.tsx` - Visor de PDF e imagenes
 - `frontend/lib/api.ts` - Cliente de API
-- `frontend/lib/store.ts` - Gestión de estado
+- `frontend/lib/hooks.ts` - *React Query hooks*
+- `frontend/lib/store.ts` - Estado de UI (*Zustand*)
 
 ## *Endpoints* de la API
 
 ### Implementados y Funcionales
 
 ```
-GET  /extraction/banks        - Lista de 91 bancos mexicanos
-POST /extraction/upload-url   - Obtener presigned URL para subida directa a S3
-POST /extraction/upload       - Subida de archivo via backend (fallback)
-POST /extraction/extract      - Extraer informacion por s3_key (JSON)
-POST /extraction/submit       - Enviar extraccion con correcciones
-GET  /extraction/logs         - Obtener logs con paginacion
-GET  /extraction/metrics      - Obtener metricas de precision
-GET  /extraction/api-metrics  - Obtener metricas de llamadas API
-GET  /health                  - Verificacion de salud
-GET  /docs                    - Documentacion interactiva
+GET  /extraction/banks          - Lista de 91 bancos mexicanos
+POST /extraction/upload-url     - Obtener presigned URL para subida directa a S3
+POST /extraction/upload         - Subida de archivo via backend (fallback)
+POST /extraction/extract        - Extraer informacion por s3_key (JSON)
+POST /extraction/submit         - Enviar extraccion con correcciones
+GET  /extraction/logs           - Obtener logs con paginacion
+GET  /extraction/metrics        - Obtener metricas de precision
+GET  /extraction/api-metrics    - Obtener metricas de llamadas API
+GET  /extractors                - Listar configuraciones de extractores
+POST /extractors                - Crear configuracion de extractor
+PUT  /extractors/{id}           - Actualizar configuracion de extractor
+DELETE /extractors/{id}         - Eliminar configuracion de extractor
+POST /extractors/generate-schema  - Generar schema JSON con IA
+POST /extractors/generate-prompt  - Generar prompt con IA
+POST /extractors/update-prompt    - Refinar prompt con IA
+POST /extractors/test-extract     - Probar extraccion con registro
+GET  /extractors/models           - Listar modelos disponibles
+GET  /extractors/versions         - Versiones de un extractor
+GET  /health                    - Verificacion de salud
+GET  /docs                      - Documentacion interactiva
 ```
 
 ## Cómo Usar
@@ -154,9 +181,12 @@ La aplicación inicia en http://localhost:3000
 
 ## Base de Datos
 
-*PostgreSQL* con dos tablas principales:
+*PostgreSQL* con tablas principales:
+- `extractor_configs`: Configuraciones de extractores (*schema*, *prompt*, modelo, estado)
+- `extractor_config_versions`: Versiones de configuraciones para pruebas A/B
 - `extraction_logs`: Valores extraidos, correcciones del usuario, *flags* de correccion por campo
 - `api_call_logs`: Modelo utilizado, exito/error, tiempo de respuesta, tipo de error
+- `test_extraction_logs`: Registro de extracciones de prueba con *snapshot* de configuracion
 
 ## Métricas y Análisis
 
