@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  uploadFile,
   extractFromFile,
   submitExtraction,
   getBanks,
@@ -85,7 +86,8 @@ export default function Home() {
     setIsExtracting(true);
 
     try {
-      const result = await extractFromFile(selectedFile, selectedExtractorId);
+      const { s3_key, filename } = await uploadFile(selectedFile);
+      const result = await extractFromFile(s3_key, filename, selectedExtractorId);
       setExtracted(result);
 
       const fields: Record<string, string> = {};

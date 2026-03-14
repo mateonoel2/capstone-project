@@ -203,3 +203,26 @@ class TestExtractResponse(BaseModel):
 
 class SetActiveRequest(BaseModel):
     is_active: bool
+
+
+class UploadUrlRequest(BaseModel):
+    filename: str
+    content_type: str
+
+
+class UploadUrlResponse(BaseModel):
+    s3_key: str
+    upload_url: str | None
+    filename: str
+
+
+class ExtractRequest(BaseModel):
+    s3_key: str
+    filename: str
+    extractor_config_id: int | None = None
+
+
+class TestExtractRequest(BaseModel):
+    s3_key: str
+    filename: str
+    config: dict[str, Any]

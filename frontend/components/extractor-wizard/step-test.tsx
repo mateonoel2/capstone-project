@@ -6,7 +6,7 @@ import { FileUpload } from "@/components/file-upload";
 import { FileViewer } from "@/components/file-viewer";
 import { DynamicFieldsForm } from "@/components/dynamic-fields-form";
 import { Loader2, Play, Clock } from "lucide-react";
-import { testExtract } from "@/lib/api";
+import { uploadFile, testExtract } from "@/lib/api";
 
 interface StepTestProps {
   prompt: string;
@@ -28,7 +28,8 @@ export function StepTest({ prompt, model, schema }: StepTestProps) {
     setError(null);
     setResult(null);
     try {
-      const res = await testExtract(file, { prompt, model, output_schema: schema });
+      const { s3_key, filename } = await uploadFile(file);
+      const res = await testExtract(s3_key, filename, { prompt, model, output_schema: schema });
       setResult(res.fields);
       setResponseTime(res.response_time_ms);
       // Initialize form values from result

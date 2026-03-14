@@ -16,6 +16,7 @@ from alembic import command
 from src.core.logger import get_logger
 from src.infrastructure.api.extraction.routes import router as extraction_router
 from src.infrastructure.api.extractors.routes import router as extractors_router
+from src.infrastructure.storage import get_storage
 
 load_dotenv()
 
@@ -31,6 +32,8 @@ def run_migrations():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
+    storage = get_storage()
+    storage.configure_cors(allowed_origins=["*"])
     yield
 
 

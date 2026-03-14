@@ -1,11 +1,9 @@
-import json
 import tempfile
 import time
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
-from fastapi import File as FastAPIFile
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.domain.entities import ExtractorConfigData
@@ -26,6 +24,7 @@ from src.infrastructure.api.extraction.dtos import (
     GenerateSchemaResponse,
     ModelInfo,
     SetActiveRequest,
+    TestExtractRequest,
     TestExtractResponse,
 )
 from src.infrastructure.database import get_db
@@ -34,6 +33,7 @@ from src.infrastructure.extractors.statement_extractor import (
     StatementExtractor,
 )
 from src.infrastructure.repository import ExtractorConfigRepository
+from src.infrastructure.storage import get_storage
 
 DbDep = Annotated[Session, Depends(get_db)]
 
@@ -101,14 +101,8 @@ async def generate_prompt(request: GeneratePromptRequest):
 
 
 @router.post("/test-extract", response_model=TestExtractResponse)
-async def test_extract(
-    file: UploadFile = FastAPIFile(...),
-    config: str = Form(...),
-):
-    try:
-        config_data = json.loads(config)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Config JSON inválido")
+async def test_extract(request: TestExtractRequest):
+    config_data = request.config
 
     prompt = config_data.get("prompt", "")
     model = config_data.get("model", "claude-haiku-4-5-20251001")
@@ -123,10 +117,10 @@ async def test_extract(
     if model not in valid_model_ids:
         raise HTTPException(status_code=400, detail=f"Modelo no soportado: {model}")
 
-    if not file.filename:
+    if not request.filename:
         raise HTTPException(status_code=400, detail="No se proporcionó un archivo")
 
-    suffix = Path(file.filename).suffix.lower()
+    suffix = Path(request.filename).suffix.lower()
     if suffix not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
@@ -135,9 +129,11 @@ async def test_extract(
 
     tmp_path = None
     try:
+        storage = get_storage()
+        file_bytes = storage.download(request.s3_key)
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            content = await file.read()
-            tmp.write(content)
+            tmp.write(file_bytes)
             tmp_path = Path(tmp.name)
 
         extractor = StatementExtractor(prompt=prompt, model=model, output_schema=output_schema)
@@ -146,6 +142,8 @@ async def test_extract(
         elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
         return TestExtractResponse(fields=result, response_time_ms=elapsed_ms)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en storage")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

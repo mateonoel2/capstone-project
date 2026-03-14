@@ -1,7 +1,7 @@
 import random
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.domain.constants import BANK_DICT_KUSHKI
@@ -22,11 +22,14 @@ from src.infrastructure.api.extraction.dtos import (
     ErrorBreakdownItem,
     ExtractionLogResponse,
     ExtractionResponse,
+    ExtractRequest,
     LogsResponse,
     MetricsResponse,
     PaginationMeta,
     SubmissionRequest,
     SubmissionResponse,
+    UploadUrlRequest,
+    UploadUrlResponse,
 )
 from src.infrastructure.database import get_db
 from src.infrastructure.repository import (
@@ -34,6 +37,7 @@ from src.infrastructure.repository import (
     ExtractionRepository,
     ExtractorConfigRepository,
 )
+from src.infrastructure.storage import generate_key, get_storage
 
 DbDep = Annotated[Session, Depends(get_db)]
 
@@ -84,14 +88,33 @@ def _select_variant(
     return version_config, chosen.id, chosen.version_number
 
 
+@router.post("/upload-url", response_model=UploadUrlResponse)
+async def get_upload_url(request: UploadUrlRequest):
+    """Return an S3 key and presigned upload URL (None when S3 is not configured)."""
+    if not request.filename:
+        raise HTTPException(status_code=400, detail="No se proporcionó un nombre de archivo")
+    storage = get_storage()
+    key = generate_key(request.filename)
+    upload_url = storage.generate_upload_url(key, request.content_type)
+    return UploadUrlResponse(s3_key=key, upload_url=upload_url, filename=request.filename)
+
+
+@router.post("/upload")
+async def upload_file(file: Annotated[UploadFile, File()]):
+    """Fallback upload through backend (used when S3 presigned URLs are not available)."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No se proporcionó un archivo")
+    storage = get_storage()
+    key = generate_key(file.filename)
+    content = await file.read()
+    storage.save(key, content)
+    return UploadUrlResponse(s3_key=key, upload_url=None, filename=file.filename)
+
+
 @router.post("/extract", response_model=ExtractionResponse)
-async def extract_from_file(
-    file: Annotated[UploadFile, File()],
-    db: DbDep,
-    extractor_config_id: Annotated[int | None, Form()] = None,
-):
+async def extract_from_file(request: ExtractRequest, db: DbDep):
     api_repo = ApiCallRepository(db)
-    config_data = _load_config(db, extractor_config_id)
+    config_data = _load_config(db, request.extractor_config_id)
 
     # Select A/B variant if active versions exist
     version_id = None
@@ -102,26 +125,22 @@ async def extract_from_file(
         config_data, version_id, version_number = _select_variant(config_data, active_versions)
 
     try:
-        content = await file.read()
-        await file.seek(0)
-
-        from src.infrastructure.storage import save_upload
-
-        save_upload(file, content)
+        storage = get_storage()
+        file_bytes = storage.download(request.s3_key)
 
         service = ExtractionService()
-        result, call_result, _ = await service.extract(file, config=config_data)
+        result, call_result, _ = service.extract(file_bytes, request.filename, config=config_data)
 
         api_repo.create(
             call_result,
-            filename=file.filename,
-            extractor_config_id=extractor_config_id,
+            filename=request.filename,
+            extractor_config_id=request.extractor_config_id,
             extractor_config_version_id=version_id,
         )
 
         # Determine extractor config info for the response
         if config_data:
-            ec_id = extractor_config_id or config_data.id
+            ec_id = request.extractor_config_id or config_data.id
             ec_name = config_data.name
         else:
             ec_repo = ExtractorConfigRepository(db)
@@ -139,13 +158,15 @@ async def extract_from_file(
     except ExtractionError as e:
         api_repo.create(
             e.call_result,
-            filename=file.filename,
-            extractor_config_id=extractor_config_id,
+            filename=request.filename,
+            extractor_config_id=request.extractor_config_id,
             extractor_config_version_id=version_id,
         )
         if e.call_result.error_type == "InvalidDocument":
             raise HTTPException(status_code=400, detail=str(e))
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en storage")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

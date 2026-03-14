@@ -2,8 +2,6 @@ import tempfile
 import time
 from pathlib import Path
 
-from fastapi import UploadFile
-
 from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_BANK, UNKNOWN_OWNER
 from src.domain.entities import ApiCallResult, ExtractionError, ExtractorConfigData
 from src.domain.schemas import BankAccount
@@ -66,15 +64,16 @@ def _create_extractor(config: ExtractorConfigData) -> StatementExtractor:
 
 
 class ExtractionService:
-    async def extract(
+    def extract(
         self,
-        file: UploadFile,
+        file_bytes: bytes,
+        filename: str,
         config: ExtractorConfigData | None = None,
     ) -> tuple[dict, ApiCallResult, ExtractorConfigData | None]:
-        if not file.filename:
+        if not filename:
             raise ValueError("No se proporcionó un archivo")
 
-        suffix = Path(file.filename).suffix.lower()
+        suffix = Path(filename).suffix.lower()
         if suffix not in ALLOWED_EXTENSIONS:
             raise ValueError(
                 f"Tipo de archivo no soportado: {suffix}. "
@@ -84,8 +83,7 @@ class ExtractionService:
         tmp_file_path = None
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-                content = await file.read()
-                tmp_file.write(content)
+                tmp_file.write(file_bytes)
                 tmp_file_path = Path(tmp_file.name)
 
             if config:
