@@ -81,6 +81,7 @@ export interface ExtractorConfig {
   model: string;
   output_schema: Record<string, unknown>;
   is_default: boolean;
+  status: string;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -222,8 +223,9 @@ export async function getMetrics(extractorConfigId?: number | null): Promise<Met
 }
 
 // Extractor Configs
-export async function getExtractorConfigs(): Promise<ExtractorConfig[]> {
-  const response = await fetch(`${API_BASE_URL}/extractors`);
+export async function getExtractorConfigs(status?: string): Promise<ExtractorConfig[]> {
+  const params = status != null ? `?status=${status}` : "";
+  const response = await fetch(`${API_BASE_URL}/extractors${params}`);
   if (!response.ok) throw new Error("Failed to fetch extractor configs");
   const data = await response.json();
   return data.configs;
@@ -237,11 +239,12 @@ export async function getExtractorConfig(id: number): Promise<ExtractorConfig> {
 
 export async function createExtractorConfig(config: {
   name: string;
-  description: string;
-  prompt: string;
-  model: string;
-  output_schema: Record<string, unknown>;
+  description?: string;
+  prompt?: string;
+  model?: string;
+  output_schema?: Record<string, unknown>;
   is_default?: boolean;
+  status?: string;
 }): Promise<ExtractorConfig> {
   const response = await fetch(`${API_BASE_URL}/extractors`, {
     method: "POST",
@@ -261,6 +264,7 @@ export async function updateExtractorConfig(id: number, config: {
   model?: string;
   output_schema?: Record<string, unknown>;
   is_default?: boolean;
+  status?: string;
 }): Promise<ExtractorConfig> {
   const response = await fetch(`${API_BASE_URL}/extractors/${id}`, {
     method: "PUT",
@@ -295,8 +299,9 @@ export async function getExtractorVersions(id: number): Promise<ExtractorConfigV
 export async function testExtract(
   s3Key: string,
   filename: string,
-  config: { prompt: string; model: string; output_schema: Record<string, unknown> }
-): Promise<{ fields: Record<string, unknown>; response_time_ms: number }> {
+  config: { prompt: string; model: string; output_schema: Record<string, unknown> },
+  extractorConfigId?: number | null
+): Promise<{ fields: Record<string, unknown>; response_time_ms: number; test_log_id: number | null }> {
   const response = await fetch(`${API_BASE_URL}/extractors/test-extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -304,6 +309,7 @@ export async function testExtract(
       s3_key: s3Key,
       filename,
       config,
+      extractor_config_id: extractorConfigId ?? null,
     }),
   });
 
@@ -337,6 +343,22 @@ export async function generatePrompt(
   });
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to generate prompt"));
+  }
+  return response.json();
+}
+
+export async function updatePrompt(
+  current_prompt: string,
+  instructions: string,
+  output_schema: Record<string, unknown>
+): Promise<{ prompt: string }> {
+  const response = await fetch(`${API_BASE_URL}/extractors/update-prompt`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_prompt, instructions, output_schema }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to update prompt"));
   }
   return response.json();
 }

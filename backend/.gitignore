@@ -23,8 +23,7 @@ htmlcov/
 *.log
 logs/
 
-data/processed/
-data/results/
+data/
 notebooks/.ipynb_checkpoints/
 
 *.tmp

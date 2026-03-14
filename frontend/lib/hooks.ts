@@ -17,6 +17,7 @@ import {
   testExtract,
   generateSchema,
   generatePrompt,
+  updatePrompt,
   getAvailableModels,
   SubmissionPayload,
 } from "@/lib/api";
@@ -42,17 +43,18 @@ export function useBanks() {
   });
 }
 
-export function useExtractorConfigs() {
+export function useExtractorConfigs(status?: string) {
   return useQuery({
-    queryKey: queryKeys.extractorConfigs,
-    queryFn: getExtractorConfigs,
+    queryKey: [...queryKeys.extractorConfigs, status],
+    queryFn: () => getExtractorConfigs(status),
   });
 }
 
-export function useExtractorConfig(id: number) {
+export function useExtractorConfig(id: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.extractorConfig(id),
     queryFn: () => getExtractorConfig(id),
+    enabled: options?.enabled,
   });
 }
 
@@ -134,11 +136,12 @@ export function useCreateExtractorConfig() {
   return useMutation({
     mutationFn: (config: {
       name: string;
-      description: string;
-      prompt: string;
-      model: string;
-      output_schema: Record<string, unknown>;
+      description?: string;
+      prompt?: string;
+      model?: string;
+      output_schema?: Record<string, unknown>;
       is_default?: boolean;
+      status?: string;
     }) => createExtractorConfig(config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.extractorConfigs });
@@ -161,6 +164,7 @@ export function useUpdateExtractorConfig() {
         model?: string;
         output_schema?: Record<string, unknown>;
         is_default?: boolean;
+        status?: string;
       };
     }) => updateExtractorConfig(id, config),
     onSuccess: (_, { id }) => {
@@ -194,12 +198,14 @@ export function useTestExtract() {
     mutationFn: async ({
       file,
       config,
+      extractorConfigId,
     }: {
       file: File;
       config: { prompt: string; model: string; output_schema: Record<string, unknown> };
+      extractorConfigId?: number | null;
     }) => {
       const { s3_key, filename } = await uploadFile(file);
-      return testExtract(s3_key, filename, config);
+      return testExtract(s3_key, filename, config, extractorConfigId);
     },
   });
 }
@@ -219,5 +225,19 @@ export function useGeneratePrompt() {
       output_schema: Record<string, unknown>;
       document_type: string | null;
     }) => generatePrompt(output_schema, document_type),
+  });
+}
+
+export function useUpdatePrompt() {
+  return useMutation({
+    mutationFn: ({
+      current_prompt,
+      instructions,
+      output_schema,
+    }: {
+      current_prompt: string;
+      instructions: string;
+      output_schema: Record<string, unknown>;
+    }) => updatePrompt(current_prompt, instructions, output_schema),
   });
 }

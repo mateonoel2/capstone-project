@@ -45,7 +45,7 @@ export default function Home() {
   const [success, setSuccess] = useState(false);
 
   const { data: banks = [] } = useBanks();
-  const { data: extractorConfigs = [] } = useExtractorConfigs();
+  const { data: extractorConfigs = [] } = useExtractorConfigs("active");
 
   const uploadAndExtract = useUploadAndExtract();
   const submitMutation = useSubmitExtraction();

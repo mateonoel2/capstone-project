@@ -12,9 +12,10 @@ interface StepTestProps {
   prompt: string;
   model: string;
   schema: Record<string, unknown>;
+  extractorConfigId?: number | null;
 }
 
-export function StepTest({ prompt, model, schema }: StepTestProps) {
+export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestProps) {
   const [file, setFile] = useState<File | null>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const testMutation = useTestExtract();
@@ -22,7 +23,7 @@ export function StepTest({ prompt, model, schema }: StepTestProps) {
   const handleTest = async () => {
     if (!file) return;
     testMutation.mutate(
-      { file, config: { prompt, model, output_schema: schema } },
+      { file, config: { prompt, model, output_schema: schema }, extractorConfigId },
       {
         onSuccess: (res) => {
           const values: Record<string, string> = {};

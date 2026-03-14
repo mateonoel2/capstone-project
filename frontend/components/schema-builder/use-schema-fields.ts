@@ -24,6 +24,8 @@ export function toJsonSchema(fields: SchemaField[]): JsonSchema {
   for (const f of allFields) {
     if (f.type === "enum") {
       properties[f.name] = { type: "string", enum: f.enumValues || [] };
+    } else if (f.type === "date") {
+      properties[f.name] = { type: "string", format: "date" };
     } else {
       properties[f.name] = { type: f.type };
     }
@@ -50,6 +52,7 @@ export function fromJsonSchema(
 
       const hasEnum = Array.isArray(prop.enum);
       const fieldType = prop.type;
+      const hasDateFormat = prop.format === "date";
 
       if (hasEnum && fieldType === "string") {
         fields.push({
@@ -58,6 +61,13 @@ export function fromJsonSchema(
           type: "enum",
           description: (prop.description as string) || "",
           enumValues: (prop.enum as string[]) || [],
+        });
+      } else if (hasDateFormat && fieldType === "string") {
+        fields.push({
+          id: genId(),
+          name: key,
+          type: "date",
+          description: (prop.description as string) || "",
         });
       } else if (
         fieldType === "string" ||

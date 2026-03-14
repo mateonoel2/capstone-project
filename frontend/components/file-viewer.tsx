@@ -7,7 +7,7 @@ import {
   useControls,
   type ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ZoomIn, ZoomOut, Minimize2, RotateCw } from "lucide-react";
 
 interface FileViewerProps {
   file: File;
@@ -15,6 +15,7 @@ interface FileViewerProps {
 
 export function FileViewer({ file }: FileViewerProps) {
   const [url] = useState(() => URL.createObjectURL(file));
+  const [rotation, setRotation] = useState(0);
   const isPDF =
     file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   const transformRef = useRef<ReactZoomPanPinchRef>(null);
@@ -31,6 +32,10 @@ export function FileViewer({ file }: FileViewerProps) {
         ref.zoomOut(0.1, 0);
       }
     }
+  }, []);
+
+  const handleRotate = useCallback(() => {
+    setRotation((r) => (r + 90) % 360);
   }, []);
 
   if (isPDF) {
@@ -54,7 +59,7 @@ export function FileViewer({ file }: FileViewerProps) {
         wheel={{ disabled: true }}
         ref={transformRef}
       >
-        <ImageControls />
+        <ImageControls onRotate={handleRotate} />
         <TransformComponent
           wrapperStyle={{ width: "100%", flex: 1 }}
           wrapperProps={{ onWheel: onWheel }}
@@ -70,7 +75,8 @@ export function FileViewer({ file }: FileViewerProps) {
           <img
             src={url}
             alt={file.name}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain transition-transform duration-200"
+            style={{ transform: `rotate(${rotation}deg)` }}
           />
         </TransformComponent>
       </TransformWrapper>
@@ -78,30 +84,37 @@ export function FileViewer({ file }: FileViewerProps) {
   );
 }
 
-function ImageControls() {
+function ImageControls({ onRotate }: { onRotate: () => void }) {
   const { zoomIn, zoomOut, resetTransform } = useControls();
   return (
-    <div className="flex items-center justify-center gap-2 p-2 border-b bg-gray-100">
+    <div className="flex items-center justify-center gap-1 p-2 border-b bg-gray-100">
       <button
         onClick={() => zoomOut()}
-        className="p-1.5 bg-white border rounded hover:bg-gray-50"
-        title="Alejar"
+        className="flex items-center gap-1 px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50"
       >
-        <ZoomOut className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => resetTransform()}
-        className="p-1.5 bg-white border rounded hover:bg-gray-50"
-        title="Restablecer"
-      >
-        <RotateCcw className="h-4 w-4" />
+        <ZoomOut className="h-3.5 w-3.5" />
+        <span>Alejar</span>
       </button>
       <button
         onClick={() => zoomIn()}
-        className="p-1.5 bg-white border rounded hover:bg-gray-50"
-        title="Acercar"
+        className="flex items-center gap-1 px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50"
       >
-        <ZoomIn className="h-4 w-4" />
+        <ZoomIn className="h-3.5 w-3.5" />
+        <span>Acercar</span>
+      </button>
+      <button
+        onClick={() => resetTransform()}
+        className="flex items-center gap-1 px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50"
+      >
+        <Minimize2 className="h-3.5 w-3.5" />
+        <span>Restablecer</span>
+      </button>
+      <button
+        onClick={onRotate}
+        className="flex items-center gap-1 px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50"
+      >
+        <RotateCw className="h-3.5 w-3.5" />
+        <span>Rotar</span>
       </button>
     </div>
   );

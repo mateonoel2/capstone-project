@@ -1,7 +1,7 @@
 export interface SchemaField {
   id: string;
   name: string;
-  type: "string" | "number" | "boolean" | "enum";
+  type: "string" | "number" | "boolean" | "enum" | "date";
   description: string;
   enumValues?: string[];
 }
@@ -11,6 +11,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "number" as const, label: "Número" },
   { value: "boolean" as const, label: "Sí/No" },
   { value: "enum" as const, label: "Opciones" },
+  { value: "date" as const, label: "Fecha" },
 ];
 
 export const VALIDATION_FIELD: SchemaField = {
@@ -89,7 +90,7 @@ export const TEMPLATES: SchemaTemplate[] = [
       },
       {
         name: "fecha",
-        type: "string",
+        type: "date",
         description: "Fecha de emisión de la factura",
       },
     ],

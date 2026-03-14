@@ -42,6 +42,7 @@ class ExtractorConfigData:
     model: str
     output_schema: dict
     is_default: bool
+    status: str = "active"
     created_at: object | None = None
     updated_at: object | None = None
 

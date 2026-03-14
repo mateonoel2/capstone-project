@@ -23,7 +23,7 @@ export default function Dashboard() {
     [selectedConfigId]
   );
 
-  const { data: extractorConfigs = [] } = useExtractorConfigs();
+  const { data: extractorConfigs = [] } = useExtractorConfigs("active");
   const { data: metrics, isLoading: metricsLoading } = useMetrics(configIdParam);
   const { data: apiMetrics } = useApiCallMetrics(configIdParam);
   const { data: logsData, isLoading: logsLoading } = useExtractionLogs(page, 50, configIdParam);

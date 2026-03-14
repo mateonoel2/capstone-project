@@ -9,6 +9,7 @@ from src.infrastructure.models import (
     ExtractionLog,
     ExtractorConfig,
     ExtractorConfigVersion,
+    TestExtractionLog,
 )
 
 
@@ -91,6 +92,7 @@ class ExtractorConfigRepository:
             model=config.model,
             output_schema=config.output_schema,
             is_default=config.is_default,
+            status=config.status,
             created_at=config.created_at,
             updated_at=config.updated_at,
         )
@@ -108,8 +110,11 @@ class ExtractorConfigRepository:
             created_at=version.created_at,
         )
 
-    def get_all(self) -> list[ExtractorConfigData]:
-        configs = self.session.query(ExtractorConfig).order_by(ExtractorConfig.id).all()
+    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]:
+        q = self.session.query(ExtractorConfig)
+        if status is not None:
+            q = q.filter(ExtractorConfig.status == status)
+        configs = q.order_by(ExtractorConfig.id).all()
         return [self._to_entity(c) for c in configs]
 
     def _get_orm_by_id(self, config_id: int) -> ExtractorConfig | None:
@@ -133,6 +138,7 @@ class ExtractorConfigRepository:
             model=data.model,
             output_schema=data.output_schema,
             is_default=data.is_default,
+            status=data.status,
         )
         self.session.add(config)
         self.session.commit()
@@ -165,6 +171,7 @@ class ExtractorConfigRepository:
         config.model = data.model
         config.output_schema = data.output_schema
         config.is_default = data.is_default
+        config.status = data.status
 
         self.session.commit()
         self.session.refresh(config)
@@ -192,6 +199,9 @@ class ExtractorConfigRepository:
                 ApiCallLog.extractor_config_version_id: None,
             }
         )
+        self.session.query(TestExtractionLog).filter(
+            TestExtractionLog.extractor_config_id == config_id
+        ).update({TestExtractionLog.extractor_config_id: None})
         self.session.query(ExtractorConfigVersion).filter(
             ExtractorConfigVersion.extractor_config_id == config_id
         ).delete()
@@ -306,3 +316,46 @@ class ApiCallRepository:
         if extractor_config_id is not None:
             q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
         return q.scalar() or 0
+
+
+class TestExtractionLogRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(
+        self,
+        filename: str,
+        s3_key: str,
+        prompt_snapshot: str,
+        model: str,
+        output_schema_snapshot: dict,
+        extracted_fields: dict | None,
+        success: bool,
+        response_time_ms: float,
+        error_message: str | None = None,
+        extractor_config_id: int | None = None,
+    ) -> TestExtractionLog:
+        log = TestExtractionLog(
+            filename=filename,
+            s3_key=s3_key,
+            extractor_config_id=extractor_config_id,
+            prompt_snapshot=prompt_snapshot,
+            model=model,
+            output_schema_snapshot=output_schema_snapshot,
+            extracted_fields=extracted_fields,
+            success=success,
+            error_message=error_message,
+            response_time_ms=response_time_ms,
+        )
+        self.session.add(log)
+        self.session.commit()
+        self.session.refresh(log)
+        return log
+
+    def get_by_config_id(self, config_id: int) -> list[TestExtractionLog]:
+        return (
+            self.session.query(TestExtractionLog)
+            .filter(TestExtractionLog.extractor_config_id == config_id)
+            .order_by(TestExtractionLog.timestamp.desc())
+            .all()
+        )
