@@ -22,16 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  extractFromFile,
-  submitExtraction,
-  getBanks,
-  getExtractorConfigs,
-  Bank,
-  ExtractorConfig,
-} from "@/lib/api";
 import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
+import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction } from "@/lib/hooks";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function Home() {
@@ -48,32 +41,21 @@ export default function Home() {
     reset: resetStore,
   } = useExtractionStore();
 
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [banks, setBanks] = useState<Bank[]>([]);
-  const [extractorConfigs, setExtractorConfigs] = useState<ExtractorConfig[]>([]);
+
+  const { data: banks = [] } = useBanks();
+  const { data: extractorConfigs = [] } = useExtractorConfigs("active");
+
+  const uploadAndExtract = useUploadAndExtract();
+  const submitMutation = useSubmitExtraction();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [bankList, configs] = await Promise.all([
-          getBanks(),
-          getExtractorConfigs(),
-        ]);
-        setBanks(bankList);
-        setExtractorConfigs(configs);
-        if (!selectedExtractorId) {
-          const defaultConfig = configs.find((c) => c.is_default);
-          if (defaultConfig) setSelectedExtractorId(defaultConfig.id);
-        }
-      } catch (err) {
-        console.error("Failed to fetch initial data:", err);
-      }
-    };
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!selectedExtractorId && extractorConfigs.length > 0) {
+      const defaultConfig = extractorConfigs.find((c) => c.is_default);
+      if (defaultConfig) setSelectedExtractorId(defaultConfig.id);
+    }
+  }, [extractorConfigs, selectedExtractorId, setSelectedExtractorId]);
 
   const selectedConfig = extractorConfigs.find((c) => c.id === selectedExtractorId);
   const isDefaultExtractor = selectedConfig?.is_default ?? true;
@@ -82,54 +64,58 @@ export default function Home() {
     setFile(selectedFile);
     setError(null);
     setSuccess(false);
-    setIsExtracting(true);
 
-    try {
-      const result = await extractFromFile(selectedFile, selectedExtractorId);
-      setExtracted(result);
-
-      const fields: Record<string, string> = {};
-      for (const [key, value] of Object.entries(result.fields || {})) {
-        fields[key] = toStr(value);
+    uploadAndExtract.mutate(
+      { file: selectedFile, extractorConfigId: selectedExtractorId },
+      {
+        onSuccess: (result) => {
+          setExtracted(result);
+          const fields: Record<string, string> = {};
+          for (const [key, value] of Object.entries(result.fields || {})) {
+            fields[key] = toStr(value);
+          }
+          setFormData(fields);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "La extracción falló");
+          setExtracted(null);
+        },
       }
-      setFormData(fields);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "La extracción falló");
-      setExtracted(null);
-    } finally {
-      setIsExtracting(false);
-    }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !extracted) return;
 
-    setIsSubmitting(true);
     setError(null);
 
-    try {
-      const extractedFields: Record<string, string> = {};
-      for (const [key, value] of Object.entries(extracted.fields || {})) {
-        extractedFields[key] = toStr(value);
-      }
-      await submitExtraction({
+    const extractedFields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(extracted.fields || {})) {
+      extractedFields[key] = toStr(value);
+    }
+
+    submitMutation.mutate(
+      {
         filename: file.name,
         extracted_fields: extractedFields,
         final_fields: formData,
         extractor_config_id: selectedExtractorId,
         extractor_config_version_id: extracted.extractor_config_version_id,
-      });
-      setSuccess(true);
-      setTimeout(() => {
-        resetStore();
-        setSuccess(false);
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "El envío falló");
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => {
+            resetStore();
+            setSuccess(false);
+          }, 2000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "El envío falló");
+        },
+      }
+    );
   };
 
   const handleReset = () => {
@@ -188,7 +174,7 @@ export default function Home() {
         {!file ? (
           <FileUpload
             onFileSelect={handleFileSelect}
-            isLoading={isExtracting}
+            isLoading={uploadAndExtract.isPending}
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -222,7 +208,7 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isExtracting ? (
+                  {uploadAndExtract.isPending ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                       <span className="ml-2 text-gray-600">
@@ -365,10 +351,10 @@ export default function Home() {
                       <div className="flex gap-2 pt-4">
                         <Button
                           type="submit"
-                          disabled={isSubmitting || success}
+                          disabled={submitMutation.isPending || success}
                           className="flex-1"
                         >
-                          {isSubmitting ? (
+                          {submitMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Enviando...
@@ -381,7 +367,7 @@ export default function Home() {
                           type="button"
                           variant="outline"
                           onClick={handleReset}
-                          disabled={isSubmitting}
+                          disabled={submitMutation.isPending}
                         >
                           Reiniciar
                         </Button>

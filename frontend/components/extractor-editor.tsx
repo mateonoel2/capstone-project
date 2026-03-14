@@ -3,12 +3,16 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, User, Table2, MessageSquare, FlaskConical } from "lucide-react";
+import { Loader2, User, Table2, MessageSquare, FlaskConical, Sparkles } from "lucide-react";
 import { StepIdentity } from "./extractor-wizard/step-identity";
 import { StepSchema } from "./extractor-wizard/step-schema";
 import { StepPrompt } from "./extractor-wizard/step-prompt";
 import { StepTest } from "./extractor-wizard/step-test";
 import { ExtractorConfig } from "@/lib/api";
+import {
+  AssistantSidebar,
+  type AssistantMode,
+} from "@/components/assistant/assistant-sidebar";
 
 interface EditorState {
   name: string;
@@ -30,9 +34,18 @@ interface ExtractorEditorProps {
   onCancel: () => void;
 }
 
+function getAssistantMode(tab: string): AssistantMode {
+  if (tab === "schema") return "schema";
+  if (tab === "prompt") return "prompt";
+  return null;
+}
+
 export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("identity");
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [schemaVersion, setSchemaVersion] = useState(0);
 
   const [state, setState] = useState<EditorState>({
     name: initialData.name,
@@ -77,83 +90,113 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
     }
   };
 
+  const assistantMode = getAssistantMode(activeTab);
+
   return (
     <div>
-      <Tabs defaultValue="identity">
-        <TabsList className="mb-6">
-          <TabsTrigger value="identity" className="gap-2">
-            <User className="h-4 w-4" />
-            Identidad
-          </TabsTrigger>
-          <TabsTrigger value="schema" className="gap-2">
-            <Table2 className="h-4 w-4" />
-            Esquema
-          </TabsTrigger>
-          <TabsTrigger value="prompt" className="gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Prompt
-          </TabsTrigger>
-          <TabsTrigger value="test" className="gap-2">
-            <FlaskConical className="h-4 w-4" />
-            Probar
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="identity" className="gap-2">
+                <User className="h-4 w-4" />
+                Identidad
+              </TabsTrigger>
+              <TabsTrigger value="schema" className="gap-2">
+                <Table2 className="h-4 w-4" />
+                Esquema
+              </TabsTrigger>
+              <TabsTrigger value="prompt" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Prompt
+              </TabsTrigger>
+              <TabsTrigger value="test" className="gap-2">
+                <FlaskConical className="h-4 w-4" />
+                Probar
+              </TabsTrigger>
+            </TabsList>
+            {assistantMode && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAssistantOpen((prev) => !prev)}
+                className={assistantOpen ? "bg-blue-50 border-blue-200 text-blue-700" : ""}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                Asistente IA
+              </Button>
+            )}
+          </div>
 
-        <div className="min-h-[400px]">
-          <TabsContent value="identity">
-            <StepIdentity
-              name={state.name}
-              description={state.description}
-              model={state.model}
-              onChange={updateField}
-            />
-          </TabsContent>
-          <TabsContent value="schema">
-            <StepSchema
-              schema={state.output_schema}
-              onChange={updateSchema}
-              isNew={false}
-            />
-          </TabsContent>
-          <TabsContent value="prompt">
-            <StepPrompt
-              prompt={state.prompt}
-              schema={state.output_schema}
-              description={state.description}
-              onChange={(p) => updateField("prompt", p)}
-            />
-          </TabsContent>
-          <TabsContent value="test">
-            <StepTest
-              prompt={state.prompt}
-              model={state.model}
-              schema={state.output_schema}
-            />
-          </TabsContent>
+          <div className="min-h-[400px]">
+            <TabsContent value="identity">
+              <StepIdentity
+                name={state.name}
+                description={state.description}
+                model={state.model}
+                onChange={updateField}
+              />
+            </TabsContent>
+            <TabsContent value="schema">
+              <StepSchema
+                key={schemaVersion}
+                schema={state.output_schema}
+                onChange={updateSchema}
+                isNew={false}
+              />
+            </TabsContent>
+            <TabsContent value="prompt">
+              <StepPrompt
+                prompt={state.prompt}
+                schema={state.output_schema}
+                description={state.description}
+                onChange={(p) => updateField("prompt", p)}
+              />
+            </TabsContent>
+            <TabsContent value="test">
+              <StepTest
+                prompt={state.prompt}
+                model={state.model}
+                schema={state.output_schema}
+              />
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        {error && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded mt-4">
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-end pt-6 mt-6 border-t gap-2">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              "Guardar extractor"
+            )}
+          </Button>
         </div>
-      </Tabs>
 
-      {error && (
-        <div className="text-sm text-red-600 bg-red-50 p-3 rounded mt-4">
-          {error}
-        </div>
-      )}
-
-      <div className="flex items-center justify-end pt-6 mt-6 border-t gap-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            "Guardar extractor"
-          )}
-        </Button>
-      </div>
+      <AssistantSidebar
+        mode={assistantMode}
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        onSchemaGenerated={(schema) => {
+          updateSchema(schema);
+          setSchemaVersion((v) => v + 1);
+        }}
+        onPromptGenerated={(prompt) => updateField("prompt", prompt)}
+        schema={state.output_schema}
+        currentPrompt={state.prompt}
+      />
     </div>
   );
 }

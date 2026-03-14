@@ -2,11 +2,25 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Subida con *Presigned URLs* y Abstraccion de *Storage* (Marzo 2026)
+
+### Cambios principales
+
+- **Subida con *presigned URLs***: El *frontend* ahora sube archivos directamente a S3 via *presigned PUT URLs*, eliminando la necesidad de pasar el archivo por el *backend*. Incluye *fallback* automatico via *backend* si la subida directa falla (CORS, red, etc.)
+- **Abstraccion de *storage***: Nuevo `StorageBackend` ABC con implementaciones `LocalStorage` y `S3Storage` en `infrastructure/storage.py`
+- **Desacoplamiento subida/extraccion**: La subida y la extraccion son pasos separados. El *frontend* primero sube el archivo y recibe un `s3_key`, luego solicita la extraccion por referencia
+- **Nuevos *endpoints***: `POST /extraction/upload-url` (obtener *presigned URL*) y `POST /extraction/upload` (*fallback* de subida via *backend*)
+- **Extraccion por JSON**: Los *endpoints* `/extraction/extract` y `/extractors/test-extract` ahora reciben JSON con `s3_key` en lugar de *multipart form data*
+- **Configuracion CORS de S3**: El *backend* configura CORS en el *bucket* S3 al iniciar
+- **Nueva variable de entorno**: `AWS_PUBLIC_ENDPOINT_URL` para *endpoints* accesibles desde el navegador
+
+---
+
 ## Actualizacion: *Parser* Unificado y Seguimiento de API (Marzo 2026)
 
 ### Cambios principales
 
-- **Parser unificado**: Los 3 *parsers* anteriores (*claude_ocr*, *claude_text*, *claude_vision*) se reemplazaron por un unico `StatementParser` basado en vision con *structured output*
+- **Parser unificado**: Los 3 *parsers* anteriores (*claude_ocr*, *claude_text*, *claude_vision*) se reemplazaron por un unico `StatementExtractor` basado en vision con *structured output*
 - **Soporte de imagenes**: El sistema ahora acepta JPG y PNG ademas de PDF
 - **Seguimiento de llamadas API**: Nuevo modelo `ApiCallLog` que registra cada llamada a Claude (exito/error, tiempo de respuesta, tipo de error)
 - **Metricas de API**: Nuevo *endpoint* `GET /extraction/api-metrics` y seccion en el *dashboard*
@@ -58,7 +72,7 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 - Iconos para todos los controles
 
 ### 5. Sistema de Extraccion
-- *Parser* unificado `StatementParser` basado en vision con *Claude Haiku 4.5*
+- *Parser* unificado `StatementExtractor` basado en vision con *Claude Haiku 4.5*
 - Soporte para PDFs e imagenes (JPG/PNG)
 - *Structured output* via *LangChain* (`ExtractionOutput`)
 - Deteccion automatica de documentos no bancarios
@@ -81,7 +95,8 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 - `backend/src/infrastructure/models.py` - Modelos ORM de base de datos
 - `backend/src/domain/entities.py` - Entidades de dominio
 - `backend/src/domain/constants.py` - Constantes y diccionario de bancos
-- `backend/src/infrastructure/parsers/statement_parser.py` - *Parser* unificado
+- `backend/src/infrastructure/extractors/statement_extractor.py` - Extractor unificado
+- `backend/src/infrastructure/storage.py` - Abstraccion de *storage* (S3 / local)
 
 ### *Frontend*
 - `frontend/app/page.tsx` - Página de extracción
@@ -100,7 +115,9 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 
 ```
 GET  /extraction/banks        - Lista de 91 bancos mexicanos
-POST /extraction/extract      - Extraer informacion de PDF o imagen
+POST /extraction/upload-url   - Obtener presigned URL para subida directa a S3
+POST /extraction/upload       - Subida de archivo via backend (fallback)
+POST /extraction/extract      - Extraer informacion por s3_key (JSON)
 POST /extraction/submit       - Enviar extraccion con correcciones
 GET  /extraction/logs         - Obtener logs con paginacion
 GET  /extraction/metrics      - Obtener metricas de precision

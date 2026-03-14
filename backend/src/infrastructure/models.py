@@ -17,6 +17,7 @@ class ExtractorConfig(Base):
     model = Column(String(100), nullable=False, default="claude-haiku-4-5-20251001")
     output_schema = Column(JSON, nullable=False)
     is_default = Column(Boolean, default=False)
+    status = Column(String(20), nullable=False, default="active")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
@@ -63,6 +64,25 @@ class ExtractionLog(Base):
     @property
     def has_any_correction(self) -> bool:
         return any(self.corrected_fields.values())
+
+
+class TestExtractionLog(Base):
+    __tablename__ = "test_extraction_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    filename = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
+    extractor_config_id = Column(
+        Integer, ForeignKey("extractor_configs.id", ondelete="SET NULL"), nullable=True
+    )
+    prompt_snapshot = Column(Text, nullable=False)
+    model = Column(String(100), nullable=False)
+    output_schema_snapshot = Column(JSON, nullable=False)
+    extracted_fields = Column(JSON, nullable=True)
+    success = Column(Boolean, nullable=False)
+    error_message = Column(Text, nullable=True)
+    response_time_ms = Column(Float, nullable=False)
 
 
 class ApiCallLog(Base):

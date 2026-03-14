@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAvailableModels, ModelInfo } from "@/lib/api";
+import { useAvailableModels } from "@/lib/hooks";
 
 interface StepIdentityProps {
   name: string;
@@ -20,11 +19,7 @@ interface StepIdentityProps {
 }
 
 export function StepIdentity({ name, description, model, onChange }: StepIdentityProps) {
-  const [models, setModels] = useState<ModelInfo[]>([]);
-
-  useEffect(() => {
-    getAvailableModels().then(setModels).catch((err) => console.error("Error cargando modelos:", err));
-  }, []);
+  const { data: models = [] } = useAvailableModels();
 
   return (
     <div className="max-w-lg space-y-6">

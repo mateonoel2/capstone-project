@@ -1,18 +1,20 @@
-import json
 import tempfile
 import time
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
-from fastapi import File as FastAPIFile
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from src.core.logger import get_logger
 from src.domain.entities import ExtractorConfigData
 from src.domain.services.extractor_config import ExtractorConfigService
+
+logger = get_logger(__name__)
 from src.infrastructure.ai_assist import (
     generate_prompt_from_schema,
     generate_schema_from_description,
+    update_prompt_with_instructions,
 )
 from src.infrastructure.api.extraction.dtos import (
     ExtractorConfigCreateRequest,
@@ -26,14 +28,18 @@ from src.infrastructure.api.extraction.dtos import (
     GenerateSchemaResponse,
     ModelInfo,
     SetActiveRequest,
+    TestExtractionLogResponse,
+    TestExtractRequest,
     TestExtractResponse,
+    UpdatePromptRequest,
 )
 from src.infrastructure.database import get_db
 from src.infrastructure.extractors.statement_extractor import (
     SUPPORTED_EXTENSIONS,
     StatementExtractor,
 )
-from src.infrastructure.repository import ExtractorConfigRepository
+from src.infrastructure.repository import ExtractorConfigRepository, TestExtractionLogRepository
+from src.infrastructure.storage import get_storage
 
 DbDep = Annotated[Session, Depends(get_db)]
 
@@ -69,9 +75,9 @@ def _get_service(db: Session) -> ExtractorConfigService:
 
 
 @router.get("", response_model=ExtractorConfigListResponse)
-async def list_extractor_configs(db: DbDep):
+async def list_extractor_configs(db: DbDep, status: str | None = None):
     service = _get_service(db)
-    configs = service.get_all()
+    configs = service.get_all(status=status)
     return ExtractorConfigListResponse(
         configs=[ExtractorConfigResponse.model_validate(c) for c in configs]
     )
@@ -100,19 +106,32 @@ async def generate_prompt(request: GeneratePromptRequest):
         raise HTTPException(status_code=500, detail=f"Error generando prompt: {str(e)}")
 
 
-@router.post("/test-extract", response_model=TestExtractResponse)
-async def test_extract(
-    file: UploadFile = FastAPIFile(...),
-    config: str = Form(...),
-):
+@router.post("/update-prompt", response_model=GeneratePromptResponse)
+async def update_prompt(request: UpdatePromptRequest):
     try:
-        config_data = json.loads(config)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Config JSON inválido")
+        prompt = update_prompt_with_instructions(
+            request.current_prompt, request.instructions, request.output_schema
+        )
+        return GeneratePromptResponse(prompt=prompt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error actualizando prompt: {str(e)}")
+
+
+@router.post("/test-extract", response_model=TestExtractResponse)
+async def test_extract(request: TestExtractRequest, db: DbDep):
+    config_data = request.config
+    logger.info("=== Test extract request ===")
+    logger.info("Filename: %s, S3 key: %s", request.filename, request.s3_key)
+    logger.info("Config keys: %s", list(config_data.keys()))
+    logger.info("Extractor config ID: %s", request.extractor_config_id)
 
     prompt = config_data.get("prompt", "")
     model = config_data.get("model", "claude-haiku-4-5-20251001")
     output_schema = config_data.get("output_schema")
+
+    logger.info("Model: %s", model)
+    logger.info("Prompt length: %d, first 200 chars: %.200s", len(prompt), prompt)
+    logger.info("Output schema: %s", output_schema)
 
     if not prompt:
         raise HTTPException(status_code=400, detail="El prompt es requerido")
@@ -123,21 +142,25 @@ async def test_extract(
     if model not in valid_model_ids:
         raise HTTPException(status_code=400, detail=f"Modelo no soportado: {model}")
 
-    if not file.filename:
+    if not request.filename:
         raise HTTPException(status_code=400, detail="No se proporcionó un archivo")
 
-    suffix = Path(file.filename).suffix.lower()
+    suffix = Path(request.filename).suffix.lower()
     if suffix not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
             detail=f"Tipo de archivo no soportado: {suffix}",
         )
 
+    test_log_repo = TestExtractionLogRepository(db)
     tmp_path = None
+    start = time.monotonic()
     try:
+        storage = get_storage()
+        file_bytes = storage.download(request.s3_key)
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            content = await file.read()
-            tmp.write(content)
+            tmp.write(file_bytes)
             tmp_path = Path(tmp.name)
 
         extractor = StatementExtractor(prompt=prompt, model=model, output_schema=output_schema)
@@ -145,12 +168,50 @@ async def test_extract(
         result = extractor.extract_file(tmp_path)
         elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
-        return TestExtractResponse(fields=result, response_time_ms=elapsed_ms)
+        log = test_log_repo.create(
+            filename=request.filename,
+            s3_key=request.s3_key,
+            prompt_snapshot=prompt,
+            model=model,
+            output_schema_snapshot=output_schema,
+            extracted_fields=result,
+            success=True,
+            response_time_ms=elapsed_ms,
+            extractor_config_id=request.extractor_config_id,
+        )
+
+        return TestExtractResponse(fields=result, response_time_ms=elapsed_ms, test_log_id=log.id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en storage")
     except Exception as e:
+        # Log the failed test extraction
+        try:
+            elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+            test_log_repo.create(
+                filename=request.filename,
+                s3_key=request.s3_key,
+                prompt_snapshot=prompt,
+                model=model,
+                output_schema_snapshot=output_schema or {},
+                extracted_fields=None,
+                success=False,
+                error_message=str(e),
+                response_time_ms=elapsed_ms,
+                extractor_config_id=request.extractor_config_id,
+            )
+        except Exception:
+            pass
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if tmp_path and tmp_path.exists():
             tmp_path.unlink()
+
+
+@router.get("/{config_id}/test-logs", response_model=list[TestExtractionLogResponse])
+async def get_test_logs(config_id: int, db: DbDep):
+    test_log_repo = TestExtractionLogRepository(db)
+    logs = test_log_repo.get_by_config_id(config_id)
+    return [TestExtractionLogResponse.model_validate(log) for log in logs]
 
 
 @router.get("/{config_id}", response_model=ExtractorConfigResponse)
@@ -183,6 +244,7 @@ async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbD
         model=request.model,
         output_schema=request.output_schema,
         is_default=request.is_default,
+        status=request.status,
     )
     config = service.create(data)
     return ExtractorConfigResponse.model_validate(config)
@@ -207,6 +269,7 @@ async def update_extractor_config(config_id: int, request: ExtractorConfigUpdate
         if request.output_schema is not None
         else existing.output_schema,
         is_default=request.is_default if request.is_default is not None else existing.is_default,
+        status=request.status if request.status is not None else existing.status,
     )
     config = service.update(config_id, data)
     return ExtractorConfigResponse.model_validate(config)

@@ -1,7 +1,7 @@
 export interface SchemaField {
   id: string;
   name: string;
-  type: "string" | "number" | "boolean" | "enum";
+  type: "string" | "number" | "boolean" | "enum" | "date";
   description: string;
   enumValues?: string[];
 }
@@ -11,14 +11,15 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "number" as const, label: "Número" },
   { value: "boolean" as const, label: "Sí/No" },
   { value: "enum" as const, label: "Opciones" },
+  { value: "date" as const, label: "Fecha" },
 ];
 
 export const VALIDATION_FIELD: SchemaField = {
-  id: "is_bank_statement",
-  name: "is_bank_statement",
+  id: "is_valid_document",
+  name: "is_valid_document",
   type: "boolean",
   description:
-    "True si el documento es un estado de cuenta bancario válido, False si no lo es",
+    "True si el documento corresponde al tipo esperado, False si no lo es",
 };
 
 export interface SchemaTemplate {
@@ -89,7 +90,7 @@ export const TEMPLATES: SchemaTemplate[] = [
       },
       {
         name: "fecha",
-        type: "string",
+        type: "date",
         description: "Fecha de emisión de la factura",
       },
     ],

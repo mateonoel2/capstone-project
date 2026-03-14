@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,38 +7,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getExtractorConfigs,
-  deleteExtractorConfig,
-  ExtractorConfig,
-} from "@/lib/api";
-import { Loader2, Plus, Trash2, Star } from "lucide-react";
+import { useExtractorConfigs, useDeleteExtractorConfig } from "@/lib/hooks";
+import { Loader2, Plus, Trash2, Star, PenLine } from "lucide-react";
 import Link from "next/link";
 
 export default function ExtractorsPage() {
-  const [configs, setConfigs] = useState<ExtractorConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchConfigs = useCallback(async () => {
-    try {
-      const data = await getExtractorConfigs();
-      setConfigs(data);
-    } catch (err) {
-      console.error("Failed to fetch configs:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+  const { data: configs = [], isLoading } = useExtractorConfigs();
+  const deleteMutation = useDeleteExtractorConfig();
 
   const handleDelete = async (id: number) => {
     if (!confirm("¿Eliminar este extractor?")) return;
     try {
-      await deleteExtractorConfig(id);
-      fetchConfigs();
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al eliminar");
     }
@@ -75,46 +54,58 @@ export default function ExtractorsPage() {
         </div>
 
         <div className="grid gap-4">
-          {configs.map((config) => (
-            <Link key={config.id} href={`/extractors/${config.id}/edit`} className="block">
-              <Card className="transition-colors hover:bg-gray-50 cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{config.name}</CardTitle>
-                      {config.is_default && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                          <Star className="h-3 w-3" />
-                          Default
+          {configs.map((config) => {
+            const isDraft = config.status === "draft";
+            const href = isDraft
+              ? `/extractors/new?draft=${config.id}`
+              : `/extractors/${config.id}/edit`;
+            return (
+              <Link key={config.id} href={href} className="block">
+                <Card className="transition-colors hover:bg-gray-50 cursor-pointer">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{config.name}</CardTitle>
+                        {isDraft && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                            <PenLine className="h-3 w-3" />
+                            Borrador
+                          </span>
+                        )}
+                        {config.is_default && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                            <Star className="h-3 w-3" />
+                            Default
+                          </span>
+                        )}
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          {config.model}
                         </span>
-                      )}
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        {config.model}
-                      </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!config.is_default && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDelete(config.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {!config.is_default && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDelete(config.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {config.description && (
-                    <CardDescription>{config.description}</CardDescription>
-                  )}
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+                    {config.description && (
+                      <CardDescription>{config.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </main>

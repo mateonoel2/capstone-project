@@ -4,7 +4,7 @@ from src.domain.entities import ExtractorConfigData, ExtractorConfigVersionData
 
 
 class ExtractorConfigRepo(Protocol):
-    def get_all(self) -> list[ExtractorConfigData]: ...
+    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]: ...
     def get_by_id(self, config_id: int) -> ExtractorConfigData | None: ...
     def get_default(self) -> ExtractorConfigData | None: ...
     def create(self, data: ExtractorConfigData) -> ExtractorConfigData: ...
@@ -17,8 +17,8 @@ class ExtractorConfigService:
     def __init__(self, repository: ExtractorConfigRepo):
         self.repository = repository
 
-    def get_all(self) -> list[ExtractorConfigData]:
-        return self.repository.get_all()
+    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]:
+        return self.repository.get_all(status=status)
 
     def get_by_id(self, config_id: int) -> ExtractorConfigData | None:
         return self.repository.get_by_id(config_id)
@@ -27,11 +27,15 @@ class ExtractorConfigService:
         return self.repository.get_default()
 
     def create(self, data: ExtractorConfigData) -> ExtractorConfigData:
+        if data.status == "draft":
+            data.is_default = False
         if data.is_default:
             self._clear_default()
         return self.repository.create(data)
 
     def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfigData | None:
+        if data.status == "draft":
+            data.is_default = False
         if data.is_default:
             self._clear_default(exclude_id=config_id)
         return self.repository.update(config_id, data)

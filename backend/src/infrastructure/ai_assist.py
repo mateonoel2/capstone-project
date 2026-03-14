@@ -23,8 +23,9 @@ Dado una descripción en lenguaje natural de los campos a extraer, genera un JSO
 
 Reglas:
 - Siempre incluye un campo booleano de validación del tipo de documento como primer campo
-  (ej: "is_bank_statement", "is_invoice"), con description que indique qué validar
+  (ej: "is_valid_document"), con description que indique qué validar
 - Los tipos permitidos son: "string", "number", "integer", "boolean"
+- Para campos de fecha usa: {"type": "string", "format": "date"} (formato YYYY-MM-DD)
 - Cada campo debe tener "type" y "description" (en español)
 - Los nombres de campo deben ser snake_case en inglés
 - El schema debe tener "type": "object", "properties": {...}, "required": [...]
@@ -91,6 +92,57 @@ Campos a extraer:
 {fields_text}
 
 Genera un prompt de extracción para estos campos."""
+
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+
+    return response.content[0].text.strip()
+
+
+def update_prompt_with_instructions(
+    current_prompt: str,
+    instructions: str,
+    output_schema: dict,
+) -> str:
+    """Update an existing extraction prompt based on user instructions."""
+    client = _get_client()
+
+    properties = output_schema.get("properties", {})
+    fields_desc = []
+    for name, prop in properties.items():
+        if prop.get("type") == "boolean" and name.startswith("is_"):
+            continue
+        desc = prop.get("description", "")
+        field_type = prop.get("type", "string")
+        fields_desc.append(f"- {name} ({field_type}): {desc}")
+
+    fields_text = "\n".join(fields_desc)
+
+    system_prompt = """Eres un asistente que modifica prompts de extracción de documentos.
+Se te dará un prompt existente, los campos del schema y las instrucciones del usuario
+sobre qué cambiar. Debes devolver el prompt actualizado.
+
+Reglas:
+- Aplica SOLO los cambios que pide el usuario
+- Mantén el estilo y estructura del prompt original
+- El prompt debe seguir en español
+- No incluyas markdown, solo el texto del prompt actualizado
+
+Responde SOLO con el texto del prompt actualizado."""
+
+    user_msg = f"""Prompt actual:
+---
+{current_prompt}
+---
+
+Campos del schema:
+{fields_text}
+
+Instrucciones del usuario: {instructions}"""
 
     response = client.messages.create(
         model=MODEL,

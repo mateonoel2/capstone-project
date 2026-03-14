@@ -81,6 +81,7 @@ export interface ExtractorConfig {
   model: string;
   output_schema: Record<string, unknown>;
   is_default: boolean;
+  status: string;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -103,17 +104,74 @@ export interface ModelInfo {
   is_available: boolean;
 }
 
-// Extraction
-export async function extractFromFile(file: File, extractorConfigId?: number | null): Promise<ExtractionResult> {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (extractorConfigId != null) {
-    formData.append("extractor_config_id", String(extractorConfigId));
+// Upload
+export interface UploadResult {
+  s3_key: string;
+  filename: string;
+}
+
+export async function uploadFile(file: File): Promise<UploadResult> {
+  // Step 1: Request a presigned upload URL
+  const urlResponse = await fetch(`${API_BASE_URL}/extraction/upload-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, content_type: file.type || "application/pdf" }),
+  });
+
+  if (!urlResponse.ok) {
+    throw new Error(await parseErrorDetail(urlResponse, "Upload failed"));
   }
 
+  const { s3_key, upload_url, filename } = await urlResponse.json();
+
+  let needsBackendFallback = !upload_url;
+
+  if (upload_url) {
+    // Step 2a: Upload directly to S3 via presigned URL
+    try {
+      const putResponse = await fetch(upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/pdf" },
+        body: file,
+      });
+
+      if (!putResponse.ok) {
+        needsBackendFallback = true;
+      }
+    } catch {
+      // CORS or network error — fall back to backend proxy
+      needsBackendFallback = true;
+    }
+  }
+
+  if (needsBackendFallback) {
+    // Step 2b: Fallback — upload through backend
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const fallbackResponse = await fetch(`${API_BASE_URL}/extraction/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!fallbackResponse.ok) {
+      throw new Error(await parseErrorDetail(fallbackResponse, "Upload failed"));
+    }
+  }
+
+  return { s3_key, filename };
+}
+
+// Extraction
+export async function extractFromFile(s3Key: string, filename: string, extractorConfigId?: number | null): Promise<ExtractionResult> {
   const response = await fetch(`${API_BASE_URL}/extraction/extract`, {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      s3_key: s3Key,
+      filename,
+      extractor_config_id: extractorConfigId ?? null,
+    }),
   });
 
   if (!response.ok) {
@@ -165,8 +223,9 @@ export async function getMetrics(extractorConfigId?: number | null): Promise<Met
 }
 
 // Extractor Configs
-export async function getExtractorConfigs(): Promise<ExtractorConfig[]> {
-  const response = await fetch(`${API_BASE_URL}/extractors`);
+export async function getExtractorConfigs(status?: string): Promise<ExtractorConfig[]> {
+  const params = status != null ? `?status=${status}` : "";
+  const response = await fetch(`${API_BASE_URL}/extractors${params}`);
   if (!response.ok) throw new Error("Failed to fetch extractor configs");
   const data = await response.json();
   return data.configs;
@@ -180,11 +239,12 @@ export async function getExtractorConfig(id: number): Promise<ExtractorConfig> {
 
 export async function createExtractorConfig(config: {
   name: string;
-  description: string;
-  prompt: string;
-  model: string;
-  output_schema: Record<string, unknown>;
+  description?: string;
+  prompt?: string;
+  model?: string;
+  output_schema?: Record<string, unknown>;
   is_default?: boolean;
+  status?: string;
 }): Promise<ExtractorConfig> {
   const response = await fetch(`${API_BASE_URL}/extractors`, {
     method: "POST",
@@ -204,6 +264,7 @@ export async function updateExtractorConfig(id: number, config: {
   model?: string;
   output_schema?: Record<string, unknown>;
   is_default?: boolean;
+  status?: string;
 }): Promise<ExtractorConfig> {
   const response = await fetch(`${API_BASE_URL}/extractors/${id}`, {
     method: "PUT",
@@ -236,16 +297,20 @@ export async function getExtractorVersions(id: number): Promise<ExtractorConfigV
 }
 
 export async function testExtract(
-  file: File,
-  config: { prompt: string; model: string; output_schema: Record<string, unknown> }
-): Promise<{ fields: Record<string, unknown>; response_time_ms: number }> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("config", JSON.stringify(config));
-
+  s3Key: string,
+  filename: string,
+  config: { prompt: string; model: string; output_schema: Record<string, unknown> },
+  extractorConfigId?: number | null
+): Promise<{ fields: Record<string, unknown>; response_time_ms: number; test_log_id: number | null }> {
   const response = await fetch(`${API_BASE_URL}/extractors/test-extract`, {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      s3_key: s3Key,
+      filename,
+      config,
+      extractor_config_id: extractorConfigId ?? null,
+    }),
   });
 
   if (!response.ok) {
@@ -278,6 +343,22 @@ export async function generatePrompt(
   });
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to generate prompt"));
+  }
+  return response.json();
+}
+
+export async function updatePrompt(
+  current_prompt: string,
+  instructions: string,
+  output_schema: Record<string, unknown>
+): Promise<{ prompt: string }> {
+  const response = await fetch(`${API_BASE_URL}/extractors/update-prompt`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_prompt, instructions, output_schema }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to update prompt"));
   }
   return response.json();
 }

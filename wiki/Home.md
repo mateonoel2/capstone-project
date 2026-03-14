@@ -29,7 +29,7 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 - **Lenguaje**: Python 3.12+
 - ***Framework* API**: *FastAPI*
 - **Base de Datos**: *PostgreSQL* con *SQLAlchemy* y migraciones *Alembic*
-- **Extraccion**: *StatementParser* unificado basado en vision con *Claude Haiku 4.5*
+- **Extraccion**: *StatementExtractor* unificado basado en vision con *Claude Haiku 4.5*
 - **Gestion de dependencias**: *uv*
 
 ### *Frontend*
@@ -62,7 +62,7 @@ capstone-project/
 │   │   │   ├── schemas.py          # BankAccount (Pydantic)
 │   │   │   ├── constants.py        # Constantes y diccionario de bancos
 │   │   │   ├── validators.py       # Validacion CLABE/bancos
-│   │   │   ├── parser_interface.py # BaseParser ABC
+│   │   │   ├── extractor_interface.py # BaseExtractor ABC
 │   │   │   ├── entities.py         # Entidades de dominio y API calls
 │   │   │   └── services/           # Servicios de negocio
 │   │   ├── infrastructure/         # Integraciones externas
@@ -70,7 +70,8 @@ capstone-project/
 │   │   │   ├── database.py         # Configuracion PostgreSQL
 │   │   │   ├── models.py           # ORM (ExtractionLog, ApiCallLog)
 │   │   │   ├── repository.py       # Acceso a datos
-│   │   │   ├── parsers/            # StatementParser (vision unificado)
+│   │   │   ├── storage.py          # StorageBackend (S3 / local)
+│   │   │   ├── extractors/        # StatementExtractor (vision unificado)
 │   │   │   ├── preprocessing/      # Validacion y descarga
 │   │   │   ├── evaluation/         # Experimentos y metricas
 │   │   │   └── data_pipeline/      # Scripts de datos
@@ -124,8 +125,9 @@ capstone-project/
 
 ### Completamente Implementado
 
-- *Parser* unificado (*StatementParser*) basado en vision con *Claude Haiku 4.5*
+- Extractor unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
 - Soporte para PDFs e imagenes (JPG/PNG)
+- Subida de archivos con *presigned URLs* (subida directa a S3, *fallback* via *backend*)
 - API REST con *endpoints* de extraccion, submission, logs, metricas y metricas de API
 - *Frontend* con extraccion, visor de archivos y *dashboard*
 - Base de datos *PostgreSQL* con migraciones *Alembic*

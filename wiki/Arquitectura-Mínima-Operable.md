@@ -7,7 +7,7 @@
 | Componente | Descripción |
 |------------|-------------|
 | **Datos** | PDFs e imagenes de documentos (estados de cuenta bancarios) almacenados en S3 (Tigris) |
-| **Procesamiento** | *Backend* *FastAPI* con *StatementParser* unificado basado en vision |
+| **Procesamiento** | *Backend* *FastAPI* con *StatementExtractor* unificado basado en vision |
 | **Modelo** | *Claude Haiku 4.5* con *structured output* para extraccion de campos |
 | ***Output*** | JSON estructurado con campos validados y metadatos de extracción |
 
@@ -33,6 +33,8 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │         API REST (FastAPI)              │
+│  - POST /extraction/upload-url          │
+│  - POST /extraction/upload (fallback)   │
 │  - POST /extraction/extract             │
 │  - POST /extraction/submit              │
 │  - GET /extraction/metrics, logs, etc.  │
@@ -40,7 +42,7 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │      Capa de Procesamiento              │
-│  - StatementParser (vision)             │
+│  - StatementExtractor (vision)             │
 │  - Schema Validation                    │
 │  - API Call Tracking                    │
 └─────────────────────────────────────────┘
@@ -60,11 +62,13 @@
 ## Flujo de Datos
 
 ### 1. Carga de Documento
-1. Usuario sube PDF o imagen (JPG/PNG) via interfaz web
-2. *FastAPI* recibe el archivo, lo guarda en S3 y crea archivo temporal
+1. *Frontend* solicita *presigned URL* al *backend* (`POST /extraction/upload-url`)
+2. *Frontend* sube el archivo directamente a S3 via *presigned PUT URL*
+3. Si la subida directa falla, se usa *fallback* via *backend* (`POST /extraction/upload`)
 
 ### 2. Extraccion de Informacion
-1. `StatementParser` convierte el archivo a imagen(es) *base64*
+1. *Frontend* envia `s3_key` al *backend* (`POST /extraction/extract`)
+2. *Backend* descarga el archivo de S3 y lo convierte a imagen(es) *base64*
 2. Envia imagen + *prompt* a *Claude Haiku 4.5* via *LangChain*
 3. *Structured output* (`ExtractionOutput`) retorna campos tipados
 4. Se registra la llamada API en `api_call_logs` (tiempo, exito/error)

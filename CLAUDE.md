@@ -54,6 +54,7 @@ Three layers under `src/`:
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
   - `models.py` — `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog` ORM models
   - `repository.py` — `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository` data access
+  - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload URLs, download, CORS config)
   - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics
@@ -73,7 +74,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 ## Key Domain Concepts
 
 - **CLABE**: 18-digit Mexican interbank account number (validated with `^\d{18}$`)
-- **Extraction flow**: PDF/image → vision-based Claude extractor → structured output → user correction → persistence with correction flags
+- **Upload flow**: Frontend requests presigned URL → direct S3 PUT (with backend fallback) → extract by S3 key
+- **Extraction flow**: S3 key → download from storage → vision-based Claude extractor → structured output → user correction → persistence with correction flags
 - **Accuracy metrics**: Calculated from per-field boolean correction flags stored in `ExtractionLog`
 
 ## Environment Variables
@@ -81,6 +83,7 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), and Z
 - `ANTHROPIC_API_KEY` — Required for Claude API calls (backend)
 - `DATABASE_URL` — PostgreSQL connection string (backend)
 - `AWS_ENDPOINT_URL` — S3/LocalStack endpoint (backend)
+- `AWS_PUBLIC_ENDPOINT_URL` — Browser-reachable S3 endpoint for presigned URLs (defaults to `AWS_ENDPOINT_URL`)
 - `AWS_S3_BUCKET_NAME` — S3 bucket for PDF uploads (backend)
 - `NEXT_PUBLIC_API_URL` — Backend URL, defaults to `http://localhost:8000` (frontend)
 

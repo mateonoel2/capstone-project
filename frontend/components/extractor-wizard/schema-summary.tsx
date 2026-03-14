@@ -6,7 +6,7 @@ interface SchemaSummaryProps {
 
 export function SchemaSummary({ schema }: SchemaSummaryProps) {
   const properties = (schema as { properties?: Record<string, { type?: string; description?: string }> })?.properties || {};
-  const entries = Object.entries(properties).filter(([key]) => key !== "is_bank_statement");
+  const entries = Object.entries(properties).filter(([key]) => key !== "is_valid_document");
 
   if (entries.length === 0) {
     return (

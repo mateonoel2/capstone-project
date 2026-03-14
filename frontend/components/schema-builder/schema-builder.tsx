@@ -33,7 +33,7 @@ function validateFields(
       errors[f.id] = "Solo letras, números y guiones bajos";
       continue;
     }
-    if (name === "is_bank_statement") {
+    if (name === "is_valid_document") {
       errors[f.id] = "Nombre reservado";
       continue;
     }
@@ -63,7 +63,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
   const [validationDesc, setValidationDesc] = useState(
     () =>
       (value as Record<string, Record<string, Record<string, string>>>)
-        ?.properties?.is_bank_statement?.description ||
+        ?.properties?.is_valid_document?.description ||
       VALIDATION_FIELD.description
   );
 
@@ -81,9 +81,9 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
     setFieldErrors(errors);
 
     const schema = toJsonSchema(fields);
-    // Override is_bank_statement description
-    if (schema.properties.is_bank_statement) {
-      schema.properties.is_bank_statement.description = validationDesc;
+    // Override is_valid_document description
+    if (schema.properties.is_valid_document) {
+      schema.properties.is_valid_document.description = validationDesc;
     }
     const text = JSON.stringify(schema, null, 2);
     setJsonText(text);
@@ -116,7 +116,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
         }
         replaceAll(result.fields);
         const desc =
-          parsed?.properties?.is_bank_statement?.description ||
+          parsed?.properties?.is_valid_document?.description ||
           VALIDATION_FIELD.description;
         setValidationDesc(desc);
         setJsonError(null);
@@ -127,8 +127,8 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
     } else {
       // Switching from visual → JSON
       const schema = toJsonSchema(fields);
-      if (schema.properties.is_bank_statement) {
-        schema.properties.is_bank_statement.description = validationDesc;
+      if (schema.properties.is_valid_document) {
+        schema.properties.is_valid_document.description = validationDesc;
       }
       setJsonText(JSON.stringify(schema, null, 2));
       setJsonMode(true);

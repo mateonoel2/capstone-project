@@ -3,6 +3,7 @@ import io
 import os
 from pathlib import Path
 
+import anthropic
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from PIL import Image
@@ -29,11 +30,44 @@ Si ES un estado de cuenta o carátula bancaria, extrae:
    BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
 Si NO es un estado de cuenta bancario (por ejemplo: facturas, contratos, recibos, documentos
-legales, etc.), marca is_bank_statement como false.
+legales, etc.), marca is_valid_document como false.
 
 Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
 y "000000000000000000" para account_number.
 NO inventes información. Solo extrae lo que está claramente visible en el documento."""
+
+ORIENTATION_CHECK_PROMPT = (
+    "Look at the main text in this document image. "
+    "In which direction does the text run? "
+    "Is it horizontal and readable (normal), "
+    "or is it rotated sideways or upside down?"
+)
+
+ORIENTATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "text_direction": {
+            "type": "string",
+            "enum": ["normal", "rotated_left", "rotated_right", "upside_down"],
+            "description": (
+                "How the text in the document currently appears: "
+                "'normal' = reads left-to-right horizontally, "
+                "'rotated_left' = text runs upward (top of text is on the left side of image), "
+                "'rotated_right' = text runs downward (top of text is on the right side of image), "
+                "'upside_down' = text is flipped 180 degrees."
+            ),
+        },
+    },
+    "required": ["text_direction"],
+}
+
+# Map detected text direction to clockwise rotation needed to correct it
+DIRECTION_TO_ROTATION = {
+    "normal": 0,
+    "rotated_left": 270,  # top of text points left → rotate 270° CW (= 90° CCW)
+    "rotated_right": 90,  # top of text points right → rotate 90° CW
+    "upside_down": 180,
+}
 
 
 class StatementExtractor:
@@ -66,23 +100,78 @@ class StatementExtractor:
             self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
 
     def _image_to_base64(self, image: Image.Image) -> str:
-        max_dimension = 1568
+        max_dimension = 2048
         if image.width > max_dimension or image.height > max_dimension:
             ratio = min(max_dimension / image.width, max_dimension / image.height)
             new_size = (int(image.width * ratio), int(image.height * ratio))
             image = image.resize(new_size, Image.Resampling.LANCZOS)
 
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=85)
+        image.save(buffer, format="JPEG", quality=90)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    def _check_orientation(self, image_b64: str) -> int:
+        """Ask the model to detect text orientation. Returns CW degrees to correct."""
+        try:
+            client = anthropic.Anthropic(api_key=self.api_key)
+            response = client.messages.create(
+                model=self.model_name,
+                max_tokens=256,
+                temperature=0,
+                tools=[
+                    {
+                        "name": "orientation_check",
+                        "description": "Report the orientation of the document text",
+                        "input_schema": ORIENTATION_SCHEMA,
+                    }
+                ],
+                tool_choice={"type": "tool", "name": "orientation_check"},
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": image_b64,
+                                },
+                            },
+                            {"type": "text", "text": ORIENTATION_CHECK_PROMPT},
+                        ],
+                    }
+                ],
+            )
+            tool_block = next(b for b in response.content if b.type == "tool_use")
+            direction = tool_block.input.get("text_direction", "normal")
+            rotation = DIRECTION_TO_ROTATION.get(direction, 0)
+            logger.info("Orientation check: %s → rotation %d°", direction, rotation)
+            return rotation
+        except Exception as e:
+            logger.warning("Orientation check failed, assuming normal: %s", e)
+            return 0
 
     def _load_image_file(self, image_path: Path) -> list[str]:
         image = Image.open(image_path)
         if image.mode != "RGB":
             image = image.convert("RGB")
-        return [self._image_to_base64(image)]
+
+        # First pass: encode for orientation check
+        image_b64 = self._image_to_base64(image)
+        rotation = self._check_orientation(image_b64)
+
+        if rotation != 0:
+            logger.info("Rotating image %d° clockwise", rotation)
+            # PIL rotate is counterclockwise, so negate
+            image = image.rotate(-rotation, expand=True)
+            image_b64 = self._image_to_base64(image)
+
+        return [image_b64]
 
     def _extract_with_pdf(self, pdf_path: Path) -> dict:
+        logger.info("=== PDF extraction ===")
+        logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
         pdf_data = pdf_path.read_bytes()
         pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
         content = [
@@ -97,10 +186,13 @@ class StatementExtractor:
         message = HumanMessage(content=content)
         result = self.structured_llm.invoke([message])
         if hasattr(result, "model_dump"):
-            return result.model_dump()
+            result = result.model_dump()
+        logger.info("Extraction result: %s", result)
         return result
 
     def _extract_with_vision(self, base64_images: list[str]) -> dict:
+        logger.info("=== Vision extraction ===")
+        logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
         content = [
             {
                 "type": "image",
@@ -113,7 +205,8 @@ class StatementExtractor:
         message = HumanMessage(content=content)
         result = self.structured_llm.invoke([message])
         if hasattr(result, "model_dump"):
-            return result.model_dump()
+            result = result.model_dump()
+        logger.info("Extraction result: %s", result)
         return result
 
     def extract_file(self, file_path: Path) -> dict:
