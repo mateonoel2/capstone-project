@@ -34,7 +34,7 @@ export function StepPrompt({ prompt, schema, description, onChange }: StepPrompt
 
   const hasSchemaFields = Object.keys(
     (schema as { properties?: Record<string, unknown> })?.properties || {}
-  ).filter((k) => k !== "is_bank_statement").length > 0;
+  ).filter((k) => k !== "is_valid_document").length > 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

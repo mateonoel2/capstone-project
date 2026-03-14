@@ -23,7 +23,7 @@ Dado una descripción en lenguaje natural de los campos a extraer, genera un JSO
 
 Reglas:
 - Siempre incluye un campo booleano de validación del tipo de documento como primer campo
-  (ej: "is_bank_statement", "is_invoice"), con description que indique qué validar
+  (ej: "is_valid_document"), con description que indique qué validar
 - Los tipos permitidos son: "string", "number", "integer", "boolean"
 - Cada campo debe tener "type" y "description" (en español)
 - Los nombres de campo deben ser snake_case en inglés

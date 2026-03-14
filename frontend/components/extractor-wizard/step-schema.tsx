@@ -16,6 +16,7 @@ interface StepSchemaProps {
 
 export function StepSchema({ schema, onChange, isNew }: StepSchemaProps) {
   const [aiDescription, setAiDescription] = useState("");
+  const [schemaVersion, setSchemaVersion] = useState(0);
   const generateMutation = useGenerateSchema();
 
   const handleGenerate = async () => {
@@ -23,6 +24,7 @@ export function StepSchema({ schema, onChange, isNew }: StepSchemaProps) {
     generateMutation.mutate(aiDescription.trim(), {
       onSuccess: (result) => {
         onChange(result.output_schema);
+        setSchemaVersion((v) => v + 1);
       },
     });
   };
@@ -66,8 +68,8 @@ export function StepSchema({ schema, onChange, isNew }: StepSchemaProps) {
         </Button>
       </div>
 
-      {/* Schema Builder */}
-      <SchemaBuilder value={schema} onChange={onChange} isNew={isNew} />
+      {/* Schema Builder — key forces remount when AI generates new fields */}
+      <SchemaBuilder key={schemaVersion} value={schema} onChange={onChange} isNew={isNew && schemaVersion === 0} />
     </div>
   );
 }

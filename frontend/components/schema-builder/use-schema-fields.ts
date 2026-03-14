@@ -46,7 +46,7 @@ export function fromJsonSchema(
 
     const fields: SchemaField[] = [];
     for (const [key, prop] of Object.entries(schema.properties)) {
-      if (key === "is_bank_statement") continue;
+      if (key === "is_valid_document") continue;
 
       const hasEnum = Array.isArray(prop.enum);
       const fieldType = prop.type;

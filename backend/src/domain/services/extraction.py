@@ -15,7 +15,7 @@ ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
 
 def apply_bank_statement_postprocessing(raw: dict) -> dict:
-    if not raw.get("is_bank_statement"):
+    if not raw.get("is_valid_document"):
         raise ValueError("El documento no es un estado de cuenta bancario")
 
     owner = raw.get("owner", "Unknown")

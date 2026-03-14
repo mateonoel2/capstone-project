@@ -29,7 +29,7 @@ Si ES un estado de cuenta o carátula bancaria, extrae:
    BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
 Si NO es un estado de cuenta bancario (por ejemplo: facturas, contratos, recibos, documentos
-legales, etc.), marca is_bank_statement como false.
+legales, etc.), marca is_valid_document como false.
 
 Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
 y "000000000000000000" para account_number.

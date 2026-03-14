@@ -6,7 +6,7 @@ from src.domain.constants import BANK_DICT_KUSHKI
 class ExtractionOutput(BaseModel):
     """Structured output from Claude for bank statement extraction."""
 
-    is_bank_statement: bool = Field(
+    is_valid_document: bool = Field(
         ...,
         description="True si el documento es un estado de cuenta o carátula bancaria mexicana, "
         "False si es otro tipo de documento",

@@ -69,7 +69,7 @@ export function ExtractorWizard({ onSave, onCancel }: ExtractorWizardProps) {
         return !!state.name.trim();
       case 1: {
         const props = (state.output_schema as { properties?: Record<string, unknown> })?.properties || {};
-        return Object.keys(props).filter((k) => k !== "is_bank_statement").length > 0;
+        return Object.keys(props).filter((k) => k !== "is_valid_document").length > 0;
       }
       case 2:
         return !!state.prompt.trim();
