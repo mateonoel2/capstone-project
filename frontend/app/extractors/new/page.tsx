@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ExtractorWizard } from "@/components/extractor-wizard/extractor-wizard";
 import { useCreateExtractorConfig, useExtractorConfig } from "@/lib/hooks";
@@ -8,6 +9,22 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function NewExtractorPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-5xl mx-auto flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        </main>
+      }
+    >
+      <NewExtractorContent />
+    </Suspense>
+  );
+}
+
+function NewExtractorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftIdParam = searchParams.get("draft");
