@@ -19,24 +19,29 @@ from PIL import Image
 
 load_dotenv()
 
-PROMPT = """Analiza la imagen del documento de identidad y extrae la siguiente información:
-
-1. first_name: Extrae el nombre de pila del titular del documento. Debe ser una cadena de texto que contenga solo el primer nombre.
-
-2. last_name: Extrae el apellido del titular del documento. Si hay múltiples apellidos, incluye todos separados por espacio.
-
-3. dni_number: Extrae el número de identificación nacional exactamente como aparece en el documento. Incluye letras y números si existen, sin modificar su formato original.
-
-4. birth_date: Extrae la fecha de nacimiento del titular y conviértela al formato YYYY-MM-DD. Por ejemplo, si la fecha aparece como "15 de marzo de 1990", debes extraerla como "1990-03-15".
-
-Instrucciones importantes:
-- Si algún campo no es visible o no aparece en el documento, responde con el valor null para ese campo.
-- No inventes ni asumas información que no esté claramente visible en la imagen.
-- Extrae solo la información que puedas leer directamente del documento.
-- Responde en formato JSON con las claves exactas mencionadas.
-- Si la fecha de nacimiento está en un formato diferente, conviértela al formato especificado YYYY-MM-DD.
-
-Proporciona la respuesta como un objeto JSON válido."""
+PROMPT = (
+    "Analiza la imagen del documento de identidad y extrae la siguiente información:\n\n"
+    "1. first_name: Extrae el nombre de pila del titular del documento. "
+    "Debe ser una cadena de texto que contenga solo el primer nombre.\n\n"
+    "2. last_name: Extrae el apellido del titular del documento. "
+    "Si hay múltiples apellidos, incluye todos separados por espacio.\n\n"
+    "3. dni_number: Extrae el número de identificación nacional exactamente "
+    "como aparece en el documento. Incluye letras y números si existen, "
+    "sin modificar su formato original.\n\n"
+    "4. birth_date: Extrae la fecha de nacimiento del titular y conviértela "
+    "al formato YYYY-MM-DD. Por ejemplo, si la fecha aparece como "
+    '"15 de marzo de 1990", debes extraerla como "1990-03-15".\n\n'
+    "Instrucciones importantes:\n"
+    "- Si algún campo no es visible o no aparece en el documento, "
+    "responde con el valor null para ese campo.\n"
+    "- No inventes ni asumas información que no esté claramente visible "
+    "en la imagen.\n"
+    "- Extrae solo la información que puedas leer directamente del documento.\n"
+    "- Responde en formato JSON con las claves exactas mencionadas.\n"
+    "- Si la fecha de nacimiento está en un formato diferente, "
+    "conviértela al formato especificado YYYY-MM-DD.\n\n"
+    "Proporciona la respuesta como un objeto JSON válido."
+)
 
 SCHEMA = {
     "type": "object",
@@ -93,8 +98,8 @@ ORIENTATION_SCHEMA = {
 # Map text direction to clockwise rotation needed to fix
 DIRECTION_TO_ROTATION = {
     "normal": 0,
-    "rotated_left": 270,     # top of text points left → rotate 270° CW (= 90° CCW)
-    "rotated_right": 90,     # top of text points right → rotate 90° CW
+    "rotated_left": 270,  # top of text points left → rotate 270° CW (= 90° CCW)
+    "rotated_right": 90,  # top of text points right → rotate 90° CW
     "upside_down": 180,
 }
 
@@ -173,8 +178,9 @@ def rotate_image(image_path: Path, degrees_cw: int) -> str:
     max_dim = 2048
     if img.width > max_dim or img.height > max_dim:
         ratio = min(max_dim / img.width, max_dim / img.height)
-        img = img.resize((int(img.width * ratio), int(img.height * ratio)),
-                         Image.Resampling.LANCZOS)
+        img = img.resize(
+            (int(img.width * ratio), int(img.height * ratio)), Image.Resampling.LANCZOS
+        )
     return pil_to_b64(img)
 
 
