@@ -1,6 +1,6 @@
-# Extracción de Estados de Cuenta Bancarios
+# Extracción de Datos de Documentos
 
-Proyecto de *capstone* para la extracción automática de información de estados de cuenta bancarios mexicanos utilizando Claude Haiku 4.5.
+Proyecto de *capstone* para la extracción automática de información estructurada de documentos utilizando Claude Haiku 4.5. Originalmente diseñado para estados de cuenta bancarios mexicanos, ahora soporta tipos de documentos arbitrarios con extractores configurables.
 
 
 https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
@@ -8,15 +8,21 @@ https://github.com/user-attachments/assets/f1b3834b-239e-495c-95ac-458b0bf03d38
 
 ## Descripción
 
-Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructurada de estados de cuenta bancarios mexicanos (PDF e imagenes JPG/PNG). Utiliza un *parser* unificado basado en *Claude Haiku 4.5* con extraccion por vision para extraer nombre del titular, cuenta CLABE y banco.
+Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructurada de documentos (PDF e imagenes JPG/PNG). Los usuarios crean extractores personalizados con *schemas*, *prompts* y modelos configurables a traves de un *wizard* con asistencia de IA.
 
 ## Características
 
 - Aplicacion web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
+- Extractores configurables con *schemas*, *prompts* y modelos personalizados
+- *Wizard* multi-paso para crear extractores (identidad, *schema*, *prompt*, prueba)
+- Asistente de IA para generacion de *schemas* y *prompts* (alimentado por Claude)
 - *Parser* unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
-- Soporte para PDFs e imagenes (JPG/PNG) con visor integrado
+- Soporte para PDFs e imagenes (JPG/PNG) con visor integrado (*react-zoom-pan-pinch*)
+- Versionado de extractores con soporte para pruebas A/B
+- Extracciones de prueba con registro detallado (*TestExtractionLog*)
 - *Dashboard* con metricas de precision, correcciones por campo y metricas de llamadas API
 - Seguimiento de llamadas a la API de Claude (tasa de error, tiempo de respuesta)
+- *React Query* para gestion de estado del servidor, *Zustand* para estado de UI
 - Almacenamiento en PostgreSQL con migraciones Alembic
 - Subida de archivos a S3 con *presigned URLs* (subida directa desde el navegador, con *fallback* via *backend*)
 - Despliegue en Railway (backend) y Vercel (frontend)
@@ -36,11 +42,13 @@ capstone-project/
 │   │   │   ├── validators.py         # Validación de CLABE y bancos
 │   │   │   ├── extractor_interface.py # BaseExtractor ABC
 │   │   │   ├── entities.py           # Entidades de dominio y API calls
-│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ApiMetricsService
+│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ExtractorConfigService
 │   │   ├── infrastructure/            # Integraciones externas
-│   │   │   ├── api/extraction/       # Rutas HTTP y DTOs
+│   │   │   ├── api/extraction/       # Rutas HTTP y DTOs (/extraction)
+│   │   │   ├── api/extractors/       # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── ai_assist.py          # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
-│   │   │   ├── models.py             # ORM (ExtractionLog, ApiCallLog)
+│   │   │   ├── models.py             # ORM (ExtractionLog, ApiCallLog, TestExtractionLog)
 │   │   │   ├── repository.py         # Acceso a datos
 │   │   │   ├── storage.py            # StorageBackend (S3 / local)
 │   │   │   ├── extractors/           # StatementExtractor (vision unificado)
@@ -54,9 +62,11 @@ capstone-project/
 │   └── data/                          # Datos de prueba
 │
 ├── frontend/                          # Next.js 15 (App Router)
-│   ├── app/                           # Páginas (/, /dashboard)
+│   ├── app/                           # Páginas (/, /extractors, /dashboard)
 │   ├── components/                    # Componentes React + shadcn/ui
-│   └── lib/                           # API client, Zustand store, utils
+│   │   ├── assistant/                # Sidebar de asistente IA
+│   │   └── extractor-wizard/        # Wizard multi-paso para extractores
+│   └── lib/                           # API client, React Query hooks, Zustand store
 │
 ├── docker-compose.yml                 # Backend + PostgreSQL + LocalStack
 └── localstack/                        # Config de LocalStack (S3)

@@ -1,6 +1,6 @@
-# Wiki del Proyecto - Extracción de Datos Bancarios
+# Wiki del Proyecto - Extracción de Datos de Documentos
 
-Bienvenido a la *wiki* del proyecto de extracción automática de información de estados de cuenta bancarios.
+Bienvenido a la *wiki* del proyecto de extracción automática de información estructurada de documentos.
 
 ---
 
@@ -29,7 +29,7 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 - **Lenguaje**: Python 3.12+
 - ***Framework* API**: *FastAPI*
 - **Base de Datos**: *PostgreSQL* con *SQLAlchemy* y migraciones *Alembic*
-- **Extraccion**: *StatementExtractor* unificado basado en vision con *Claude Haiku 4.5*
+- **Extraccion**: Extractores configurables con *schemas*, *prompts* y modelos personalizados. *StatementExtractor* basado en vision con *Claude Haiku 4.5*
 - **Gestion de dependencias**: *uv*
 
 ### *Frontend*
@@ -37,7 +37,8 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información d
 - **Lenguaje**: *TypeScript*
 - **Estilos**: *Tailwind CSS*
 - **Componentes**: *shadcn/ui* (*Radix UI*)
-- **Visor PDF**: *react-pdf*
+- **Visor de archivos**: *react-zoom-pan-pinch*
+- **Estado del servidor**: *React Query* (*@tanstack/react-query*)
 - **Iconos**: *Lucide React*
 
 ### *DevOps* y Herramientas
@@ -66,9 +67,11 @@ capstone-project/
 │   │   │   ├── entities.py         # Entidades de dominio y API calls
 │   │   │   └── services/           # Servicios de negocio
 │   │   ├── infrastructure/         # Integraciones externas
-│   │   │   ├── api/extraction/     # Rutas HTTP y DTOs
+│   │   │   ├── api/extraction/     # Rutas HTTP y DTOs (/extraction)
+│   │   │   ├── api/extractors/     # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── ai_assist.py        # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py         # Configuracion PostgreSQL
-│   │   │   ├── models.py           # ORM (ExtractionLog, ApiCallLog)
+│   │   │   ├── models.py           # ORM (ExtractionLog, ApiCallLog, TestExtractionLog)
 │   │   │   ├── repository.py       # Acceso a datos
 │   │   │   ├── storage.py          # StorageBackend (S3 / local)
 │   │   │   ├── extractors/        # StatementExtractor (vision unificado)
@@ -84,16 +87,16 @@ capstone-project/
 └── frontend/                       # Aplicacion Next.js
     ├── app/                        # Pages (Next.js 15 App Router)
     │   ├── page.tsx                # Extraccion
+    │   ├── extractors/             # Gestion de extractores (CRUD + wizard)
     │   ├── dashboard/              # Dashboard
     │   └── layout.tsx              # Layout con sidebar
     ├── components/                 # Componentes React + shadcn/ui
-    │   ├── sidebar.tsx             # Navegacion
-    │   ├── extraction-table.tsx    # Tabla de extracciones
+    │   ├── assistant/              # Sidebar de asistente IA
+    │   ├── extractor-wizard/       # Wizard multi-paso para extractores
+    │   ├── schema-builder/         # Editor visual de schemas JSON
     │   ├── file-viewer.tsx         # Visor de PDF e imagenes
-    │   ├── file-upload.tsx         # Componente de subida
-    │   ├── pdf-viewer.tsx          # Visor de PDF
     │   └── ui/                     # Componentes base
-    └── lib/                        # API client + Utils + Store
+    └── lib/                        # API client, React Query hooks, Zustand store
 ```
 
 ---
@@ -125,17 +128,21 @@ capstone-project/
 
 ### Completamente Implementado
 
+- Extractores configurables con *schemas*, *prompts* y modelos personalizados
+- *Wizard* multi-paso para crear extractores con asistente de IA
+- Generacion de *schemas* y *prompts* asistida por Claude (`ai_assist.py`)
 - Extractor unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
 - Soporte para PDFs e imagenes (JPG/PNG)
+- Versionado de extractores con soporte para pruebas A/B
+- Extracciones de prueba con registro detallado (*TestExtractionLog*)
 - Subida de archivos con *presigned URLs* (subida directa a S3, *fallback* via *backend*)
-- API REST con *endpoints* de extraccion, submission, logs, metricas y metricas de API
-- *Frontend* con extraccion, visor de archivos y *dashboard*
+- API REST con *endpoints* de extraccion, submission, extractores (CRUD), logs, metricas
+- *Frontend* con extraccion, gestion de extractores, visor de archivos y *dashboard*
+- *React Query* para estado del servidor, *Zustand* para estado de UI
 - Base de datos *PostgreSQL* con migraciones *Alembic*
 - Seguimiento de llamadas a la API (*ApiCallLog*)
 - Sistema de metricas de precision y metricas de API
-- Visor de PDF e imagenes con controles avanzados
-- Tabla de extracciones con busqueda y paginacion
-- Servicios divididos: `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`
+- Visor de archivos con *react-zoom-pan-pinch*
 - CI con *GitHub Actions*, despliegue en *Railway* + *Vercel*
 
 ---

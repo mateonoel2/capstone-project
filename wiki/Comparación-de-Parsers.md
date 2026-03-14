@@ -183,12 +183,13 @@ La comparación revela una perspectiva crítica: **OCR solo no es suficiente**. 
 
 ## Estado Actual (Marzo 2026)
 
-Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` basado en vision con *structured output*. Este *parser*:
-- Usa *Claude Haiku 4.5* con `with_structured_output()` de *LangChain*
+Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` basado en vision con *structured output*. El sistema ahora soporta extractores configurables con *schemas*, *prompts* y modelos personalizados. Cada extractor:
+- Usa un modelo Claude configurable (por defecto *Haiku 4.5*) con `with_structured_output()` de *LangChain*
 - Convierte PDFs a imagenes (*pdf2image*) y las envia directamente a la API de vision
 - Soporta PDFs e imagenes (JPG/PNG)
-- Detecta automaticamente si el documento es un estado de cuenta bancario
+- Detecta automaticamente si el documento es valido para el tipo de extraccion (`is_valid_document`)
 - Registra cada llamada en `api_call_logs` para monitoreo
+- Soporta extracciones de prueba registradas en `test_extraction_logs`
 
 ## Proximos Pasos
 

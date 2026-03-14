@@ -6,9 +6,9 @@
 
 | Componente | Descripción |
 |------------|-------------|
-| **Datos** | PDFs e imagenes de documentos (estados de cuenta bancarios) almacenados en S3 (Tigris) |
-| **Procesamiento** | *Backend* *FastAPI* con *StatementExtractor* unificado basado en vision |
-| **Modelo** | *Claude Haiku 4.5* con *structured output* para extraccion de campos |
+| **Datos** | PDFs e imagenes de documentos almacenados en S3 (Tigris) |
+| **Procesamiento** | *Backend* *FastAPI* con extractores configurables (*StatementExtractor* basado en vision) |
+| **Modelo** | *Claude Haiku 4.5* (configurable) con *structured output* para extraccion de campos |
 | ***Output*** | JSON estructurado con campos validados y metadatos de extracción |
 
 ---
@@ -42,8 +42,9 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │      Capa de Procesamiento              │
-│  - StatementExtractor (vision)             │
-│  - Schema Validation                    │
+│  - StatementExtractor (vision)          │
+│  - Extractor Configs (schema + prompt)  │
+│  - AI Assist (schema/prompt generation) │
 │  - API Call Tracking                    │
 └─────────────────────────────────────────┘
     ↓            ↓            ↓
@@ -75,7 +76,7 @@
 
 ### 3. Validacion y Respuesta
 1. Validacion de CLABE (18 digitos) y nombre de banco
-2. Deteccion de documentos no bancarios (`is_bank_statement: false`)
+2. Deteccion de documentos no validos (`is_valid_document: false`)
 3. Respuesta al *frontend* con campos extraidos
 
 ### 4. Revision Humana y Persistencia
