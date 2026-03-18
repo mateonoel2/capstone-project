@@ -3,7 +3,7 @@
 Proyecto de *capstone* para la extracción automática de información estructurada de documentos utilizando Claude Haiku 4.5. Originalmente diseñado para estados de cuenta bancarios mexicanos, ahora soporta tipos de documentos arbitrarios con extractores configurables.
 
 
-https://github.com/user-attachments/assets/868604da-2d83-4bfe-99f8-95bac59590cf
+https://github.com/user-attachments/assets/24bcde60-1447-4f51-83c4-c7a791d7b3b1
 
 
 ## Descripción
