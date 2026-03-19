@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { FileUp, BarChart3, Settings, Users, LogOut, Globe } from "lucide-react";
+import { FileUp, BarChart3, Settings, Users, LogOut, Globe, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
 import { useI18n, type Locale } from "@/lib/i18n";
@@ -19,6 +19,7 @@ export function Sidebar() {
     { name: t("sidebar.extractPdf"), href: "/", icon: FileUp },
     { name: t("sidebar.extractors"), href: "/extractors", icon: Settings },
     { name: t("sidebar.dashboard"), href: "/dashboard", icon: BarChart3 },
+    { name: t("sidebar.apiTokens"), href: "/settings/tokens", icon: Key },
   ];
 
   const adminNavigation = [

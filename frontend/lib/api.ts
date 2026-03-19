@@ -470,6 +470,47 @@ export async function updatePrompt(
   return response.json();
 }
 
+// API Tokens
+export interface ApiToken {
+  id: number;
+  name: string;
+  created_at: string | null;
+  expires_at: string | null;
+  last_used_at: string | null;
+  is_revoked: boolean;
+}
+
+export interface CreateTokenResponse {
+  token: string;
+  id: number;
+  name: string;
+  expires_at: string | null;
+}
+
+export async function getApiTokens(): Promise<ApiToken[]> {
+  const response = await authFetch(`${API_BASE_URL}/tokens`);
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to fetch tokens"));
+  return response.json();
+}
+
+export async function createApiToken(
+  name: string,
+  expires_at?: string | null
+): Promise<CreateTokenResponse> {
+  const response = await authFetch(`${API_BASE_URL}/tokens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, expires_at: expires_at ?? null }),
+  });
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to create token"));
+  return response.json();
+}
+
+export async function revokeApiToken(id: number): Promise<void> {
+  const response = await authFetch(`${API_BASE_URL}/tokens/${id}`, { method: "DELETE" });
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to revoke token"));
+}
+
 export async function toggleVersionActive(
   configId: number,
   versionId: number,

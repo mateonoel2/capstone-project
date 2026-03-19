@@ -18,6 +18,7 @@ from src.infrastructure.api.admin.routes import router as admin_router
 from src.infrastructure.api.auth.routes import router as auth_router
 from src.infrastructure.api.extraction.routes import router as extraction_router
 from src.infrastructure.api.extractors.routes import router as extractors_router
+from src.infrastructure.api.tokens.routes import router as tokens_router
 from src.infrastructure.storage import get_storage
 
 load_dotenv()
@@ -58,6 +59,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(extraction_router)
 app.include_router(extractors_router)
+app.include_router(tokens_router)
 
 
 @app.middleware("http")
