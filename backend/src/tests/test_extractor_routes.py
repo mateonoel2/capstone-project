@@ -45,15 +45,12 @@ class TestGetAvailableModels:
 class TestCreateExtractorConfig:
     def test_creates_config(self, client):
         config = _make_config(id=5)
-        with patch(
-            "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
-        ) as MockRepo, patch(
-            "src.infrastructure.api.extractors.routes.ApiCallRepository"
-        ), patch(
-            "src.infrastructure.api.extractors.routes.AiUsageLogRepository"
-        ), patch(
-            "src.infrastructure.api.extractors.routes.QuotaService"
-        ) as MockQuota:
+        with (
+            patch("src.infrastructure.api.extractors.routes.ExtractorConfigRepository") as MockRepo,
+            patch("src.infrastructure.api.extractors.routes.ApiCallRepository"),
+            patch("src.infrastructure.api.extractors.routes.AiUsageLogRepository"),
+            patch("src.infrastructure.api.extractors.routes.QuotaService") as MockQuota,
+        ):
             MockQuota.return_value.check_extractor_create_quota.return_value = None
             MockRepo.return_value.get_all.return_value = []
             MockRepo.return_value.create.return_value = config
@@ -77,17 +74,14 @@ class TestCreateExtractorConfig:
         assert resp.json()["name"] == "test-extractor"
 
     def test_guest_quota_returns_429(self, guest_client):
-        with patch(
-            "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
-        ), patch(
-            "src.infrastructure.api.extractors.routes.ApiCallRepository"
-        ), patch(
-            "src.infrastructure.api.extractors.routes.AiUsageLogRepository"
-        ), patch(
-            "src.infrastructure.api.extractors.routes.QuotaService"
-        ) as MockQuota:
-            MockQuota.return_value.check_extractor_create_quota.side_effect = (
-                QuotaExceededError("Límite alcanzado")
+        with (
+            patch("src.infrastructure.api.extractors.routes.ExtractorConfigRepository"),
+            patch("src.infrastructure.api.extractors.routes.ApiCallRepository"),
+            patch("src.infrastructure.api.extractors.routes.AiUsageLogRepository"),
+            patch("src.infrastructure.api.extractors.routes.QuotaService") as MockQuota,
+        ):
+            MockQuota.return_value.check_extractor_create_quota.side_effect = QuotaExceededError(
+                "Límite alcanzado"
             )
             resp = guest_client.post(
                 "/extractors",

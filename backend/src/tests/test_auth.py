@@ -57,9 +57,7 @@ class TestGenerateApiToken:
 
 class TestAuthenticateJwt:
     def _make_token(self, user_id=1, role="user", expired=False):
-        exp = datetime.now(timezone.utc) + (
-            timedelta(hours=-1) if expired else timedelta(hours=24)
-        )
+        exp = datetime.now(timezone.utc) + (timedelta(hours=-1) if expired else timedelta(hours=24))
         payload = {"user_id": user_id, "role": role, "exp": exp, "iat": datetime.now(timezone.utc)}
         return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 

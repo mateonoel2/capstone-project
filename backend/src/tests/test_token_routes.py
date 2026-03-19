@@ -7,9 +7,11 @@ from src.infrastructure.auth import TOKEN_PREFIX
 class TestCreateToken:
     def test_creates_token_with_prefix(self, client):
         api_token = ApiTokenData(id=1, user_id=1, name="test-token")
-        with patch("src.infrastructure.api.tokens.routes.generate_api_token") as mock_gen, patch(
-            "src.infrastructure.api.tokens.routes.hash_token", return_value="hashed"
-        ), patch("src.infrastructure.api.tokens.routes.ApiTokenRepository") as MockRepo:
+        with (
+            patch("src.infrastructure.api.tokens.routes.generate_api_token") as mock_gen,
+            patch("src.infrastructure.api.tokens.routes.hash_token", return_value="hashed"),
+            patch("src.infrastructure.api.tokens.routes.ApiTokenRepository") as MockRepo,
+        ):
             mock_gen.return_value = f"{TOKEN_PREFIX}abc123"
             MockRepo.return_value.create.return_value = api_token
             resp = client.post("/tokens", json={"name": "test-token"})
