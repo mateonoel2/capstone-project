@@ -5,6 +5,7 @@ import { ExtractionLog, PaginationMeta } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, AlertCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 interface ExtractionTableProps {
   logs: ExtractionLog[];
@@ -14,6 +15,7 @@ interface ExtractionTableProps {
 
 export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const t = useT();
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) =>
@@ -54,14 +56,14 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
           <AlertCircle className="h-3 w-3" />
-          Corregido
+          {t("extractionTable.corrected")}
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
         <CheckCircle className="h-3 w-3" />
-        Preciso
+        {t("extractionTable.accurate")}
       </span>
     );
   };
@@ -69,7 +71,7 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
   if (logs.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        No extractions yet. Upload a PDF to get started!
+        {t("extractionTable.noExtractions")}
       </div>
     );
   }
@@ -80,7 +82,7 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search by filename..."
+          placeholder={t("extractionTable.searchPlaceholder")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -92,10 +94,10 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left font-medium text-gray-700">
-                Filename
+                {t("extractionTable.filename")}
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">
-                Date
+                {t("extractionTable.date")}
               </th>
               {fieldKeys.map((field) => (
                 <th key={field} className="px-4 py-3 text-left font-medium text-gray-700">
@@ -127,7 +129,11 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          Showing {((pagination.page - 1) * pagination.page_size) + 1} to {Math.min(pagination.page * pagination.page_size, pagination.total)} of {pagination.total} extractions
+          {t("extractionTable.showing", {
+            from: String(((pagination.page - 1) * pagination.page_size) + 1),
+            to: String(Math.min(pagination.page * pagination.page_size, pagination.total)),
+            total: String(pagination.total),
+          })}
         </div>
 
         <div className="flex items-center gap-2">
@@ -138,11 +144,14 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
             disabled={pagination.page === 1}
           >
             <ChevronLeft className="h-4 w-4" />
-            Previous
+            {t("extractionTable.previous")}
           </Button>
 
-      <div className="text-sm text-gray-600">
-            Page {pagination.page} of {pagination.total_pages}
+          <div className="text-sm text-gray-600">
+            {t("extractionTable.page", {
+              current: String(pagination.page),
+              total: String(pagination.total_pages),
+            })}
           </div>
 
           <Button
@@ -151,7 +160,7 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page === pagination.total_pages}
           >
-            Next
+            {t("extractionTable.next")}
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

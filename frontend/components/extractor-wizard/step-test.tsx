@@ -7,6 +7,7 @@ import { FileViewer } from "@/components/file-viewer";
 import { DynamicFieldsForm } from "@/components/dynamic-fields-form";
 import { Loader2, Play, Clock } from "lucide-react";
 import { useTestExtract } from "@/lib/hooks";
+import { useT } from "@/lib/i18n";
 
 interface StepTestProps {
   prompt: string;
@@ -19,6 +20,7 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
   const [file, setFile] = useState<File | null>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const testMutation = useTestExtract();
+  const t = useT();
 
   const handleTest = async () => {
     if (!file) return;
@@ -40,7 +42,6 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left: File upload + preview */}
       <div className="space-y-4">
         {!file ? (
           <FileUpload onFileSelect={setFile} isLoading={testMutation.isPending} />
@@ -59,7 +60,7 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
                   testMutation.reset();
                 }}
               >
-                Cambiar archivo
+                {t("stepTest.changeFile")}
               </Button>
             </div>
             <div className="h-[400px] overflow-hidden rounded-lg border">
@@ -74,12 +75,12 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
               {testMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Extrayendo...
+                  {t("stepTest.extracting")}
                 </>
               ) : (
                 <>
                   <Play className="h-4 w-4 mr-2" />
-                  Ejecutar extracción
+                  {t("stepTest.runExtraction")}
                 </>
               )}
             </Button>
@@ -87,11 +88,10 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
         )}
       </div>
 
-      {/* Right: Results */}
       <div className="space-y-4">
         {testMutation.error && (
           <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-            {testMutation.error instanceof Error ? testMutation.error.message : "Error en la extracción"}
+            {testMutation.error instanceof Error ? testMutation.error.message : t("stepTest.extractionError")}
           </div>
         )}
         {result && (
@@ -116,7 +116,7 @@ export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestP
         )}
         {!result && !testMutation.error && (
           <div className="flex items-center justify-center h-64 border border-dashed rounded-lg text-sm text-muted-foreground">
-            Sube un archivo y ejecuta la extracción para ver los resultados
+            {t("stepTest.placeholder")}
           </div>
         )}
       </div>

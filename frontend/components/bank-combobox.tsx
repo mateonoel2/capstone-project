@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Bank } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 interface BankComboboxProps {
   banks: Bank[];
@@ -23,6 +24,7 @@ interface BankComboboxProps {
 export function BankCombobox({ banks, value, onChange, className }: BankComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const t = useT();
 
   const filteredBanks = React.useMemo(() => {
     if (!search) return banks;
@@ -46,7 +48,7 @@ export function BankCombobox({ banks, value, onChange, className }: BankCombobox
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          {value || "Select a bank..."}
+          {value || t("bankCombobox.selectBank")}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -54,7 +56,7 @@ export function BankCombobox({ banks, value, onChange, className }: BankCombobox
         <div className="flex flex-col">
           <div className="border-b p-2">
             <Input
-              placeholder="Search bank..."
+              placeholder={t("bankCombobox.searchBank")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9"
@@ -63,7 +65,7 @@ export function BankCombobox({ banks, value, onChange, className }: BankCombobox
           <div className="max-h-[300px] overflow-y-auto">
             {filteredBanks.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                No bank found.
+                {t("bankCombobox.noResults")}
               </div>
             ) : (
               <div className="p-1">

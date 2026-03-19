@@ -13,6 +13,7 @@ import {
   AssistantSidebar,
   type AssistantMode,
 } from "@/components/assistant/assistant-sidebar";
+import { useT } from "@/lib/i18n";
 
 interface EditorState {
   name: string;
@@ -46,6 +47,7 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
   const [activeTab, setActiveTab] = useState("identity");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [schemaVersion, setSchemaVersion] = useState(0);
+  const t = useT();
 
   const [state, setState] = useState<EditorState>({
     name: initialData.name,
@@ -66,11 +68,11 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
   const handleSave = async () => {
     setError(null);
     if (!state.name.trim()) {
-      setError("El nombre es requerido");
+      setError(t("editor.nameRequired"));
       return;
     }
     if (!state.prompt.trim()) {
-      setError("El prompt es requerido");
+      setError(t("editor.promptRequired"));
       return;
     }
 
@@ -84,7 +86,7 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
         output_schema: state.output_schema,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setError(err instanceof Error ? err.message : t("editor.saveError"));
     } finally {
       setIsSaving(false);
     }
@@ -99,19 +101,19 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
             <TabsList>
               <TabsTrigger value="identity" className="gap-2">
                 <User className="h-4 w-4" />
-                Identidad
+                {t("editor.identityTab")}
               </TabsTrigger>
               <TabsTrigger value="schema" className="gap-2">
                 <Table2 className="h-4 w-4" />
-                Esquema
+                {t("editor.schemaTab")}
               </TabsTrigger>
               <TabsTrigger value="prompt" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Prompt
+                {t("editor.promptTab")}
               </TabsTrigger>
               <TabsTrigger value="test" className="gap-2">
                 <FlaskConical className="h-4 w-4" />
-                Probar
+                {t("editor.testTab")}
               </TabsTrigger>
             </TabsList>
             {assistantMode && (
@@ -123,7 +125,7 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
                 className={assistantOpen ? "bg-blue-50 border-blue-200 text-blue-700" : ""}
               >
                 <Sparkles className="h-4 w-4 mr-1" />
-                Asistente IA
+                {t("editor.aiAssistant")}
               </Button>
             )}
           </div>
@@ -171,16 +173,16 @@ export function ExtractorEditor({ initialData, onSave, onCancel }: ExtractorEdit
 
         <div className="flex items-center justify-end pt-6 mt-6 border-t gap-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancelar
+            {t("editor.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Guardando...
+                {t("editor.saving")}
               </>
             ) : (
-              "Guardar extractor"
+              t("editor.saveExtractor")
             )}
           </Button>
         </div>

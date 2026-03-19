@@ -8,8 +8,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bank Statement Extraction",
-  description: "Extract and verify bank account information from PDF statements",
+  title: "Extracto",
+  description: "Configurable document extraction system",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={inter.className}>
         <AuthProvider>
           <QueryProvider>

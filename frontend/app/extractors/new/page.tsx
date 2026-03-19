@@ -7,6 +7,7 @@ import { useCreateExtractorConfig, useExtractorConfig } from "@/lib/hooks";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 export default function NewExtractorPage() {
   return (
@@ -30,6 +31,7 @@ function NewExtractorContent() {
   const draftIdParam = searchParams.get("draft");
   const draftId = draftIdParam ? Number(draftIdParam) : null;
   const createMutation = useCreateExtractorConfig();
+  const t = useT();
 
   const { data: draftConfig, isLoading: draftLoading } = useExtractorConfig(draftId ?? 0, {
     enabled: draftId !== null,
@@ -51,7 +53,7 @@ function NewExtractorContent() {
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-600">Cargando borrador...</span>
+          <span className="ml-2 text-gray-600">{t("extractors.loadingDraft")}</span>
         </div>
       </main>
     );
@@ -66,10 +68,10 @@ function NewExtractorContent() {
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-3"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a Extractores
+            {t("extractors.backToExtractors")}
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
-            {draftConfig ? "Continuar Extractor" : "Crear Extractor"}
+            {draftConfig ? t("extractors.continueExtractor") : t("extractors.createExtractor")}
           </h1>
         </div>
 

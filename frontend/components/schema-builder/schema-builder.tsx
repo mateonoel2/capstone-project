@@ -10,6 +10,7 @@ import { useSchemaFields, toJsonSchema, fromJsonSchema } from "./use-schema-fiel
 import { FieldCard } from "./field-card";
 import { ValidationFieldCard } from "./validation-field-card";
 import { TemplatePicker } from "./template-picker";
+import { useT } from "@/lib/i18n";
 
 interface SchemaBuilderProps {
   value: Record<string, unknown>;
@@ -18,7 +19,8 @@ interface SchemaBuilderProps {
 }
 
 function validateFields(
-  fields: SchemaField[]
+  fields: SchemaField[],
+  t: (key: string) => string
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   const seen = new Set<string>();
@@ -26,19 +28,19 @@ function validateFields(
   for (const f of fields) {
     const name = f.name.trim();
     if (!name) {
-      errors[f.id] = "El nombre es requerido";
+      errors[f.id] = t("schemaBuilder.nameRequired");
       continue;
     }
     if (!/^[a-z0-9_]+$/i.test(name)) {
-      errors[f.id] = "Solo letras, números y guiones bajos";
+      errors[f.id] = t("schemaBuilder.onlyAlphanumeric");
       continue;
     }
     if (name === "is_valid_document") {
-      errors[f.id] = "Nombre reservado";
+      errors[f.id] = t("schemaBuilder.reservedName");
       continue;
     }
     if (seen.has(name.toLowerCase())) {
-      errors[f.id] = "Nombre duplicado";
+      errors[f.id] = t("schemaBuilder.duplicateName");
       continue;
     }
     seen.add(name.toLowerCase());
@@ -53,6 +55,7 @@ function genId() {
 }
 
 export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
+  const t = useT();
   const parsed = useMemo(() => fromJsonSchema(value as Parameters<typeof fromJsonSchema>[0]), []); // eslint-disable-line react-hooks/exhaustive-deps
   const initialFields = useRef(parsed.fields);
   const initialSupported = useRef(parsed.supported);
@@ -75,22 +78,19 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
     isNew && initialFields.current.length === 0
   );
 
-  // Sync visual → parent whenever fields or validation desc change
   const syncToParent = useCallback(() => {
-    const errors = validateFields(fields);
+    const errors = validateFields(fields, t);
     setFieldErrors(errors);
 
     const schema = toJsonSchema(fields);
-    // Override is_valid_document description
     if (schema.properties.is_valid_document) {
       schema.properties.is_valid_document.description = validationDesc;
     }
     const text = JSON.stringify(schema, null, 2);
     setJsonText(text);
     onChange(schema);
-  }, [fields, validationDesc, onChange]);
+  }, [fields, validationDesc, onChange, t]);
 
-  // Trigger sync on field/desc changes (skip on mount to avoid double-call)
   const mounted = useRef(false);
   useEffect(() => {
     if (!mounted.current) {
@@ -104,14 +104,11 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
 
   const handleToggleJsonMode = () => {
     if (jsonMode) {
-      // Switching from JSON → visual
       try {
         const parsed = JSON.parse(jsonText);
         const result = fromJsonSchema(parsed);
         if (!result.supported) {
-          setJsonError(
-            "El schema tiene estructuras no soportadas por el editor visual"
-          );
+          setJsonError(t("schemaBuilder.unsupportedSchema"));
           return;
         }
         replaceAll(result.fields);
@@ -122,10 +119,9 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
         setJsonError(null);
         setJsonMode(false);
       } catch {
-        setJsonError("JSON inválido");
+        setJsonError(t("schemaBuilder.invalidJson"));
       }
     } else {
-      // Switching from visual → JSON
       const schema = toJsonSchema(fields);
       if (schema.properties.is_valid_document) {
         schema.properties.is_valid_document.description = validationDesc;
@@ -159,14 +155,14 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Campos de extracción</Label>
+          <Label>{t("schemaBuilder.extractionFields")}</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() => setShowTemplates(false)}
           >
-            Saltar
+            {t("schemaBuilder.skip")}
           </Button>
         </div>
         <TemplatePicker onSelect={handleTemplateSelect} />
@@ -177,7 +173,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label>Campos de extracción</Label>
+        <Label>{t("schemaBuilder.extractionFields")}</Label>
         <div className="flex items-center gap-2">
           {!jsonMode && (
             <Button
@@ -187,7 +183,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
               onClick={addField}
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Agregar campo
+              {t("schemaBuilder.addField")}
             </Button>
           )}
           <Button
@@ -197,7 +193,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
             onClick={handleToggleJsonMode}
           >
             <Braces className="h-3.5 w-3.5 mr-1" />
-            {jsonMode ? "Visual" : "JSON"}
+            {jsonMode ? t("schemaBuilder.visual") : t("schemaBuilder.json")}
           </Button>
         </div>
       </div>
@@ -234,7 +230,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
 
           {fields.length === 0 && (
             <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-lg">
-              No hay campos. Haz clic en &quot;Agregar campo&quot; para empezar.
+              {t("schemaBuilder.noFields")}
             </div>
           )}
 
@@ -246,7 +242,7 @@ export function SchemaBuilder({ value, onChange, isNew }: SchemaBuilderProps) {
             onClick={addField}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
-            Agregar campo
+            {t("schemaBuilder.addField")}
           </Button>
         </div>
       )}

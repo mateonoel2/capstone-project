@@ -10,17 +10,19 @@ import {
 import { useExtractorConfigs, useDeleteExtractorConfig } from "@/lib/hooks";
 import { Loader2, Plus, Trash2, Star, PenLine } from "lucide-react";
 import Link from "next/link";
+import { useT } from "@/lib/i18n";
 
 export default function ExtractorsPage() {
   const { data: configs = [], isLoading } = useExtractorConfigs();
   const deleteMutation = useDeleteExtractorConfig();
+  const t = useT();
 
   const handleDelete = async (id: number) => {
-    if (!confirm("¿Eliminar este extractor?")) return;
+    if (!confirm(t("extractors.confirmDelete"))) return;
     try {
       await deleteMutation.mutateAsync(id);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      alert(err instanceof Error ? err.message : t("extractors.deleteError"));
     }
   };
 
@@ -29,7 +31,7 @@ export default function ExtractorsPage() {
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-600">Cargando extractores...</span>
+          <span className="ml-2 text-gray-600">{t("extractors.loading")}</span>
         </div>
       </main>
     );
@@ -40,15 +42,15 @@ export default function ExtractorsPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Extractores</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("extractors.title")}</h1>
             <p className="text-gray-600 mt-1">
-              Configura extractores con prompts, modelos y esquemas personalizados
+              {t("extractors.subtitle")}
             </p>
           </div>
           <Button asChild>
             <Link href="/extractors/new">
               <Plus className="h-4 w-4 mr-2" />
-              Crear Extractor
+              {t("extractors.create")}
             </Link>
           </Button>
         </div>
@@ -69,13 +71,13 @@ export default function ExtractorsPage() {
                         {isDraft && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
                             <PenLine className="h-3 w-3" />
-                            Borrador
+                            {t("extractors.draft")}
                           </span>
                         )}
                         {config.is_default && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                             <Star className="h-3 w-3" />
-                            Default
+                            {t("extractors.default")}
                           </span>
                         )}
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

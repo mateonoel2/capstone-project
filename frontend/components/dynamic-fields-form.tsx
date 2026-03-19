@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toStr } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 interface JsonSchema {
   properties?: Record<string, { type?: string; description?: string }>;
@@ -24,6 +25,7 @@ export function DynamicFieldsForm({
 }: DynamicFieldsFormProps) {
   const jsonSchema = schema as JsonSchema;
   const properties = jsonSchema?.properties || {};
+  const t = useT();
 
   return (
     <div className="space-y-4">
@@ -72,7 +74,7 @@ export function DynamicFieldsForm({
             )}
             {isModified && (
               <p className="text-xs text-yellow-600">
-                IA extrajo: {extractedValue || "(vacío)"}
+                {t("dynamicFields.aiExtracted", { value: extractedValue || t("dynamicFields.empty") })}
               </p>
             )}
           </div>

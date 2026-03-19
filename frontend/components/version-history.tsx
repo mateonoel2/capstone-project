@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { useExtractorVersions, useUpdateExtractorConfig, useToggleVersionActive } from "@/lib/hooks";
 import { Loader2, RotateCcw } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 interface VersionHistoryProps {
   configId: number;
@@ -22,6 +23,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
   const updateMutation = useUpdateExtractorConfig();
   const toggleMutation = useToggleVersionActive();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const t = useT();
 
   const handleRestore = async (version: typeof versions[number]) => {
     try {
@@ -47,7 +49,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
         isActive: !version.is_active,
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al cambiar estado");
+      alert(err instanceof Error ? err.message : t("versionHistory.toggleError"));
     }
   };
 
@@ -66,7 +68,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
   if (versions.length === 0) {
     return (
       <p className="text-sm text-gray-500 py-4">
-        No hay versiones anteriores.
+        {t("versionHistory.noVersions")}
       </p>
     );
   }
@@ -75,11 +77,11 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
     <div className="space-y-3">
       {activeVersions.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-          <p className="font-medium mb-1">Distribución de tráfico</p>
+          <p className="font-medium mb-1">{t("versionHistory.trafficDistribution")}</p>
           <p>
-            Actual ({pct}%)
+            {t("versionHistory.current")} ({pct}%)
             {activeVersions.map((v) => (
-              <span key={v.id}>, Versión {v.version_number} ({pct}%)</span>
+              <span key={v.id}>, {t("versionHistory.version", { number: String(v.version_number) })} ({pct}%)</span>
             ))}
           </p>
         </div>
@@ -97,10 +99,10 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-sm">
-                  Versión {version.version_number}
+                  {t("versionHistory.version", { number: String(version.version_number) })}
                   {version.is_active && (
                     <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 px-1.5 py-0.5 rounded">
-                      Activa
+                      {t("versionHistory.active")}
                     </span>
                   )}
                 </CardTitle>
@@ -109,7 +111,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
                     ? new Date(version.created_at).toLocaleString()
                     : ""}
                   {" · "}
-                  Modelo: {version.model}
+                  {t("versionHistory.model", { name: version.model })}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -130,9 +132,9 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
                   {toggleMutation.isPending ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : version.is_active ? (
-                    "Desactivar"
+                    t("versionHistory.deactivate")
                   ) : (
-                    "Activar A/B"
+                    t("versionHistory.activateAB")
                   )}
                 </Button>
                 <Button
@@ -149,7 +151,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
                   ) : (
                     <>
                       <RotateCcw className="h-3 w-3 mr-1" />
-                      Restaurar
+                      {t("versionHistory.restore")}
                     </>
                   )}
                 </Button>
@@ -160,13 +162,13 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
             <CardContent className="pt-0 px-4 pb-3">
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Prompt</p>
+                  <p className="text-xs font-medium text-gray-500">{t("versionHistory.prompt")}</p>
                   <pre className="text-xs bg-gray-50 p-2 rounded max-h-32 overflow-auto whitespace-pre-wrap">
                     {version.prompt}
                   </pre>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Schema</p>
+                  <p className="text-xs font-medium text-gray-500">{t("versionHistory.schema")}</p>
                   <pre className="text-xs bg-gray-50 p-2 rounded max-h-32 overflow-auto">
                     {JSON.stringify(version.output_schema, null, 2)}
                   </pre>

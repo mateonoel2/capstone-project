@@ -26,6 +26,7 @@ import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
 import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction } from "@/lib/hooks";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export default function Home() {
   const {
@@ -43,6 +44,7 @@ export default function Home() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const t = useT();
 
   const { data: banks = [] } = useBanks();
   const { data: extractorConfigs = [] } = useExtractorConfigs("active");
@@ -77,7 +79,7 @@ export default function Home() {
           setFormData(fields);
         },
         onError: (err) => {
-          setError(err instanceof Error ? err.message : "La extracción falló");
+          setError(err instanceof Error ? err.message : t("extraction.extractionFailed"));
           setExtracted(null);
         },
       }
@@ -112,7 +114,7 @@ export default function Home() {
           }, 2000);
         },
         onError: (err) => {
-          setError(err instanceof Error ? err.message : "El envío falló");
+          setError(err instanceof Error ? err.message : t("extraction.submissionFailed"));
         },
       }
     );
@@ -135,17 +137,16 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Extracción de Documentos
+            {t("extraction.title")}
           </h1>
           <p className="text-gray-600 mt-1">
-            Sube un documento (PDF o imagen) para extraer y verificar la
-            información
+            {t("extraction.subtitle")}
           </p>
         </div>
 
         <div className="mb-4">
           <Label htmlFor="extractor-select" className="text-sm font-medium">
-            Extractor
+            {t("extraction.extractor")}
           </Label>
           <Select
             value={selectedExtractorId?.toString() ?? ""}
@@ -158,13 +159,13 @@ export default function Home() {
             }}
           >
             <SelectTrigger id="extractor-select" className="w-80 mt-1">
-              <SelectValue placeholder="Seleccionar extractor..." />
+              <SelectValue placeholder={t("extraction.selectExtractor")} />
             </SelectTrigger>
             <SelectContent>
               {extractorConfigs.map((config) => (
                 <SelectItem key={config.id} value={config.id.toString()}>
                   {config.name}
-                  {config.is_default ? " (default)" : ""}
+                  {config.is_default ? ` ${t("extraction.default")}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -181,7 +182,7 @@ export default function Home() {
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Documento</CardTitle>
+                  <CardTitle>{t("extraction.document")}</CardTitle>
                   <CardDescription>{file.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -195,14 +196,14 @@ export default function Home() {
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Información Extraída</CardTitle>
+                  <CardTitle>{t("extraction.extractedInfo")}</CardTitle>
                   <CardDescription>
                     {isDefaultExtractor
-                      ? "Revisa y corrige los datos extraídos antes de enviar"
-                      : `Extractor: ${selectedConfig?.name}`}
+                      ? t("extraction.reviewDefault")
+                      : `${t("extraction.extractor")}: ${selectedConfig?.name}`}
                     {extracted?.extractor_config_version_number != null && (
                       <span className="ml-2 text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
-                        Versión {extracted.extractor_config_version_number}
+                        {t("extraction.version", { number: String(extracted.extractor_config_version_number) })}
                       </span>
                     )}
                   </CardDescription>
@@ -212,7 +213,7 @@ export default function Home() {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                       <span className="ml-2 text-gray-600">
-                        Extrayendo datos...
+                        {t("extraction.extracting")}
                       </span>
                     </div>
                   ) : error && !extracted ? (
@@ -220,7 +221,7 @@ export default function Home() {
                       <div className="flex items-start gap-3 text-red-600 bg-red-50 p-4 rounded-lg">
                         <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-medium">Error en la extracción</p>
+                          <p className="font-medium">{t("extraction.extractionError")}</p>
                           <p className="text-sm mt-1">{error}</p>
                         </div>
                       </div>
@@ -229,7 +230,7 @@ export default function Home() {
                         variant="outline"
                         className="w-full"
                       >
-                        Intentar con otro archivo
+                        {t("extraction.tryAnother")}
                       </Button>
                     </div>
                   ) : (
@@ -237,14 +238,14 @@ export default function Home() {
                       {isDefaultExtractor ? (
                         <>
                           <div className="space-y-2">
-                            <Label htmlFor="owner">Titular de la Cuenta</Label>
+                            <Label htmlFor="owner">{t("extraction.owner")}</Label>
                             <Input
                               id="owner"
                               value={formData.owner || ""}
                               onChange={(e) =>
                                 updateFormField("owner", e.target.value)
                               }
-                              placeholder="Nombre del titular"
+                              placeholder={t("extraction.ownerPlaceholder")}
                               className={
                                 extracted && formData.owner !== toStr(extracted.fields?.owner)
                                   ? "border-yellow-400"
@@ -253,13 +254,13 @@ export default function Home() {
                             />
                             {extracted && formData.owner !== toStr(extracted.fields?.owner) && (
                               <p className="text-xs text-yellow-600">
-                                IA extrajo: {toStr(extracted.fields?.owner) || "(vacío)"}
+                                {t("extraction.aiExtracted", { value: toStr(extracted.fields?.owner) || t("extraction.empty") })}
                               </p>
                             )}
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="bank_name">Banco</Label>
+                            <Label htmlFor="bank_name">{t("extraction.bank")}</Label>
                             <BankCombobox
                               banks={banks}
                               value={formData.bank_name || ""}
@@ -276,14 +277,14 @@ export default function Home() {
                             {extracted &&
                               formData.bank_name !== toStr(extracted.fields?.bank_name) && (
                                 <p className="text-xs text-yellow-600">
-                                  IA extrajo: {toStr(extracted.fields?.bank_name) || "(vacío)"}
+                                  {t("extraction.aiExtracted", { value: toStr(extracted.fields?.bank_name) || t("extraction.empty") })}
                                 </p>
                               )}
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor="account_number">
-                              Número de Cuenta (CLABE)
+                              {t("extraction.accountNumber")}
                             </Label>
                             <Input
                               id="account_number"
@@ -291,7 +292,7 @@ export default function Home() {
                               onChange={(e) =>
                                 updateFormField("account_number", e.target.value)
                               }
-                              placeholder="CLABE de 18 dígitos"
+                              placeholder={t("extraction.accountPlaceholder")}
                               className={
                                 extracted &&
                                 formData.account_number !==
@@ -304,8 +305,7 @@ export default function Home() {
                               formData.account_number !==
                                 toStr(extracted.fields?.account_number) && (
                                 <p className="text-xs text-yellow-600">
-                                  IA extrajo:{" "}
-                                  {toStr(extracted.fields?.account_number) || "(vacío)"}
+                                  {t("extraction.aiExtracted", { value: toStr(extracted.fields?.account_number) || t("extraction.empty") })}
                                 </p>
                               )}
                           </div>
@@ -335,7 +335,7 @@ export default function Home() {
                         <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded">
                           <CheckCircle className="h-4 w-4" />
                           <span className="text-sm">
-                            Enviado exitosamente!
+                            {t("extraction.submittedSuccess")}
                           </span>
                         </div>
                       )}
@@ -343,7 +343,7 @@ export default function Home() {
                       {isModified && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
                           <p className="text-sm text-yellow-800">
-                            Has modificado los datos extraídos
+                            {t("extraction.modifiedWarning")}
                           </p>
                         </div>
                       )}
@@ -357,10 +357,10 @@ export default function Home() {
                           {submitMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando...
+                              {t("extraction.submitting")}
                             </>
                           ) : (
-                            "Enviar"
+                            t("extraction.submit")
                           )}
                         </Button>
                         <Button
@@ -369,7 +369,7 @@ export default function Home() {
                           onClick={handleReset}
                           disabled={submitMutation.isPending}
                         >
-                          Reiniciar
+                          {t("extraction.reset")}
                         </Button>
                       </div>
                     </form>
