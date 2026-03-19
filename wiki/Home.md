@@ -65,7 +65,7 @@ capstone-project/
 │   │   │   ├── validators.py       # Validacion CLABE/bancos
 │   │   │   ├── extractor_interface.py # BaseExtractor ABC
 │   │   │   ├── entities.py         # Entidades de dominio y API calls
-│   │   │   └── services/           # Servicios de negocio
+│   │   │   └── services/           # Servicios de negocio (incl. QuotaService)
 │   │   ├── infrastructure/         # Integraciones externas
 │   │   │   ├── api/auth/           # Rutas de autenticación (/auth)
 │   │   │   ├── api/admin/          # Rutas de administración (/admin/users)
@@ -139,7 +139,8 @@ capstone-project/
 ### Completamente Implementado
 
 - Autenticacion con *GitHub OAuth* (*NextAuth.js*) y tokens *JWT* en el *backend*
-- *Multi-tenancy* con tabla de usuarios, roles (*user*/*admin*) y datos aislados por usuario
+- *Multi-tenancy* con tabla de usuarios, roles (*user*/*admin*/*guest*) y datos aislados por usuario
+- Registro automatico como *guest* con cuotas de uso diarias (extracciones, extractores, *prompts* IA)
 - Panel de administracion para gestion de usuarios (crear, editar rol, activar/desactivar, eliminar)
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores con asistente de IA

@@ -35,7 +35,7 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │         API REST (FastAPI)              │
-│  - POST /auth/login (GitHub → JWT)      │
+│  - POST /auth/login (GitHub → JWT/guest) │
 │  - GET /admin/users (gestión)           │
 │  - POST /extraction/upload-url          │
 │  - POST /extraction/upload (fallback)   │
@@ -51,6 +51,7 @@
 │  - StatementExtractor (vision)          │
 │  - Extractor Configs (schema + prompt)  │
 │  - AI Assist (schema/prompt generation) │
+│  - QuotaService (guest limits)          │
 │  - API Call Tracking                    │
 └─────────────────────────────────────────┘
     ↓            ↓            ↓
@@ -62,6 +63,7 @@
 │-Logs   │  │ -Images  │  │ -Structured  │
 │-API    │  │          │  │  Output      │
 │ Calls  │  │          │  │              │
+│-AI Use │  │          │  │              │
 └────────┘  └──────────┘  └──────────────┘
 ```
 

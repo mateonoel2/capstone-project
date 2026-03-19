@@ -2,6 +2,20 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Cuotas de Uso y Tier *Guest* (Marzo 2026)
+
+### Cambios principales
+
+- **Rol *guest***: Los usuarios de *GitHub* que no estan pre-registrados ahora se registran automaticamente como *guest* en su primer login, sin necesidad de que un admin los cree previamente
+- **Cuotas de uso**: Los usuarios *guest* tienen limites diarios: 10 extracciones/dia, 1 extractor maximo, 10 *prompts* de IA/dia. Usuarios con rol *user* o *admin* no tienen limites
+- **`QuotaService`**: Nuevo servicio en `domain/services/quota.py` que verifica cuotas antes de cada operacion (extraccion, creacion de extractor, generacion IA)
+- **Registro de uso de IA**: Nueva tabla `ai_usage_logs` para rastrear acciones de IA por usuario (generacion de *schemas*, *prompts*, refinamiento)
+- **Banner de cuota**: Nuevo componente `QuotaBanner` en el *frontend* que muestra el uso actual para usuarios *guest* (extracciones, extractores, *prompts* IA)
+- **Endpoint de uso**: `GET /auth/usage` retorna el uso actual y limites del usuario
+- **Manejo de errores**: `QuotaExceededError` en el dominio, con respuesta HTTP 429 en las rutas que verifican cuota
+
+---
+
 ## Actualizacion: Documentacion de API para Clientes (Marzo 2026)
 
 ### Cambios principales
@@ -190,6 +204,7 @@ GET  /extractors/models           - Listar modelos disponibles
 GET  /extractors/versions         - Versiones de un extractor
 POST /auth/login                 - Login con token de GitHub, retorna JWT
 GET  /auth/me                    - Obtener usuario autenticado
+GET  /auth/usage                 - Obtener uso y cuotas del usuario
 GET  /admin/users                - Listar usuarios (admin)
 POST /admin/users                - Crear usuario (admin)
 PUT  /admin/users/{id}           - Actualizar usuario (admin)
@@ -237,6 +252,7 @@ La aplicación inicia en http://localhost:3000
 - `extraction_logs`: Valores extraidos, correcciones del usuario, *flags* de correccion por campo
 - `api_call_logs`: Modelo utilizado, exito/error, tiempo de respuesta, tipo de error
 - `test_extraction_logs`: Registro de extracciones de prueba con *snapshot* de configuracion
+- `ai_usage_logs`: Registro de acciones de IA por usuario (para cuotas *guest*)
 
 ## Métricas y Análisis
 

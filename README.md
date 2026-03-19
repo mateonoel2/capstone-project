@@ -16,7 +16,8 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 
 - Aplicacion web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
 - Autenticacion con *GitHub OAuth* (*NextAuth.js*) y tokens *JWT* en el *backend*
-- *Multi-tenancy*: tabla de usuarios con roles (*user*/*admin*), datos aislados por usuario
+- *Multi-tenancy*: tabla de usuarios con roles (*user*/*admin*/*guest*), datos aislados por usuario
+- Registro automatico como *guest* para usuarios nuevos de *GitHub*, con cuotas de uso diarias
 - Panel de administracion para gestion de usuarios (crear, editar rol, activar/desactivar, eliminar)
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores (identidad, *schema*, *prompt*, prueba)
@@ -49,7 +50,7 @@ capstone-project/
 │   │   │   ├── validators.py         # Validación de CLABE y bancos
 │   │   │   ├── extractor_interface.py # BaseExtractor ABC
 │   │   │   ├── entities.py           # Entidades de dominio y API calls
-│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ExtractorConfigService
+│   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ExtractorConfigService, QuotaService
 │   │   ├── infrastructure/            # Integraciones externas
 │   │   │   │   ├── api/auth/             # Rutas de autenticación (/auth)
 │   │   │   ├── api/admin/            # Rutas de administración (/admin/users)
