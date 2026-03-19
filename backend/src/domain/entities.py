@@ -26,6 +26,10 @@ class ExtractionError(Exception):
         self.call_result = call_result
 
 
+class QuotaExceededError(Exception):
+    pass
+
+
 @dataclass
 class SubmissionData:
     filename: str

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, X } from "lucide-react";
-import { useGenerateSchema, useGeneratePrompt, useUpdatePrompt } from "@/lib/hooks";
+import { useGenerateSchema, useGeneratePrompt, useUpdatePrompt, useUsageQuota } from "@/lib/hooks";
 import { useT } from "@/lib/i18n";
 
 export type AssistantMode = "schema" | "prompt" | null;
@@ -33,7 +33,15 @@ export function AssistantSidebar({
   const generateSchema = useGenerateSchema();
   const generatePrompt = useGeneratePrompt();
   const updatePromptMutation = useUpdatePrompt();
+  const { data: quota } = useUsageQuota();
   const t = useT();
+
+  const aiLimitReached = !!(
+    quota &&
+    !quota.unlimited &&
+    quota.ai_prompts &&
+    quota.ai_prompts.used >= quota.ai_prompts.limit
+  );
 
   const handleGenerateSchema = () => {
     if (!schemaDescription.trim()) return;
@@ -143,7 +151,7 @@ export function AssistantSidebar({
                 size="sm"
                 className="w-full"
                 onClick={handleGenerateSchema}
-                disabled={generateSchema.isPending || !schemaDescription.trim()}
+                disabled={generateSchema.isPending || !schemaDescription.trim() || aiLimitReached}
               >
                 {generateSchema.isPending ? (
                   <>
@@ -186,7 +194,7 @@ export function AssistantSidebar({
                       }
                     );
                   }}
-                  disabled={isPromptPending || !hasSchemaFields}
+                  disabled={isPromptPending || !hasSchemaFields || aiLimitReached}
                 >
                   {generatePrompt.isPending ? (
                     <>
@@ -236,7 +244,7 @@ export function AssistantSidebar({
                   variant="outline"
                   className="w-full"
                   onClick={handlePromptAction}
-                  disabled={isPromptPending || !promptInstructions.trim() || !hasSchemaFields}
+                  disabled={isPromptPending || !promptInstructions.trim() || !hasSchemaFields || aiLimitReached}
                 >
                   {updatePromptMutation.isPending ? (
                     <>

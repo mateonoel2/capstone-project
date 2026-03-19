@@ -30,6 +30,13 @@ async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   return response;
 }
 
+export class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QuotaExceededError";
+  }
+}
+
 async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
   try {
     const body = await response.json();
@@ -37,6 +44,15 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
   } catch {
     return `${fallback} (HTTP ${response.status})`;
   }
+}
+
+async function throwIfError(response: Response, fallback: string): Promise<void> {
+  if (response.ok) return;
+  const detail = await parseErrorDetail(response, fallback);
+  if (response.status === 429) {
+    throw new QuotaExceededError(detail);
+  }
+  throw new Error(detail);
 }
 
 export interface ExtractionResult {
@@ -169,6 +185,25 @@ export async function getMe(): Promise<BackendUser> {
   return response.json();
 }
 
+// Usage Quota
+export interface UsageQuotaResource {
+  used: number;
+  limit: number;
+}
+
+export interface UsageQuota {
+  unlimited: boolean;
+  extractions?: UsageQuotaResource;
+  extractors?: UsageQuotaResource;
+  ai_prompts?: UsageQuotaResource;
+}
+
+export async function getUsageQuota(): Promise<UsageQuota> {
+  const response = await authFetch(`${API_BASE_URL}/auth/usage`);
+  if (!response.ok) throw new Error("Failed to fetch usage quota");
+  return response.json();
+}
+
 // Admin
 export interface AdminUser {
   id: number;
@@ -281,10 +316,7 @@ export async function extractFromFile(s3Key: string, filename: string, extractor
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(await parseErrorDetail(response, "Extraction failed"));
-  }
-
+  await throwIfError(response, "Extraction failed");
   return response.json();
 }
 
@@ -358,9 +390,7 @@ export async function createExtractorConfig(config: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
   });
-  if (!response.ok) {
-    throw new Error(await parseErrorDetail(response, "Failed to create extractor config"));
-  }
+  await throwIfError(response, "Failed to create extractor config");
   return response.json();
 }
 
@@ -433,9 +463,7 @@ export async function generateSchema(description: string): Promise<{ output_sche
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ description }),
   });
-  if (!response.ok) {
-    throw new Error(await parseErrorDetail(response, "Failed to generate schema"));
-  }
+  await throwIfError(response, "Failed to generate schema");
   return response.json();
 }
 
@@ -448,9 +476,7 @@ export async function generatePrompt(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ output_schema, document_type }),
   });
-  if (!response.ok) {
-    throw new Error(await parseErrorDetail(response, "Failed to generate prompt"));
-  }
+  await throwIfError(response, "Failed to generate prompt");
   return response.json();
 }
 
@@ -464,9 +490,7 @@ export async function updatePrompt(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ current_prompt, instructions, output_schema }),
   });
-  if (!response.ok) {
-    throw new Error(await parseErrorDetail(response, "Failed to update prompt"));
-  }
+  await throwIfError(response, "Failed to update prompt");
   return response.json();
 }
 
@@ -502,7 +526,7 @@ export async function createApiToken(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, expires_at: expires_at ?? null }),
   });
-  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to create token"));
+  await throwIfError(response, "Failed to create token");
   return response.json();
 }
 

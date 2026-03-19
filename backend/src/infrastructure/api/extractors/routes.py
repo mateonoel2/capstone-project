@@ -11,6 +11,7 @@ from src.domain.entities import ExtractorConfigData, UserData
 from src.domain.services.extractor_config import ExtractorConfigService
 
 logger = get_logger(__name__)
+from src.domain.services.quota import QuotaService
 from src.infrastructure.ai_assist import (
     generate_prompt_from_schema,
     generate_schema_from_description,
@@ -39,7 +40,12 @@ from src.infrastructure.extractors.statement_extractor import (
     SUPPORTED_EXTENSIONS,
     StatementExtractor,
 )
-from src.infrastructure.repository import ExtractorConfigRepository, TestExtractionLogRepository
+from src.infrastructure.repository import (
+    AiUsageLogRepository,
+    ApiCallRepository,
+    ExtractorConfigRepository,
+    TestExtractionLogRepository,
+)
 from src.infrastructure.storage import get_storage
 
 DbDep = Annotated[Session, Depends(get_db)]
@@ -75,6 +81,14 @@ def _get_service(db: Session) -> ExtractorConfigService:
     return ExtractorConfigService(ExtractorConfigRepository(db))
 
 
+def _get_quota(db: Session) -> QuotaService:
+    return QuotaService(
+        api_call_repo=ApiCallRepository(db),
+        extractor_repo=ExtractorConfigRepository(db),
+        ai_usage_repo=AiUsageLogRepository(db),
+    )
+
+
 def _check_ownership(config: ExtractorConfigData, user: UserData) -> None:
     if user.role != "admin" and config.user_id != user.id:
         raise HTTPException(status_code=404, detail="Extractor config not found")
@@ -96,29 +110,38 @@ async def get_available_models(user: UserDep):
 
 
 @router.post("/generate-schema", response_model=GenerateSchemaResponse)
-async def generate_schema(request: GenerateSchemaRequest, user: UserDep):
+async def generate_schema(request: GenerateSchemaRequest, db: DbDep, user: UserDep):
+    quota = _get_quota(db)
+    quota.check_ai_prompt_quota(user)
     try:
         schema = generate_schema_from_description(request.description)
+        AiUsageLogRepository(db).create(user.id, "generate_schema")
         return GenerateSchemaResponse(output_schema=schema)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando schema: {str(e)}")
 
 
 @router.post("/generate-prompt", response_model=GeneratePromptResponse)
-async def generate_prompt(request: GeneratePromptRequest, user: UserDep):
+async def generate_prompt(request: GeneratePromptRequest, db: DbDep, user: UserDep):
+    quota = _get_quota(db)
+    quota.check_ai_prompt_quota(user)
     try:
         prompt = generate_prompt_from_schema(request.output_schema, request.document_type)
+        AiUsageLogRepository(db).create(user.id, "generate_prompt")
         return GeneratePromptResponse(prompt=prompt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando prompt: {str(e)}")
 
 
 @router.post("/update-prompt", response_model=GeneratePromptResponse)
-async def update_prompt(request: UpdatePromptRequest, user: UserDep):
+async def update_prompt(request: UpdatePromptRequest, db: DbDep, user: UserDep):
+    quota = _get_quota(db)
+    quota.check_ai_prompt_quota(user)
     try:
         prompt = update_prompt_with_instructions(
             request.current_prompt, request.instructions, request.output_schema
         )
+        AiUsageLogRepository(db).create(user.id, "update_prompt")
         return GeneratePromptResponse(prompt=prompt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando prompt: {str(e)}")
@@ -251,6 +274,8 @@ async def get_extractor_versions(config_id: int, db: DbDep, user: UserDep):
 
 @router.post("", response_model=ExtractorConfigResponse, status_code=201)
 async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbDep, user: UserDep):
+    quota = _get_quota(db)
+    quota.check_extractor_create_quota(user)
     service = _get_service(db)
     data = ExtractorConfigData(
         id=None,

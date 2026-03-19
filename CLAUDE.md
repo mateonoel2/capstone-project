@@ -45,11 +45,11 @@ Three layers under `src/`:
   - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`, `BANK_DICT_KUSHKI`
   - `validators.py` — CLABE/bank regex patterns and validation
   - `extractor_interface.py` — `BaseExtractor` ABC
-  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`, `ExtractorConfigData`, `UserData`
-  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`, `ExtractorConfigService`
+  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`, `QuotaExceededError`, `ExtractorConfigData`, `UserData`
+  - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`, `ExtractorConfigService`, `QuotaService`
 
 - **`src/infrastructure/`** — External integrations
-  - `api/auth/routes.py` — Authentication routes (`/auth/login`, `/auth/me`)
+  - `api/auth/routes.py` — Authentication routes (`/auth/login`, `/auth/me`, `/auth/usage`)
   - `api/admin/routes.py` — Admin routes for user management (`/admin/users` CRUD)
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
@@ -58,8 +58,8 @@ Three layers under `src/`:
   - `auth.py` — JWT token creation/validation, API token authentication, `get_current_user`/`get_admin_user` dependencies
   - `ai_assist.py` — Claude-powered schema generation, prompt generation, and prompt refinement
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog`, `ApiToken` ORM models
-  - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`, `ApiTokenRepository`
+  - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog`, `ApiToken`, `AiUsageLog` ORM models
+  - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`, `ApiTokenRepository`, `AiUsageLogRepository`
   - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload URLs, download, CORS config)
   - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
@@ -83,7 +83,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 - `auth.ts` — NextAuth.js configuration (GitHub provider, JWT callbacks)
 - `middleware.ts` — Route protection (redirects unauthenticated users to `/login`)
 - `components/auth-provider.tsx` — `SessionProvider` + `BackendAuthSync` (exchanges GitHub token for backend JWT)
-- `components/app-shell.tsx` — Conditional layout (hides sidebar on login page)
+- `components/app-shell.tsx` — Conditional layout (hides sidebar on login page, includes quota banner for guests)
+- `components/quota-banner.tsx` — Usage quota display for guest users
 - `components/assistant/` — AI-powered sidebar for schema/prompt generation
 - `components/extractor-wizard/` — Multi-step wizard components
 - `lib/hooks.ts` — React Query hooks for server state (configs, versions, AI generation, extraction, users)
@@ -95,7 +96,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 
 - **Authentication**: GitHub OAuth via NextAuth.js (frontend) + JWT tokens for backend API. Frontend exchanges GitHub access token for a backend JWT via `POST /auth/login`. Also supports API tokens for programmatic access (Bearer token auth), managed via `/tokens` endpoints
 - **Client API docs**: Filtered OpenAPI spec at `/api/docs` showing only client-facing endpoints (extraction, extractors, tokens). Full internal docs remain at `/docs`
-- **Multi-tenancy**: `users` table with roles (`user`/`admin`). All data tables have `user_id` FK. Extractor configs scoped per user (unique name per user). Admin pre-registers users by GitHub username
+- **Multi-tenancy**: `users` table with roles (`user`/`admin`/`guest`). All data tables have `user_id` FK. Extractor configs scoped per user (unique name per user). Unknown GitHub users auto-register as `guest` on first login
+- **Guest quotas**: Guest users have daily limits on extractions (10/day), extractors (1 max), and AI prompts (10/day). Enforced by `QuotaService` with `QuotaExceededError`. Usage tracked via `GET /auth/usage`
 - **Extractor config**: User-defined extraction configuration with name, model, prompt, and JSON output schema. Supports draft/active status and versioning for A/B testing
 - **Upload flow**: Frontend requests presigned URL → direct S3 PUT (with backend fallback) → extract by S3 key
 - **Extraction flow**: S3 key → download from storage → vision-based Claude extractor (using config's prompt + schema) → structured output → user correction → persistence with correction flags

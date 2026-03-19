@@ -11,6 +11,7 @@
     "admin": "Admin",
     "signOut": "Cerrar sesión",
     "apiTokens": "Tokens API",
+    "guest": "Invitado",
     "version": "Extracto v1.0",
     "language": "ES"
   },
@@ -19,7 +20,7 @@
     "subtitle": "Inicia sesión para acceder al sistema",
     "signingIn": "Iniciando sesión...",
     "signInWithGithub": "Iniciar sesión con GitHub",
-    "accessDenied": "Usuario no registrado. Contacta al administrador para obtener acceso.",
+    "accessDenied": "No se pudo iniciar sesión. Intenta de nuevo.",
     "genericError": "Error al iniciar sesión. Intenta de nuevo."
   },
   "extraction": {
@@ -331,6 +332,13 @@
     "copy": "Copiar",
     "copied": "Copiado!",
     "close": "Cerrar"
+  },
+  "quota": {
+    "guest": "Invitado:",
+    "extractions": "extracciones",
+    "extractors": "extractores",
+    "aiPrompts": "prompts IA",
+    "limitReached": "Límite alcanzado"
   },
   "templates": {
     "bankStatement": "Estado de cuenta bancaria",

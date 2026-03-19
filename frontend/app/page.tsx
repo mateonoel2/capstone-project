@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
-import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction } from "@/lib/hooks";
+import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction, useUsageQuota } from "@/lib/hooks";
 import { Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
@@ -48,6 +48,14 @@ export default function Home() {
 
   const { data: banks = [] } = useBanks();
   const { data: extractorConfigs = [] } = useExtractorConfigs("active");
+  const { data: quota } = useUsageQuota();
+
+  const extractionLimitReached = !!(
+    quota &&
+    !quota.unlimited &&
+    quota.extractions &&
+    quota.extractions.used >= quota.extractions.limit
+  );
 
   const uploadAndExtract = useUploadAndExtract();
   const submitMutation = useSubmitExtraction();
@@ -189,10 +197,18 @@ export default function Home() {
         </div>
 
         {!file ? (
-          <FileUpload
-            onFileSelect={handleFileSelect}
-            isLoading={uploadAndExtract.isPending}
-          />
+          <>
+            {extractionLimitReached && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <p>{t("quota.limitReached")}</p>
+              </div>
+            )}
+            <FileUpload
+              onFileSelect={extractionLimitReached ? () => {} : handleFileSelect}
+              isLoading={uploadAndExtract.isPending}
+            />
+          </>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">

@@ -14,6 +14,7 @@ from src.domain.entities import (
 from src.domain.services.api_metrics import ApiMetricsService
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
+from src.domain.services.quota import QuotaService
 from src.domain.services.submission import SubmissionService
 from src.infrastructure.api.extraction.dtos import (
     ApiCallMetricsResponse,
@@ -34,6 +35,7 @@ from src.infrastructure.api.extraction.dtos import (
 from src.infrastructure.auth import UserDep
 from src.infrastructure.database import get_db
 from src.infrastructure.repository import (
+    AiUsageLogRepository,
     ApiCallRepository,
     ExtractionRepository,
     ExtractorConfigRepository,
@@ -114,6 +116,13 @@ async def upload_file(file: Annotated[UploadFile, File()], user: UserDep):
 
 @router.post("/extract", response_model=ExtractionResponse)
 async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
+    quota = QuotaService(
+        api_call_repo=ApiCallRepository(db),
+        extractor_repo=ExtractorConfigRepository(db),
+        ai_usage_repo=AiUsageLogRepository(db),
+    )
+    quota.check_extraction_quota(user)
+
     api_repo = ApiCallRepository(db)
     config_data = _load_config(db, request.extractor_config_id)
 

@@ -144,3 +144,12 @@ class ApiCallLog(Base):
     extractor_config_version_id = Column(
         Integer, ForeignKey("extractor_config_versions.id"), nullable=True
     )
+
+
+class AiUsageLog(Base):
+    __tablename__ = "ai_usage_logs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    action = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -38,6 +38,11 @@ def create_token(
     user: UserDep,
     db: Session = Depends(get_db),
 ):
+    if user.role == "guest":
+        raise HTTPException(
+            status_code=403,
+            detail="Los invitados no pueden crear tokens API",
+        )
     plaintext = generate_api_token()
     token_hash = hash_token(plaintext)
     repo = ApiTokenRepository(db)
