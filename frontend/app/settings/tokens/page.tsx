@@ -47,10 +47,14 @@ export default function TokensPage() {
   const revokeMutation = useRevokeApiToken();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showRevoked, setShowRevoked] = useState(false);
   const [tokenName, setTokenName] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [createdToken, setCreatedToken] = useState<CreateTokenResponse | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const visibleTokens = tokens?.filter((t) => showRevoked || !t.is_revoked);
+  const revokedCount = tokens?.filter((t) => t.is_revoked).length ?? 0;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +189,7 @@ export default function TokensPage() {
       {isLoading && <p className="text-sm text-gray-500">{t("tokens.loading")}</p>}
       {error && <p className="text-sm text-red-600">{t("tokens.loadError")}</p>}
 
-      {tokens && tokens.length === 0 && !showCreateForm && (
+      {tokens && visibleTokens && visibleTokens.length === 0 && tokens.length === 0 && !showCreateForm && (
         <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
           <Key className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-lg font-medium text-gray-900">{t("tokens.emptyTitle")}</h3>
@@ -201,8 +205,21 @@ export default function TokensPage() {
         </div>
       )}
 
-      {tokens && tokens.length > 0 && (
+      {tokens && visibleTokens && (visibleTokens.length > 0 || revokedCount > 0) && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          {revokedCount > 0 && (
+            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-6 py-2">
+              <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showRevoked}
+                  onChange={(e) => setShowRevoked(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                {t("tokens.showRevoked", { count: revokedCount })}
+              </label>
+            </div>
+          )}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -227,7 +244,7 @@ export default function TokensPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {tokens.map((token) => (
+              {visibleTokens.map((token) => (
                 <tr key={token.id}>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span className="text-sm font-medium text-gray-900">{token.name}</span>

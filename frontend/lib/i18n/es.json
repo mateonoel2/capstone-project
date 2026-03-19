@@ -320,6 +320,7 @@
     "noExpiry": "Sin expiración",
     "revoke": "Revocar",
     "confirmRevoke": "¿Revocar el token \"{name}\"? Las solicitudes que lo usen dejarán de funcionar.",
+    "showRevoked": "Mostrar revocados ({count})",
     "emptyTitle": "No tienes tokens API",
     "emptyDescription": "Los tokens API te permiten integrar la extracción de documentos en tus propios scripts, pipelines de CI/CD o aplicaciones sin necesidad de iniciar sesión por el navegador.",
     "tokenCreated": "Token creado",

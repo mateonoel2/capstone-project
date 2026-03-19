@@ -320,6 +320,7 @@
     "noExpiry": "No expiry",
     "revoke": "Revoke",
     "confirmRevoke": "Revoke token \"{name}\"? Requests using it will stop working.",
+    "showRevoked": "Show revoked ({count})",
     "emptyTitle": "You have no API tokens",
     "emptyDescription": "API tokens let you integrate document extraction into your own scripts, CI/CD pipelines, or applications without browser login.",
     "tokenCreated": "Token created",
