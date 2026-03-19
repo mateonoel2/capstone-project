@@ -49,7 +49,10 @@
     "submit": "Enviar",
     "reset": "Reiniciar",
     "extractionFailed": "La extracción falló",
-    "submissionFailed": "El envío falló"
+    "submissionFailed": "El envío falló",
+    "apiNote": "Para integrar la extracción en tus sistemas, consulta la",
+    "apiDocsLink": "documentación de la API",
+    "apiNoteSuffix": ". Las extracciones vía API se registran en tu dashboard."
   },
   "extractors": {
     "loading": "Cargando extractores...",

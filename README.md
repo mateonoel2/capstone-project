@@ -1,5 +1,7 @@
 # Extracción de Datos de Documentos
 
+🔗 **[Ver aplicación en producción](https://capstone-project-sigma-one.vercel.app/)**
+
 Proyecto de *capstone* para la extracción automática de información estructurada de documentos utilizando Claude Haiku 4.5. Originalmente diseñado para estados de cuenta bancarios mexicanos, ahora soporta tipos de documentos arbitrarios con extractores configurables.
 
 
@@ -28,6 +30,8 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 - *React Query* para gestion de estado del servidor, *Zustand* para estado de UI
 - Almacenamiento en PostgreSQL con migraciones Alembic
 - Subida de archivos a S3 con *presigned URLs* (subida directa desde el navegador, con *fallback* via *backend*)
+- Tokens API para acceso programatico con autenticacion *Bearer*
+- Documentacion de API para clientes en `/api/docs` (vista filtrada del *OpenAPI spec*)
 - Despliegue en Railway (backend) y Vercel (frontend)
 - CI con GitHub Actions (ruff format, lint, tests)
 - Docker Compose para desarrollo local (backend + PostgreSQL + LocalStack)
@@ -51,6 +55,7 @@ capstone-project/
 │   │   │   ├── api/admin/            # Rutas de administración (/admin/users)
 │   │   │   ├── api/extraction/       # Rutas HTTP y DTOs (/extraction)
 │   │   │   ├── api/extractors/       # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── api/tokens/          # Rutas HTTP (/tokens CRUD)
 │   │   │   ├── auth.py                # JWT y validación de tokens GitHub
 │   │   │   ├── ai_assist.py          # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
@@ -68,7 +73,7 @@ capstone-project/
 │   └── data/                          # Datos de prueba
 │
 ├── frontend/                          # Next.js 15 (App Router)
-│   ├── app/                           # Páginas (/, /login, /extractors, /dashboard, /admin)
+│   ├── app/                           # Páginas (/, /login, /extractors, /dashboard, /admin, /settings/tokens)
 │   ├── auth.ts                        # Configuración NextAuth.js (GitHub OAuth)
 │   ├── middleware.ts                  # Protección de rutas (redirige a /login)
 │   ├── components/                    # Componentes React + shadcn/ui

@@ -38,7 +38,7 @@ npm run lint                             # eslint
 
 Three layers under `src/`:
 
-- **`src/main.py`** — FastAPI app entry point with CORS and lifespan
+- **`src/main.py`** — FastAPI app entry point with CORS, lifespan, and client API docs (`/api/docs` with filtered OpenAPI spec)
 
 - **`src/domain/`** — Pure business logic (no external dependencies)
   - `schemas.py` — `BankAccount`, `ExtractionOutput` Pydantic models
@@ -54,11 +54,12 @@ Three layers under `src/`:
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
   - `api/extractors/routes.py` — HTTP routes under `/extractors` (CRUD, versioning, AI generation, test extraction)
-  - `auth.py` — JWT token creation/validation, `get_current_user`/`get_admin_user` dependencies, GitHub token validation
+  - `api/tokens/routes.py` — API token management routes (`/tokens` CRUD)
+  - `auth.py` — JWT token creation/validation, API token authentication, `get_current_user`/`get_admin_user` dependencies
   - `ai_assist.py` — Claude-powered schema generation, prompt generation, and prompt refinement
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog` ORM models
-  - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`
+  - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog`, `ApiToken` ORM models
+  - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`, `ApiTokenRepository`
   - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload URLs, download, CORS config)
   - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
@@ -72,12 +73,13 @@ Three layers under `src/`:
 Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React Query for server state, and Zustand for UI state.
 
 - `/login` — GitHub OAuth login page
-- `/` — Main extraction workflow: upload file (PDF/JPG/PNG) → preview → editable extracted fields → submit
+- `/` — Main extraction workflow: upload file (PDF/JPG/PNG) → preview → editable extracted fields → submit. Includes info banner linking to client API docs
 - `/extractors` — Extractor config management (list, create, edit, delete)
 - `/extractors/new` — Multi-step wizard to create extractor configs (identity, schema, prompt, test)
 - `/extractors/[id]/edit` — Edit existing extractor config
 - `/dashboard` — Accuracy metrics and extraction history
 - `/admin/users` — User management (admin only): create, edit roles, activate/deactivate, delete
+- `/settings/tokens` — API token management: create, revoke, view usage
 - `auth.ts` — NextAuth.js configuration (GitHub provider, JWT callbacks)
 - `middleware.ts` — Route protection (redirects unauthenticated users to `/login`)
 - `components/auth-provider.tsx` — `SessionProvider` + `BackendAuthSync` (exchanges GitHub token for backend JWT)
@@ -91,7 +93,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 
 ## Key Domain Concepts
 
-- **Authentication**: GitHub OAuth via NextAuth.js (frontend) + JWT tokens for backend API. Frontend exchanges GitHub access token for a backend JWT via `POST /auth/login`
+- **Authentication**: GitHub OAuth via NextAuth.js (frontend) + JWT tokens for backend API. Frontend exchanges GitHub access token for a backend JWT via `POST /auth/login`. Also supports API tokens for programmatic access (Bearer token auth), managed via `/tokens` endpoints
+- **Client API docs**: Filtered OpenAPI spec at `/api/docs` showing only client-facing endpoints (extraction, extractors, tokens). Full internal docs remain at `/docs`
 - **Multi-tenancy**: `users` table with roles (`user`/`admin`). All data tables have `user_id` FK. Extractor configs scoped per user (unique name per user). Admin pre-registers users by GitHub username
 - **Extractor config**: User-defined extraction configuration with name, model, prompt, and JSON output schema. Supports draft/active status and versioning for A/B testing
 - **Upload flow**: Frontend requests presigned URL → direct S3 PUT (with backend fallback) → extract by S3 key

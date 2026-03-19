@@ -25,7 +25,7 @@ import {
 import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
 import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction } from "@/lib/hooks";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 export default function Home() {
@@ -141,6 +141,22 @@ export default function Home() {
           </h1>
           <p className="text-gray-600 mt-1">
             {t("extraction.subtitle")}
+          </p>
+        </div>
+
+        <div className="mb-4 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
+          <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <p>
+            {t("extraction.apiNote")}{" "}
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium underline hover:text-blue-900"
+            >
+              {t("extraction.apiDocsLink")}
+            </a>
+            {t("extraction.apiNoteSuffix")}
           </p>
         </div>
 

@@ -49,7 +49,10 @@
     "submit": "Submit",
     "reset": "Reset",
     "extractionFailed": "Extraction failed",
-    "submissionFailed": "Submission failed"
+    "submissionFailed": "Submission failed",
+    "apiNote": "To integrate extraction into your systems, see the",
+    "apiDocsLink": "API documentation",
+    "apiNoteSuffix": ". API extractions are tracked in your dashboard."
   },
   "extractors": {
     "loading": "Loading extractors...",
