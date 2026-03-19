@@ -1,5 +1,7 @@
 # Extracción de Datos de Documentos
 
+🔗 **[Ver aplicación en producción](https://capstone-project-sigma-one.vercel.app/)**
+
 Proyecto de *capstone* para la extracción automática de información estructurada de documentos utilizando Claude Haiku 4.5. Originalmente diseñado para estados de cuenta bancarios mexicanos, ahora soporta tipos de documentos arbitrarios con extractores configurables.
 
 
