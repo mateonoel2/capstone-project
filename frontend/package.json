@@ -22,6 +22,7 @@
     "cmdk": "^1.0.0",
     "lucide-react": "^0.446.0",
     "next": "^15.5.12",
+    "next-auth": "^5.0.0-beta.30",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-zoom-pan-pinch": "^3.7.0",

@@ -1,4 +1,34 @@
+import { useExtractionStore } from "./store";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+function getAuthHeaders(): Record<string, string> {
+  const token = useExtractionStore.getState().backendToken;
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
+async function authFetch(url: string, init?: RequestInit): Promise<Response> {
+  const authHeaders = getAuthHeaders();
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      ...authHeaders,
+      ...init?.headers,
+    },
+  });
+
+  if (response.status === 401) {
+    useExtractionStore.getState().clearBackendAuth();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }
+
+  return response;
+}
 
 async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
   try {
@@ -104,6 +134,83 @@ export interface ModelInfo {
   is_available: boolean;
 }
 
+// Auth
+export interface BackendUser {
+  id: number;
+  github_username: string;
+  email: string | null;
+  avatar_url: string | null;
+  role: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: BackendUser;
+}
+
+export async function loginToBackend(githubAccessToken: string): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ github_access_token: githubAccessToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Login failed"));
+  }
+
+  return response.json();
+}
+
+export async function getMe(): Promise<BackendUser> {
+  const response = await authFetch(`${API_BASE_URL}/auth/me`);
+  if (!response.ok) throw new Error("Failed to fetch user info");
+  return response.json();
+}
+
+// Admin
+export interface AdminUser {
+  id: number;
+  github_id: number | null;
+  github_username: string;
+  email: string | null;
+  avatar_url: string | null;
+  role: string;
+  is_active: boolean;
+}
+
+export async function getUsers(): Promise<AdminUser[]> {
+  const response = await authFetch(`${API_BASE_URL}/admin/users`);
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to fetch users"));
+  return response.json();
+}
+
+export async function createUser(github_username: string, role: string = "user"): Promise<AdminUser> {
+  const response = await authFetch(`${API_BASE_URL}/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ github_username, role }),
+  });
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to create user"));
+  return response.json();
+}
+
+export async function updateUser(id: number, data: { role?: string; is_active?: boolean }): Promise<AdminUser> {
+  const response = await authFetch(`${API_BASE_URL}/admin/users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to update user"));
+  return response.json();
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  const response = await authFetch(`${API_BASE_URL}/admin/users/${id}`, { method: "DELETE" });
+  if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to delete user"));
+}
+
 // Upload
 export interface UploadResult {
   s3_key: string;
@@ -112,7 +219,7 @@ export interface UploadResult {
 
 export async function uploadFile(file: File): Promise<UploadResult> {
   // Step 1: Request a presigned upload URL
-  const urlResponse = await fetch(`${API_BASE_URL}/extraction/upload-url`, {
+  const urlResponse = await authFetch(`${API_BASE_URL}/extraction/upload-url`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: file.name, content_type: file.type || "application/pdf" }),
@@ -149,7 +256,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
     const formData = new FormData();
     formData.append("file", file);
 
-    const fallbackResponse = await fetch(`${API_BASE_URL}/extraction/upload`, {
+    const fallbackResponse = await authFetch(`${API_BASE_URL}/extraction/upload`, {
       method: "POST",
       body: formData,
     });
@@ -164,7 +271,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
 
 // Extraction
 export async function extractFromFile(s3Key: string, filename: string, extractorConfigId?: number | null): Promise<ExtractionResult> {
-  const response = await fetch(`${API_BASE_URL}/extraction/extract`, {
+  const response = await authFetch(`${API_BASE_URL}/extraction/extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -182,7 +289,7 @@ export async function extractFromFile(s3Key: string, filename: string, extractor
 }
 
 export async function submitExtraction(payload: SubmissionPayload): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/extraction/submit`, {
+  const response = await authFetch(`${API_BASE_URL}/extraction/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -194,7 +301,7 @@ export async function submitExtraction(payload: SubmissionPayload): Promise<void
 }
 
 export async function getBanks(): Promise<Bank[]> {
-  const response = await fetch(`${API_BASE_URL}/extraction/banks`);
+  const response = await authFetch(`${API_BASE_URL}/extraction/banks`);
   if (!response.ok) throw new Error("Failed to fetch banks");
   const data = await response.json();
   return data.banks;
@@ -203,21 +310,21 @@ export async function getBanks(): Promise<Bank[]> {
 export async function getExtractionLogs(page: number = 1, pageSize: number = 50, extractorConfigId?: number | null): Promise<PaginatedLogsResponse> {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   if (extractorConfigId != null) params.set("extractor_config_id", String(extractorConfigId));
-  const response = await fetch(`${API_BASE_URL}/extraction/logs?${params}`);
+  const response = await authFetch(`${API_BASE_URL}/extraction/logs?${params}`);
   if (!response.ok) throw new Error("Failed to fetch extraction logs");
   return response.json();
 }
 
 export async function getApiCallMetrics(extractorConfigId?: number | null): Promise<ApiCallMetrics> {
   const params = extractorConfigId != null ? `?extractor_config_id=${extractorConfigId}` : "";
-  const response = await fetch(`${API_BASE_URL}/extraction/api-metrics${params}`);
+  const response = await authFetch(`${API_BASE_URL}/extraction/api-metrics${params}`);
   if (!response.ok) throw new Error("Failed to fetch API call metrics");
   return response.json();
 }
 
 export async function getMetrics(extractorConfigId?: number | null): Promise<Metrics> {
   const params = extractorConfigId != null ? `?extractor_config_id=${extractorConfigId}` : "";
-  const response = await fetch(`${API_BASE_URL}/extraction/metrics${params}`);
+  const response = await authFetch(`${API_BASE_URL}/extraction/metrics${params}`);
   if (!response.ok) throw new Error("Failed to fetch metrics");
   return response.json();
 }
@@ -225,14 +332,14 @@ export async function getMetrics(extractorConfigId?: number | null): Promise<Met
 // Extractor Configs
 export async function getExtractorConfigs(status?: string): Promise<ExtractorConfig[]> {
   const params = status != null ? `?status=${status}` : "";
-  const response = await fetch(`${API_BASE_URL}/extractors${params}`);
+  const response = await authFetch(`${API_BASE_URL}/extractors${params}`);
   if (!response.ok) throw new Error("Failed to fetch extractor configs");
   const data = await response.json();
   return data.configs;
 }
 
 export async function getExtractorConfig(id: number): Promise<ExtractorConfig> {
-  const response = await fetch(`${API_BASE_URL}/extractors/${id}`);
+  const response = await authFetch(`${API_BASE_URL}/extractors/${id}`);
   if (!response.ok) throw new Error("Failed to fetch extractor config");
   return response.json();
 }
@@ -246,7 +353,7 @@ export async function createExtractorConfig(config: {
   is_default?: boolean;
   status?: string;
 }): Promise<ExtractorConfig> {
-  const response = await fetch(`${API_BASE_URL}/extractors`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
@@ -266,7 +373,7 @@ export async function updateExtractorConfig(id: number, config: {
   is_default?: boolean;
   status?: string;
 }): Promise<ExtractorConfig> {
-  const response = await fetch(`${API_BASE_URL}/extractors/${id}`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
@@ -278,20 +385,20 @@ export async function updateExtractorConfig(id: number, config: {
 }
 
 export async function deleteExtractorConfig(id: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/extractors/${id}`, { method: "DELETE" });
+  const response = await authFetch(`${API_BASE_URL}/extractors/${id}`, { method: "DELETE" });
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to delete extractor config"));
   }
 }
 
 export async function getAvailableModels(): Promise<ModelInfo[]> {
-  const response = await fetch(`${API_BASE_URL}/extractors/models`);
+  const response = await authFetch(`${API_BASE_URL}/extractors/models`);
   if (!response.ok) throw new Error("Failed to fetch models");
   return response.json();
 }
 
 export async function getExtractorVersions(id: number): Promise<ExtractorConfigVersion[]> {
-  const response = await fetch(`${API_BASE_URL}/extractors/${id}/versions`);
+  const response = await authFetch(`${API_BASE_URL}/extractors/${id}/versions`);
   if (!response.ok) throw new Error("Failed to fetch versions");
   return response.json();
 }
@@ -302,7 +409,7 @@ export async function testExtract(
   config: { prompt: string; model: string; output_schema: Record<string, unknown> },
   extractorConfigId?: number | null
 ): Promise<{ fields: Record<string, unknown>; response_time_ms: number; test_log_id: number | null }> {
-  const response = await fetch(`${API_BASE_URL}/extractors/test-extract`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors/test-extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -321,7 +428,7 @@ export async function testExtract(
 }
 
 export async function generateSchema(description: string): Promise<{ output_schema: Record<string, unknown> }> {
-  const response = await fetch(`${API_BASE_URL}/extractors/generate-schema`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors/generate-schema`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ description }),
@@ -336,7 +443,7 @@ export async function generatePrompt(
   output_schema: Record<string, unknown>,
   document_type: string | null
 ): Promise<{ prompt: string }> {
-  const response = await fetch(`${API_BASE_URL}/extractors/generate-prompt`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors/generate-prompt`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ output_schema, document_type }),
@@ -352,7 +459,7 @@ export async function updatePrompt(
   instructions: string,
   output_schema: Record<string, unknown>
 ): Promise<{ prompt: string }> {
-  const response = await fetch(`${API_BASE_URL}/extractors/update-prompt`, {
+  const response = await authFetch(`${API_BASE_URL}/extractors/update-prompt`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ current_prompt, instructions, output_schema }),
@@ -368,7 +475,7 @@ export async function toggleVersionActive(
   versionId: number,
   isActive: boolean
 ): Promise<ExtractorConfigVersion> {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE_URL}/extractors/${configId}/versions/${versionId}/active`,
     {
       method: "PATCH",

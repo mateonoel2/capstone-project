@@ -6,11 +6,13 @@ class MetricsService:
     def __init__(self, repository: ExtractionRepository):
         self.repository = repository
 
-    def get_metrics(self, extractor_config_id: int | None = None) -> MetricsData:
+    def get_metrics(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> MetricsData:
         any_corrected, field_corrections, total = self.repository.count_corrections(
-            extractor_config_id
+            extractor_config_id, user_id=user_id
         )
-        this_week_count = self.repository.count_this_week(extractor_config_id)
+        this_week_count = self.repository.count_this_week(extractor_config_id, user_id=user_id)
 
         if total == 0:
             return MetricsData(

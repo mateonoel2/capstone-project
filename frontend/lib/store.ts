@@ -2,6 +2,14 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { ExtractionResult } from "./api";
 
+interface AuthUser {
+  id: number;
+  github_username: string;
+  email: string | null;
+  avatar_url: string | null;
+  role: string;
+}
+
 interface ExtractionState {
   file: File | null;
   fileName: string | null;
@@ -9,11 +17,15 @@ interface ExtractionState {
   extracted: ExtractionResult | null;
   formData: Record<string, string>;
   selectedExtractorId: number | null;
+  backendToken: string | null;
+  backendUser: AuthUser | null;
   setFile: (file: File | null) => void;
   setExtracted: (extracted: ExtractionResult | null) => void;
   setFormData: (formData: Record<string, string>) => void;
   updateFormField: (field: string, value: string) => void;
   setSelectedExtractorId: (id: number | null) => void;
+  setBackendAuth: (token: string, user: AuthUser) => void;
+  clearBackendAuth: () => void;
   reset: () => void;
 }
 
@@ -24,6 +36,8 @@ const initialState = {
   extracted: null,
   formData: {} as Record<string, string>,
   selectedExtractorId: null as number | null,
+  backendToken: null as string | null,
+  backendUser: null as AuthUser | null,
 };
 
 export const useExtractionStore = create<ExtractionState>()(
@@ -62,6 +76,10 @@ export const useExtractionStore = create<ExtractionState>()(
 
       setSelectedExtractorId: (id) => set({ selectedExtractorId: id }),
 
+      setBackendAuth: (token, user) => set({ backendToken: token, backendUser: user }),
+
+      clearBackendAuth: () => set({ backendToken: null, backendUser: null }),
+
       reset: () => set(initialState),
     }),
     {
@@ -72,6 +90,8 @@ export const useExtractionStore = create<ExtractionState>()(
         extracted: state.extracted,
         formData: state.formData,
         selectedExtractorId: state.selectedExtractorId,
+        backendToken: state.backendToken,
+        backendUser: state.backendUser,
       }),
     }
   )

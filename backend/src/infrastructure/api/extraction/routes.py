@@ -31,6 +31,7 @@ from src.infrastructure.api.extraction.dtos import (
     UploadUrlRequest,
     UploadUrlResponse,
 )
+from src.infrastructure.auth import UserDep
 from src.infrastructure.database import get_db
 from src.infrastructure.repository import (
     ApiCallRepository,
@@ -89,7 +90,7 @@ def _select_variant(
 
 
 @router.post("/upload-url", response_model=UploadUrlResponse)
-async def get_upload_url(request: UploadUrlRequest):
+async def get_upload_url(request: UploadUrlRequest, user: UserDep):
     """Return an S3 key and presigned upload URL (None when S3 is not configured)."""
     if not request.filename:
         raise HTTPException(status_code=400, detail="No se proporcionó un nombre de archivo")
@@ -100,7 +101,7 @@ async def get_upload_url(request: UploadUrlRequest):
 
 
 @router.post("/upload")
-async def upload_file(file: Annotated[UploadFile, File()]):
+async def upload_file(file: Annotated[UploadFile, File()], user: UserDep):
     """Fallback upload through backend (used when S3 presigned URLs are not available)."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No se proporcionó un archivo")
@@ -112,7 +113,7 @@ async def upload_file(file: Annotated[UploadFile, File()]):
 
 
 @router.post("/extract", response_model=ExtractionResponse)
-async def extract_from_file(request: ExtractRequest, db: DbDep):
+async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
     api_repo = ApiCallRepository(db)
     config_data = _load_config(db, request.extractor_config_id)
 
@@ -136,6 +137,7 @@ async def extract_from_file(request: ExtractRequest, db: DbDep):
             filename=request.filename,
             extractor_config_id=request.extractor_config_id,
             extractor_config_version_id=version_id,
+            user_id=user.id,
         )
 
         # Determine extractor config info for the response
@@ -161,6 +163,7 @@ async def extract_from_file(request: ExtractRequest, db: DbDep):
             filename=request.filename,
             extractor_config_id=request.extractor_config_id,
             extractor_config_version_id=version_id,
+            user_id=user.id,
         )
         if e.call_result.error_type == "InvalidDocument":
             raise HTTPException(status_code=400, detail=str(e))
@@ -174,7 +177,7 @@ async def extract_from_file(request: ExtractRequest, db: DbDep):
 
 
 @router.post("/submit", response_model=SubmissionResponse)
-async def submit_extraction(submission: SubmissionRequest, db: DbDep):
+async def submit_extraction(submission: SubmissionRequest, db: DbDep, user: UserDep):
     try:
         service = SubmissionService(_get_repository(db))
 
@@ -188,6 +191,7 @@ async def submit_extraction(submission: SubmissionRequest, db: DbDep):
             submission_data,
             submission.extractor_config_id,
             submission.extractor_config_version_id,
+            user_id=user.id,
         )
 
         return SubmissionResponse(message="Submission recorded successfully", id=log_id)
@@ -204,11 +208,18 @@ async def get_banks():
 
 @router.get("/logs", response_model=LogsResponse)
 async def get_extraction_logs(
-    db: DbDep, page: int = 1, page_size: int = 50, extractor_config_id: int | None = None
+    db: DbDep,
+    user: UserDep,
+    page: int = 1,
+    page_size: int = 50,
+    extractor_config_id: int | None = None,
 ):
     try:
+        user_filter = None if user.role == "admin" else user.id
         service = SubmissionService(_get_repository(db))
-        logs, total, total_pages = service.get_extraction_logs(page, page_size, extractor_config_id)
+        logs, total, total_pages = service.get_extraction_logs(
+            page, page_size, extractor_config_id, user_id=user_filter
+        )
 
         logs_data = [ExtractionLogResponse.model_validate(log) for log in logs]
 
@@ -228,10 +239,11 @@ async def get_extraction_logs(
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics(db: DbDep, extractor_config_id: int | None = None):
+async def get_metrics(db: DbDep, user: UserDep, extractor_config_id: int | None = None):
     try:
+        user_filter = None if user.role == "admin" else user.id
         service = MetricsService(_get_repository(db))
-        metrics = service.get_metrics(extractor_config_id=extractor_config_id)
+        metrics = service.get_metrics(extractor_config_id=extractor_config_id, user_id=user_filter)
 
         return MetricsResponse.model_validate(metrics)
     except Exception as e:
@@ -239,10 +251,11 @@ async def get_metrics(db: DbDep, extractor_config_id: int | None = None):
 
 
 @router.get("/api-metrics", response_model=ApiCallMetricsResponse)
-async def get_api_metrics(db: DbDep, extractor_config_id: int | None = None):
+async def get_api_metrics(db: DbDep, user: UserDep, extractor_config_id: int | None = None):
     try:
+        user_filter = None if user.role == "admin" else user.id
         service = ApiMetricsService(ApiCallRepository(db))
-        metrics = service.get_metrics(extractor_config_id=extractor_config_id)
+        metrics = service.get_metrics(extractor_config_id=extractor_config_id, user_id=user_filter)
 
         return ApiCallMetricsResponse(
             total_calls=metrics.total_calls,

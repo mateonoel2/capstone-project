@@ -43,6 +43,7 @@ class ExtractorConfigData:
     output_schema: dict
     is_default: bool
     status: str = "active"
+    user_id: int | None = None
     created_at: object | None = None
     updated_at: object | None = None
 
@@ -57,6 +58,17 @@ class ExtractorConfigVersionData:
     output_schema: dict
     is_active: bool
     created_at: object | None = None
+
+
+@dataclass
+class UserData:
+    id: int | None
+    github_id: int | None
+    github_username: str
+    email: str | None
+    avatar_url: str | None
+    role: str
+    is_active: bool
 
 
 @dataclass
