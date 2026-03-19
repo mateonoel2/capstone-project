@@ -29,10 +29,14 @@
 ```
 ┌─────────────────────────────────────────┐
 │          Cliente (Web UI)               │
+│  - NextAuth.js (GitHub OAuth)           │
+│  - Middleware de protección de rutas    │
 └─────────────────────────────────────────┘
                    ↓
 ┌─────────────────────────────────────────┐
 │         API REST (FastAPI)              │
+│  - POST /auth/login (GitHub → JWT)      │
+│  - GET /admin/users (gestión)           │
 │  - POST /extraction/upload-url          │
 │  - POST /extraction/upload (fallback)   │
 │  - POST /extraction/extract             │
@@ -52,9 +56,10 @@
 │Postgre │  │  S3 /    │  │ Claude       │
 │  SQL   │  │  Tigris  │  │ Haiku 4.5    │
 │        │  │          │  │              │
-│-Logs   │  │ -PDFs    │  │ -Vision API  │
-│-API    │  │ -Images  │  │ -Structured  │
-│ Calls  │  │          │  │  Output      │
+│-Users  │  │ -PDFs    │  │ -Vision API  │
+│-Logs   │  │ -Images  │  │ -Structured  │
+│-API    │  │          │  │  Output      │
+│ Calls  │  │          │  │              │
 └────────┘  └──────────┘  └──────────────┘
 ```
 
