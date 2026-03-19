@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { FIELD_TYPE_OPTIONS, SchemaField } from "./types";
 import { Type, Hash, ToggleLeft, List, Calendar } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 const TYPE_ICONS = {
   string: Type,
@@ -22,6 +23,8 @@ interface FieldTypeSelectProps {
 }
 
 export function FieldTypeSelect({ value, onChange }: FieldTypeSelectProps) {
+  const t = useT();
+
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="w-[140px]">
@@ -34,7 +37,7 @@ export function FieldTypeSelect({ value, onChange }: FieldTypeSelectProps) {
             <SelectItem key={opt.value} value={opt.value}>
               <span className="flex items-center gap-2">
                 <Icon className="h-3.5 w-3.5" />
-                {opt.label}
+                {t(`fieldTypes.${opt.value}`)}
               </span>
             </SelectItem>
           );

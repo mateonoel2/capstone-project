@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export function PromptTips() {
   const [isOpen, setIsOpen] = useState(false);
+  const t = useT();
 
   return (
     <div className="border rounded-lg">
@@ -15,7 +17,7 @@ export function PromptTips() {
       >
         <span className="flex items-center gap-2">
           <Lightbulb className="h-4 w-4 text-yellow-500" />
-          Consejos para el prompt
+          {t("promptTips.title")}
         </span>
         {isOpen ? (
           <ChevronUp className="h-4 w-4" />
@@ -26,13 +28,9 @@ export function PromptTips() {
       {isOpen && (
         <div className="px-4 pb-3 text-sm text-gray-600 space-y-2">
           <ul className="list-disc list-inside space-y-1">
-            <li>Sé específico sobre qué tipo de documento se analizará</li>
-            <li>Indica exactamente que campos extraer y donde suelen ubicarse</li>
-            <li>Especifica el formato esperado (ej: &quot;18 digitos numericos&quot;)</li>
-            <li>Incluye instrucciones para cuando un campo no se encuentre</li>
-            <li>Usa &quot;No inventes informacion&quot; para evitar alucinaciones</li>
-            <li>Menciona el idioma del documento si es relevante</li>
-            <li>Describe variantes comunes del documento si las hay</li>
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              <li key={i}>{t(`promptTips.tips.${i}`)}</li>
+            ))}
           </ul>
         </div>
       )}

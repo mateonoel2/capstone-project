@@ -1,7 +1,7 @@
 [project]
-name = "bank-statement-extraction"
+name = "extracto"
 version = "0.1.0"
-description = "Bank statement extraction with multiple approaches"
+description = "Configurable document extraction system"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.9.0",

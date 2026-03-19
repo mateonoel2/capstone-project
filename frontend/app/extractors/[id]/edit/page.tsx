@@ -10,11 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Star, Trash2, History, Settings } from "lucide-react";
 import Link from "next/link";
+import { useT } from "@/lib/i18n";
 
 export default function EditExtractorPage() {
   const params = useParams();
   const router = useRouter();
   const configId = Number(params.id);
+  const t = useT();
 
   const { data: config, isLoading, error: loadError, refetch } = useExtractorConfig(configId);
   const updateMutation = useUpdateExtractorConfig();
@@ -33,12 +35,12 @@ export default function EditExtractorPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("¿Eliminar este extractor?")) return;
+    if (!confirm(t("extractors.confirmDelete"))) return;
     try {
       await deleteMutation.mutateAsync(configId);
       router.push("/extractors");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      alert(err instanceof Error ? err.message : t("extractors.deleteError"));
     }
   };
 
@@ -52,7 +54,7 @@ export default function EditExtractorPage() {
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-600">Cargando extractor...</span>
+          <span className="ml-2 text-gray-600">{t("extractors.loadingExtractor")}</span>
         </div>
       </main>
     );
@@ -62,9 +64,9 @@ export default function EditExtractorPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <p className="text-gray-600">{loadError instanceof Error ? loadError.message : "Extractor no encontrado."}</p>
+          <p className="text-gray-600">{loadError instanceof Error ? loadError.message : t("extractors.notFound")}</p>
           <Link href="/extractors" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-            Volver a Extractores
+            {t("extractors.backToExtractors")}
           </Link>
         </div>
       </main>
@@ -80,17 +82,17 @@ export default function EditExtractorPage() {
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-3"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a Extractores
+            {t("extractors.backToExtractors")}
           </Link>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
-                Editar: {config.name}
+                {t("extractors.edit", { name: config.name })}
               </h1>
               {config.is_default && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                   <Star className="h-3 w-3" />
-                  Default
+                  {t("extractors.default")}
                 </span>
               )}
             </div>
@@ -101,7 +103,7 @@ export default function EditExtractorPage() {
                 onClick={handleDelete}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
+                {t("extractors.delete")}
               </Button>
             )}
           </div>
@@ -111,11 +113,11 @@ export default function EditExtractorPage() {
           <TabsList className="mb-4">
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
-              Configuración
+              {t("extractors.configTab")}
             </TabsTrigger>
             <TabsTrigger value="versions" className="gap-2">
               <History className="h-4 w-4" />
-              Historial de versiones
+              {t("extractors.versionsTab")}
             </TabsTrigger>
           </TabsList>
 

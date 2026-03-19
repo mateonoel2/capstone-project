@@ -16,13 +16,7 @@ import {
   useCreateExtractorConfig,
   useUpdateExtractorConfig,
 } from "@/lib/hooks";
-
-const STEPS = [
-  { label: "Identidad", description: "Nombre y modelo" },
-  { label: "Esquema", description: "Campos a extraer" },
-  { label: "Prompt", description: "Instrucciones" },
-  { label: "Probar", description: "Prueba en vivo" },
-];
+import { useT } from "@/lib/i18n";
 
 interface WizardState {
   name: string;
@@ -67,6 +61,15 @@ function getAssistantMode(step: number): AssistantMode {
 }
 
 export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDraft }: ExtractorWizardProps) {
+  const t = useT();
+
+  const STEPS = [
+    { label: t("wizard.stepIdentity"), description: t("wizard.stepIdentityDesc") },
+    { label: t("wizard.stepSchema"), description: t("wizard.stepSchemaDesc") },
+    { label: t("wizard.stepPrompt"), description: t("wizard.stepPromptDesc") },
+    { label: t("wizard.stepTest"), description: t("wizard.stepTestDesc") },
+  ];
+
   const hasSchema = initialDraft
     ? Object.keys((initialDraft.output_schema as { properties?: Record<string, unknown> })?.properties || {}).filter((k) => k !== "is_valid_document").length > 0
     : false;
@@ -77,7 +80,6 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
   if (hasSchema) initialCompleted.add(1);
   if (hasPrompt) initialCompleted.add(2);
 
-  // Resume at the first incomplete step
   const initialStep = initialDraft
     ? (!initialDraft.name?.trim() ? 0 : !hasSchema ? 1 : !hasPrompt ? 2 : 3)
     : 0;
@@ -168,7 +170,6 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
   const goNext = async () => {
     if (!canAdvance(currentStep)) return;
     setCompletedSteps((prev) => new Set([...prev, currentStep]));
-    // Create or update draft on step transition
     const newDraftId = await saveDraft(state, draftId);
     if (newDraftId && !draftId) setDraftId(newDraftId);
     setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
@@ -187,18 +188,17 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
   const handleSave = async () => {
     setError(null);
     if (!state.name.trim()) {
-      setError("El nombre es requerido");
+      setError(t("wizard.nameRequired"));
       return;
     }
     if (!state.prompt.trim()) {
-      setError("El prompt es requerido");
+      setError(t("wizard.promptRequired"));
       return;
     }
 
     setIsSaving(true);
     try {
       if (draftId) {
-        // Activate the draft — update to active then notify parent
         await updateConfig.mutateAsync({
           id: draftId,
           config: {
@@ -212,7 +212,6 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
         });
         onDraftActivated?.();
       } else {
-        // No draft — fallback to original create flow
         await onSave({
           name: state.name.trim(),
           description: state.description.trim(),
@@ -222,7 +221,7 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setError(err instanceof Error ? err.message : t("wizard.saveError"));
     } finally {
       setIsSaving(false);
     }
@@ -250,7 +249,7 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
               className={assistantOpen ? "bg-blue-50 border-blue-200 text-blue-700" : ""}
             >
               <Sparkles className="h-4 w-4 mr-1" />
-              Asistente IA
+              {t("wizard.aiAssistant")}
             </Button>
           )}
         </div>
@@ -300,23 +299,23 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
           <div>
             {currentStep > 0 && (
               <Button type="button" variant="outline" onClick={goPrev}>
-                Anterior
+                {t("wizard.previous")}
               </Button>
             )}
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={onCancel}>
-              Cancelar
+              {t("wizard.cancel")}
             </Button>
             {currentStep === STEPS.length - 1 ? (
               <Button onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creando...
+                    {t("wizard.creating")}
                   </>
                 ) : (
-                  "Crear extractor"
+                  t("wizard.createExtractor")
                 )}
               </Button>
             ) : (
@@ -326,15 +325,15 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
                     {isSaving ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creando...
+                        {t("wizard.creating")}
                       </>
                     ) : (
-                      "Saltar prueba y crear"
+                      t("wizard.skipTest")
                     )}
                   </Button>
                 )}
                 <Button onClick={goNext} disabled={!canAdvance(currentStep)}>
-                  Siguiente
+                  {t("wizard.next")}
                 </Button>
               </>
             )}

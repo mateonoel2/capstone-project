@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/hooks";
 import { useExtractionStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function AdminUsersPage() {
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
+  const t = useT();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -45,7 +47,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (userId: number, username: string) => {
-    if (!confirm(`¿Eliminar al usuario ${username}? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(t("admin.confirmDelete", { username }))) return;
     await deleteUserMutation.mutateAsync(userId);
   };
 
@@ -53,16 +55,16 @@ export default function AdminUsersPage() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("admin.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Administra los usuarios que tienen acceso al sistema
+            {t("admin.subtitle")}
           </p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
-          Crear usuario
+          {t("admin.createUser")}
         </button>
       </div>
 
@@ -74,11 +76,11 @@ export default function AdminUsersPage() {
 
       {showCreateForm && (
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-medium text-gray-900">Nuevo usuario</h3>
+          <h3 className="mb-3 text-sm font-medium text-gray-900">{t("admin.newUser")}</h3>
           <form onSubmit={handleCreate} className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-700">
-                Username de GitHub
+                {t("admin.githubUsername")}
               </label>
               <input
                 type="text"
@@ -90,14 +92,14 @@ export default function AdminUsersPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700">Rol</label>
+              <label className="block text-xs font-medium text-gray-700">{t("admin.role")}</label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value)}
                 className="mt-1 block rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
-                <option value="user">Usuario</option>
-                <option value="admin">Admin</option>
+                <option value="user">{t("admin.roleUser")}</option>
+                <option value="admin">{t("admin.roleAdmin")}</option>
               </select>
             </div>
             <button
@@ -105,21 +107,21 @@ export default function AdminUsersPage() {
               disabled={createUserMutation.isPending}
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             >
-              {createUserMutation.isPending ? "Creando..." : "Crear"}
+              {createUserMutation.isPending ? t("admin.creating") : t("admin.create")}
             </button>
             <button
               type="button"
               onClick={() => setShowCreateForm(false)}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Cancelar
+              {t("admin.cancel")}
             </button>
           </form>
         </div>
       )}
 
-      {isLoading && <p className="text-sm text-gray-500">Cargando usuarios...</p>}
-      {error && <p className="text-sm text-red-600">Error al cargar usuarios</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t("admin.loadingUsers")}</p>}
+      {error && <p className="text-sm text-red-600">{t("admin.loadError")}</p>}
 
       {users && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -127,19 +129,19 @@ export default function AdminUsersPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Usuario
+                  {t("admin.userColumn")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Email
+                  {t("admin.emailColumn")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Rol
+                  {t("admin.roleColumn")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Estado
+                  {t("admin.statusColumn")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Acciones
+                  {t("admin.actionsColumn")}
                 </th>
               </tr>
             </thead>
@@ -171,8 +173,8 @@ export default function AdminUsersPage() {
                       disabled={user.id === backendUser?.id}
                       className="rounded border border-gray-300 px-2 py-1 text-xs disabled:opacity-50"
                     >
-                      <option value="user">Usuario</option>
-                      <option value="admin">Admin</option>
+                      <option value="user">{t("admin.roleUser")}</option>
+                      <option value="admin">{t("admin.roleAdmin")}</option>
                     </select>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -188,7 +190,7 @@ export default function AdminUsersPage() {
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {user.is_active ? "Activo" : "Inactivo"}
+                        {user.is_active ? t("admin.active") : t("admin.inactive")}
                       </span>
                     </button>
                   </td>
@@ -198,7 +200,7 @@ export default function AdminUsersPage() {
                         onClick={() => handleDelete(user.id, user.github_username)}
                         className="text-red-600 hover:text-red-800"
                       >
-                        Eliminar
+                        {t("admin.deleteUser")}
                       </button>
                     )}
                   </td>

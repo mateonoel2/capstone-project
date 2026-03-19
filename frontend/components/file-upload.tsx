@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { Upload } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 const ACCEPTED_TYPES = [
   "application/pdf",
@@ -15,6 +16,8 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
+  const t = useT();
+
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -54,10 +57,10 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm text-gray-600">
           {isLoading
-            ? "Procesando..."
-            : "Arrastra tu archivo aquí o haz clic para buscar"}
+            ? t("fileUpload.processing")
+            : t("fileUpload.dragOrClick")}
         </p>
-        <p className="text-xs text-gray-500 mt-1">PDF, JPG o PNG</p>
+        <p className="text-xs text-gray-500 mt-1">{t("fileUpload.acceptedFormats")}</p>
       </label>
     </div>
   );

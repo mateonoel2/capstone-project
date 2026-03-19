@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Trash2, Plus, X } from "lucide-react";
 import { FieldTypeSelect } from "./field-type-select";
 import { SchemaField } from "./types";
+import { useT } from "@/lib/i18n";
 
 interface FieldCardProps {
   field: SchemaField;
@@ -32,6 +33,7 @@ function EnumOptionsEditor({
   onChange: (values: string[]) => void;
 }) {
   const [newValue, setNewValue] = useState("");
+  const t = useT();
 
   const addValue = () => {
     const trimmed = newValue.trim();
@@ -47,7 +49,7 @@ function EnumOptionsEditor({
 
   return (
     <div>
-      <Label className="text-xs text-muted-foreground">Opciones permitidas</Label>
+      <Label className="text-xs text-muted-foreground">{t("fieldCard.allowedOptions")}</Label>
       <div className="mt-1 flex flex-wrap gap-1.5">
         {values.map((v, i) => (
           <span
@@ -76,7 +78,7 @@ function EnumOptionsEditor({
             }
           }}
           className="text-sm"
-          placeholder="Agregar opción..."
+          placeholder={t("fieldCard.addOption")}
         />
         <Button
           type="button"
@@ -102,6 +104,7 @@ export function FieldCard({
   onMove,
 }: FieldCardProps) {
   const slug = slugify(field.name);
+  const t = useT();
 
   return (
     <Card className={error ? "border-red-400" : ""}>
@@ -146,21 +149,21 @@ export function FieldCard({
         <div className="grid gap-3">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Nombre</Label>
+              <Label className="text-xs text-muted-foreground">{t("fieldCard.name")}</Label>
               <Input
                 value={field.name}
                 onChange={(e) => onUpdate({ name: e.target.value })}
                 className="mt-1 text-sm"
-                placeholder="nombre_del_campo"
+                placeholder={t("fieldCard.namePlaceholder")}
               />
               {field.name && slug !== field.name && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  se usará como: <code>{slug}</code>
+                  {t("fieldCard.willBeUsedAs", { slug })}
                 </p>
               )}
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Label className="text-xs text-muted-foreground">{t("fieldCard.type")}</Label>
               <div className="mt-1">
                 <FieldTypeSelect
                   value={field.type}
@@ -178,13 +181,13 @@ export function FieldCard({
 
           <div>
             <Label className="text-xs text-muted-foreground">
-              Instrucción para la IA
+              {t("fieldCard.aiInstruction")}
             </Label>
             <Input
               value={field.description}
               onChange={(e) => onUpdate({ description: e.target.value })}
               className="mt-1 text-sm"
-              placeholder="Describe qué debe extraer la IA..."
+              placeholder={t("fieldCard.aiInstructionPlaceholder")}
             />
           </div>
 
