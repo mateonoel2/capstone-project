@@ -5,12 +5,14 @@ from sqlalchemy.orm import Session
 
 from src.domain.entities import (
     ApiCallResult,
+    ApiTokenData,
     ExtractorConfigData,
     ExtractorConfigVersionData,
     UserData,
 )
 from src.infrastructure.models import (
     ApiCallLog,
+    ApiToken,
     ExtractionLog,
     ExtractorConfig,
     ExtractorConfigVersion,
@@ -396,6 +398,68 @@ class TestExtractionLogRepository:
             .order_by(TestExtractionLog.timestamp.desc())
             .all()
         )
+
+
+class ApiTokenRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    @staticmethod
+    def _to_entity(token: ApiToken) -> ApiTokenData:
+        return ApiTokenData(
+            id=token.id,
+            user_id=token.user_id,
+            name=token.name,
+            created_at=token.created_at,
+            expires_at=token.expires_at,
+            last_used_at=token.last_used_at,
+            is_revoked=token.is_revoked,
+        )
+
+    def create(
+        self, user_id: int, name: str, token_hash: str, expires_at: datetime | None = None
+    ) -> ApiTokenData:
+        token = ApiToken(
+            user_id=user_id,
+            name=name,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        self.session.add(token)
+        self.session.commit()
+        self.session.refresh(token)
+        return self._to_entity(token)
+
+    def get_by_hash(self, token_hash: str) -> ApiTokenData | None:
+        token = self.session.query(ApiToken).filter(ApiToken.token_hash == token_hash).first()
+        return self._to_entity(token) if token else None
+
+    def get_by_user(self, user_id: int) -> list[ApiTokenData]:
+        tokens = (
+            self.session.query(ApiToken)
+            .filter(ApiToken.user_id == user_id)
+            .order_by(ApiToken.created_at.desc())
+            .all()
+        )
+        return [self._to_entity(t) for t in tokens]
+
+    def revoke(self, token_id: int, user_id: int) -> bool:
+        token = (
+            self.session.query(ApiToken)
+            .filter(ApiToken.id == token_id, ApiToken.user_id == user_id)
+            .first()
+        )
+        if not token:
+            return False
+        token.is_revoked = True
+        self.session.commit()
+        return True
+
+    def update_last_used(self, token_hash: str) -> None:
+        self.session.query(ApiToken).filter(ApiToken.token_hash == token_hash).update(
+            {"last_used_at": datetime.now(timezone.utc)}
+        )
+        self.session.commit()
 
 
 class UserRepository:

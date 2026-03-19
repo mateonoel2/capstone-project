@@ -72,6 +72,17 @@ class UserData:
 
 
 @dataclass
+class ApiTokenData:
+    id: int
+    user_id: int
+    name: str
+    created_at: object | None = None
+    expires_at: object | None = None
+    last_used_at: object | None = None
+    is_revoked: bool = False
+
+
+@dataclass
 class MetricsData:
     total_extractions: int
     total_corrections: int

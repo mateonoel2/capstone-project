@@ -20,6 +20,9 @@ import {
   generatePrompt,
   updatePrompt,
   getAvailableModels,
+  getApiTokens,
+  createApiToken,
+  revokeApiToken,
   getUsers,
   createUser,
   updateUser,
@@ -38,6 +41,7 @@ export const queryKeys = {
   extractionLogs: (page: number, pageSize: number, configId?: number | null) =>
     ["extractionLogs", page, pageSize, configId] as const,
   availableModels: ["availableModels"] as const,
+  apiTokens: ["apiTokens"] as const,
   users: ["users"] as const,
 };
 
@@ -264,6 +268,37 @@ export function useUpdatePrompt() {
       instructions: string;
       output_schema: Record<string, unknown>;
     }) => updatePrompt(current_prompt, instructions, output_schema),
+  });
+}
+
+// API Token hooks
+export function useApiTokens() {
+  const authed = useIsAuthenticated();
+  return useQuery({
+    queryKey: queryKeys.apiTokens,
+    queryFn: getApiTokens,
+    enabled: authed,
+  });
+}
+
+export function useCreateApiToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, expires_at }: { name: string; expires_at?: string | null }) =>
+      createApiToken(name, expires_at),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
+    },
+  });
+}
+
+export function useRevokeApiToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => revokeApiToken(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
+    },
   });
 }
 

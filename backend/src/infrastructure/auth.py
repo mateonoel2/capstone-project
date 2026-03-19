@@ -1,4 +1,6 @@
+import hashlib
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -9,11 +11,13 @@ from sqlalchemy.orm import Session
 
 from src.domain.entities import UserData
 from src.infrastructure.database import get_db
-from src.infrastructure.repository import UserRepository
+from src.infrastructure.repository import ApiTokenRepository, UserRepository
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24
+
+TOKEN_PREFIX = "exto_"
 
 
 def create_access_token(user: UserData) -> str:
@@ -24,6 +28,14 @@ def create_access_token(user: UserData) -> str:
         "iat": datetime.now(timezone.utc),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def generate_api_token() -> str:
+    return TOKEN_PREFIX + secrets.token_urlsafe(32)
 
 
 def validate_github_token(github_access_token: str) -> dict:
@@ -42,14 +54,7 @@ def validate_github_token(github_access_token: str) -> dict:
     return response.json()
 
 
-def get_current_user(
-    authorization: Annotated[str, Header()],
-    db: Annotated[Session, Depends(get_db)],
-) -> UserData:
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-    token = authorization[7:]
+def _authenticate_jwt(token: str, db: Session) -> UserData:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
@@ -69,6 +74,45 @@ def get_current_user(
         raise HTTPException(status_code=403, detail="Usuario desactivado")
 
     return user
+
+
+def _authenticate_api_token(token: str, db: Session) -> UserData:
+    token_hash = hash_token(token)
+    repo = ApiTokenRepository(db)
+    api_token = repo.get_by_hash(token_hash)
+
+    if not api_token:
+        raise HTTPException(status_code=401, detail="Token API inválido")
+    if api_token.is_revoked:
+        raise HTTPException(status_code=401, detail="Token API revocado")
+    if api_token.expires_at and api_token.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Token API expirado")
+
+    repo.update_last_used(token_hash)
+
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_id(api_token.user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Usuario desactivado")
+
+    return user
+
+
+def get_current_user(
+    authorization: Annotated[str, Header()],
+    db: Annotated[Session, Depends(get_db)],
+) -> UserData:
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    token = authorization[7:]
+
+    if token.startswith(TOKEN_PREFIX):
+        return _authenticate_api_token(token, db)
+
+    return _authenticate_jwt(token, db)
 
 
 def get_admin_user(user: UserData = Depends(get_current_user)) -> UserData:

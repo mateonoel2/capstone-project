@@ -31,6 +31,21 @@ class User(Base):
     last_login_at = Column(DateTime, nullable=True)
 
 
+class ApiToken(Base):
+    __tablename__ = "api_tokens"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name = Column(String(200), nullable=False)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    is_revoked = Column(Boolean, default=False, nullable=False)
+
+
 class ExtractorConfig(Base):
     __tablename__ = "extractor_configs"
     __table_args__ = (UniqueConstraint("name", "user_id", name="uq_extractor_configs_name_user"),)
