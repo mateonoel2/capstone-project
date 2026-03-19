@@ -4,10 +4,14 @@ from src.domain.entities import ExtractorConfigData, ExtractorConfigVersionData
 
 
 class ExtractorConfigRepo(Protocol):
-    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]: ...
+    def get_all(
+        self, status: str | None = None, user_id: int | None = None
+    ) -> list[ExtractorConfigData]: ...
     def get_by_id(self, config_id: int) -> ExtractorConfigData | None: ...
     def get_default(self) -> ExtractorConfigData | None: ...
-    def create(self, data: ExtractorConfigData) -> ExtractorConfigData: ...
+    def create(
+        self, data: ExtractorConfigData, user_id: int | None = None
+    ) -> ExtractorConfigData: ...
     def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfigData | None: ...
     def delete(self, config_id: int) -> bool: ...
     def get_versions(self, config_id: int) -> list[ExtractorConfigVersionData]: ...
@@ -17,8 +21,10 @@ class ExtractorConfigService:
     def __init__(self, repository: ExtractorConfigRepo):
         self.repository = repository
 
-    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]:
-        return self.repository.get_all(status=status)
+    def get_all(
+        self, status: str | None = None, user_id: int | None = None
+    ) -> list[ExtractorConfigData]:
+        return self.repository.get_all(status=status, user_id=user_id)
 
     def get_by_id(self, config_id: int) -> ExtractorConfigData | None:
         return self.repository.get_by_id(config_id)
@@ -26,12 +32,12 @@ class ExtractorConfigService:
     def get_default(self) -> ExtractorConfigData | None:
         return self.repository.get_default()
 
-    def create(self, data: ExtractorConfigData) -> ExtractorConfigData:
+    def create(self, data: ExtractorConfigData, user_id: int | None = None) -> ExtractorConfigData:
         if data.status == "draft":
             data.is_default = False
         if data.is_default:
             self._clear_default()
-        return self.repository.create(data)
+        return self.repository.create(data, user_id=user_id)
 
     def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfigData | None:
         if data.status == "draft":

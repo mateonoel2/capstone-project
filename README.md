@@ -13,6 +13,9 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 ## Características
 
 - Aplicacion web con *FastAPI* (*backend*) y *Next.js* 15 (*frontend*)
+- Autenticacion con *GitHub OAuth* (*NextAuth.js*) y tokens *JWT* en el *backend*
+- *Multi-tenancy*: tabla de usuarios con roles (*user*/*admin*), datos aislados por usuario
+- Panel de administracion para gestion de usuarios (crear, editar rol, activar/desactivar, eliminar)
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores (identidad, *schema*, *prompt*, prueba)
 - Asistente de IA para generacion de *schemas* y *prompts* (alimentado por Claude)
@@ -44,11 +47,14 @@ capstone-project/
 │   │   │   ├── entities.py           # Entidades de dominio y API calls
 │   │   │   └── services/             # ExtractionService, SubmissionService, MetricsService, ExtractorConfigService
 │   │   ├── infrastructure/            # Integraciones externas
+│   │   │   │   ├── api/auth/             # Rutas de autenticación (/auth)
+│   │   │   ├── api/admin/            # Rutas de administración (/admin/users)
 │   │   │   ├── api/extraction/       # Rutas HTTP y DTOs (/extraction)
 │   │   │   ├── api/extractors/       # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── auth.py                # JWT y validación de tokens GitHub
 │   │   │   ├── ai_assist.py          # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py           # SQLAlchemy + PostgreSQL
-│   │   │   ├── models.py             # ORM (ExtractionLog, ApiCallLog, TestExtractionLog)
+│   │   │   ├── models.py             # ORM (User, ExtractionLog, ApiCallLog, etc.)
 │   │   │   ├── repository.py         # Acceso a datos
 │   │   │   ├── storage.py            # StorageBackend (S3 / local)
 │   │   │   ├── extractors/           # StatementExtractor (vision unificado)
@@ -62,8 +68,11 @@ capstone-project/
 │   └── data/                          # Datos de prueba
 │
 ├── frontend/                          # Next.js 15 (App Router)
-│   ├── app/                           # Páginas (/, /extractors, /dashboard)
+│   ├── app/                           # Páginas (/, /login, /extractors, /dashboard, /admin)
+│   ├── auth.ts                        # Configuración NextAuth.js (GitHub OAuth)
+│   ├── middleware.ts                  # Protección de rutas (redirige a /login)
 │   ├── components/                    # Componentes React + shadcn/ui
+│   │   ├── auth-provider.tsx         # Proveedor de autenticación (NextAuth + JWT backend)
 │   │   ├── assistant/                # Sidebar de asistente IA
 │   │   └── extractor-wizard/        # Wizard multi-paso para extractores
 │   └── lib/                           # API client, React Query hooks, Zustand store
@@ -145,10 +154,14 @@ ruff format .   # formato
 |---|---|
 | `ANTHROPIC_API_KEY` | API key de Anthropic (backend) |
 | `DATABASE_URL` | URL de PostgreSQL (backend) |
+| `JWT_SECRET` | Clave secreta para firmar tokens JWT (backend) |
 | `AWS_ENDPOINT_URL` | Endpoint S3 / LocalStack (backend) |
 | `AWS_PUBLIC_ENDPOINT_URL` | Endpoint S3 accesible desde el navegador para *presigned URLs* (default: `AWS_ENDPOINT_URL`) |
 | `AWS_S3_BUCKET_NAME` | Nombre del bucket S3 (backend) |
 | `NEXT_PUBLIC_API_URL` | URL del backend, default `http://localhost:8000` (frontend) |
+| `AUTH_GITHUB_ID` | Client ID de la GitHub OAuth App (frontend) |
+| `AUTH_GITHUB_SECRET` | Client secret de la GitHub OAuth App (frontend) |
+| `AUTH_SECRET` | Secreto de NextAuth.js para cifrado de sesiones (frontend) |
 
 ## Licencia
 

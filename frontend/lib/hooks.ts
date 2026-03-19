@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useExtractionStore } from "@/lib/store";
 import {
   getBanks,
   getExtractorConfigs,
@@ -19,6 +20,10 @@ import {
   generatePrompt,
   updatePrompt,
   getAvailableModels,
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
   SubmissionPayload,
 } from "@/lib/api";
 
@@ -33,63 +38,83 @@ export const queryKeys = {
   extractionLogs: (page: number, pageSize: number, configId?: number | null) =>
     ["extractionLogs", page, pageSize, configId] as const,
   availableModels: ["availableModels"] as const,
+  users: ["users"] as const,
 };
+
+function useIsAuthenticated() {
+  return !!useExtractionStore((s) => s.backendToken);
+}
 
 // Queries
 export function useBanks() {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.banks,
     queryFn: getBanks,
+    enabled: authed,
   });
 }
 
 export function useExtractorConfigs(status?: string) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: [...queryKeys.extractorConfigs, status],
     queryFn: () => getExtractorConfigs(status),
+    enabled: authed,
   });
 }
 
 export function useExtractorConfig(id: number, options?: { enabled?: boolean }) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractorConfig(id),
     queryFn: () => getExtractorConfig(id),
-    enabled: options?.enabled,
+    enabled: authed && (options?.enabled ?? true),
   });
 }
 
 export function useExtractorVersions(configId: number) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractorVersions(configId),
     queryFn: () => getExtractorVersions(configId),
+    enabled: authed,
   });
 }
 
 export function useMetrics(configId?: number | null) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.metrics(configId),
     queryFn: () => getMetrics(configId),
+    enabled: authed,
   });
 }
 
 export function useApiCallMetrics(configId?: number | null) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.apiCallMetrics(configId),
     queryFn: () => getApiCallMetrics(configId),
+    enabled: authed,
   });
 }
 
 export function useExtractionLogs(page: number, pageSize: number, configId?: number | null) {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractionLogs(page, pageSize, configId),
     queryFn: () => getExtractionLogs(page, pageSize, configId),
+    enabled: authed,
   });
 }
 
 export function useAvailableModels() {
+  const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.availableModels,
     queryFn: getAvailableModels,
+    enabled: authed,
   });
 }
 
@@ -239,5 +264,47 @@ export function useUpdatePrompt() {
       instructions: string;
       output_schema: Record<string, unknown>;
     }) => updatePrompt(current_prompt, instructions, output_schema),
+  });
+}
+
+// Admin hooks
+export function useUsers() {
+  const authed = useIsAuthenticated();
+  return useQuery({
+    queryKey: queryKeys.users,
+    queryFn: getUsers,
+    enabled: authed,
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ github_username, role }: { github_username: string; role: string }) =>
+      createUser(github_username, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { role?: string; is_active?: boolean } }) =>
+      updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
   });
 }

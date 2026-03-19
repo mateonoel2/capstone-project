@@ -3,13 +3,19 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.domain.entities import ApiCallResult, ExtractorConfigData, ExtractorConfigVersionData
+from src.domain.entities import (
+    ApiCallResult,
+    ExtractorConfigData,
+    ExtractorConfigVersionData,
+    UserData,
+)
 from src.infrastructure.models import (
     ApiCallLog,
     ExtractionLog,
     ExtractorConfig,
     ExtractorConfigVersion,
     TestExtractionLog,
+    User,
 )
 
 
@@ -17,16 +23,22 @@ class ExtractionRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _base_query(self, extractor_config_id: int | None = None):
+    def _base_query(self, extractor_config_id: int | None = None, user_id: int | None = None):
         q = self.session.query(ExtractionLog)
+        if user_id is not None:
+            q = q.filter(ExtractionLog.user_id == user_id)
         if extractor_config_id is not None:
             q = q.filter(ExtractionLog.extractor_config_id == extractor_config_id)
         return q
 
     def get_all_paginated(
-        self, page: int, page_size: int, extractor_config_id: int | None = None
+        self,
+        page: int,
+        page_size: int,
+        extractor_config_id: int | None = None,
+        user_id: int | None = None,
     ) -> tuple[list[ExtractionLog], int]:
-        q = self._base_query(extractor_config_id)
+        q = self._base_query(extractor_config_id, user_id=user_id)
         total = q.count()
         offset = (page - 1) * page_size
         logs = q.order_by(ExtractionLog.timestamp.desc()).offset(offset).limit(page_size).all()
@@ -41,17 +53,21 @@ class ExtractionRepository:
         self.session.refresh(log_entry)
         return log_entry
 
-    def count_total(self, extractor_config_id: int | None = None) -> int:
+    def count_total(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> int:
         q = self.session.query(func.count(ExtractionLog.id))
+        if user_id is not None:
+            q = q.filter(ExtractionLog.user_id == user_id)
         if extractor_config_id is not None:
             q = q.filter(ExtractionLog.extractor_config_id == extractor_config_id)
         return q.scalar() or 0
 
     def count_corrections(
-        self, extractor_config_id: int | None = None
+        self, extractor_config_id: int | None = None, user_id: int | None = None
     ) -> tuple[int, dict[str, int], int]:
         """Returns (any_corrected_count, {field: correction_count}, total)."""
-        q = self._base_query(extractor_config_id)
+        q = self._base_query(extractor_config_id, user_id=user_id)
         total = q.count()
         field_corrections: dict[str, int] = {}
         any_corrected = 0
@@ -68,11 +84,15 @@ class ExtractionRepository:
 
         return any_corrected, field_corrections, total
 
-    def count_this_week(self, extractor_config_id: int | None = None) -> int:
+    def count_this_week(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> int:
         week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ExtractionLog.id)).filter(
             ExtractionLog.timestamp >= week_ago
         )
+        if user_id is not None:
+            q = q.filter(ExtractionLog.user_id == user_id)
         if extractor_config_id is not None:
             q = q.filter(ExtractionLog.extractor_config_id == extractor_config_id)
         return q.scalar() or 0
@@ -93,6 +113,7 @@ class ExtractorConfigRepository:
             output_schema=config.output_schema,
             is_default=config.is_default,
             status=config.status,
+            user_id=config.user_id,
             created_at=config.created_at,
             updated_at=config.updated_at,
         )
@@ -110,8 +131,12 @@ class ExtractorConfigRepository:
             created_at=version.created_at,
         )
 
-    def get_all(self, status: str | None = None) -> list[ExtractorConfigData]:
+    def get_all(
+        self, status: str | None = None, user_id: int | None = None
+    ) -> list[ExtractorConfigData]:
         q = self.session.query(ExtractorConfig)
+        if user_id is not None:
+            q = q.filter(ExtractorConfig.user_id == user_id)
         if status is not None:
             q = q.filter(ExtractorConfig.status == status)
         configs = q.order_by(ExtractorConfig.id).all()
@@ -130,7 +155,7 @@ class ExtractorConfigRepository:
         )
         return self._to_entity(config) if config else None
 
-    def create(self, data: ExtractorConfigData) -> ExtractorConfigData:
+    def create(self, data: ExtractorConfigData, user_id: int | None = None) -> ExtractorConfigData:
         config = ExtractorConfig(
             name=data.name,
             description=data.description,
@@ -139,6 +164,7 @@ class ExtractorConfigRepository:
             output_schema=data.output_schema,
             is_default=data.is_default,
             status=data.status,
+            user_id=user_id,
         )
         self.session.add(config)
         self.session.commit()
@@ -267,6 +293,7 @@ class ApiCallRepository:
         filename: str | None = None,
         extractor_config_id: int | None = None,
         extractor_config_version_id: int | None = None,
+        user_id: int | None = None,
     ) -> ApiCallLog:
         log = ApiCallLog(
             model=call_result.model,
@@ -277,45 +304,53 @@ class ApiCallRepository:
             filename=filename,
             extractor_config_id=extractor_config_id,
             extractor_config_version_id=extractor_config_version_id,
+            user_id=user_id,
         )
         self.session.add(log)
         self.session.commit()
         self.session.refresh(log)
         return log
 
-    def count_total(self, extractor_config_id: int | None = None) -> int:
+    def _filtered(self, q, extractor_config_id: int | None, user_id: int | None):
+        if user_id is not None:
+            q = q.filter(ApiCallLog.user_id == user_id)
+        if extractor_config_id is not None:
+            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
+        return q
+
+    def count_total(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> int:
         q = self.session.query(func.count(ApiCallLog.id))
-        if extractor_config_id is not None:
-            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
-        return q.scalar() or 0
+        return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
-    def count_failures(self, extractor_config_id: int | None = None) -> int:
+    def count_failures(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> int:
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.success.is_(False))
-        if extractor_config_id is not None:
-            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
-        return q.scalar() or 0
+        return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
-    def count_by_error_type(self, extractor_config_id: int | None = None) -> list[tuple[str, int]]:
+    def count_by_error_type(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> list[tuple[str, int]]:
         q = self.session.query(ApiCallLog.error_type, func.count(ApiCallLog.id)).filter(
             ApiCallLog.error_type.isnot(None)
         )
-        if extractor_config_id is not None:
-            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
-        return q.group_by(ApiCallLog.error_type).all()
+        return self._filtered(q, extractor_config_id, user_id).group_by(ApiCallLog.error_type).all()
 
-    def avg_response_time_ms(self, extractor_config_id: int | None = None) -> float:
+    def avg_response_time_ms(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> float:
         q = self.session.query(func.avg(ApiCallLog.response_time_ms))
-        if extractor_config_id is not None:
-            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
-        result = q.scalar()
+        result = self._filtered(q, extractor_config_id, user_id).scalar()
         return round(result, 1) if result else 0.0
 
-    def count_this_week(self, extractor_config_id: int | None = None) -> int:
+    def count_this_week(
+        self, extractor_config_id: int | None = None, user_id: int | None = None
+    ) -> int:
         week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.timestamp >= week_ago)
-        if extractor_config_id is not None:
-            q = q.filter(ApiCallLog.extractor_config_id == extractor_config_id)
-        return q.scalar() or 0
+        return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
 
 class TestExtractionLogRepository:
@@ -334,6 +369,7 @@ class TestExtractionLogRepository:
         response_time_ms: float,
         error_message: str | None = None,
         extractor_config_id: int | None = None,
+        user_id: int | None = None,
     ) -> TestExtractionLog:
         log = TestExtractionLog(
             filename=filename,
@@ -346,6 +382,7 @@ class TestExtractionLogRepository:
             success=success,
             error_message=error_message,
             response_time_ms=response_time_ms,
+            user_id=user_id,
         )
         self.session.add(log)
         self.session.commit()
@@ -359,3 +396,76 @@ class TestExtractionLogRepository:
             .order_by(TestExtractionLog.timestamp.desc())
             .all()
         )
+
+
+class UserRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    @staticmethod
+    def _to_entity(user: User) -> UserData:
+        return UserData(
+            id=user.id,
+            github_id=user.github_id,
+            github_username=user.github_username,
+            email=user.email,
+            avatar_url=user.avatar_url,
+            role=user.role,
+            is_active=user.is_active,
+        )
+
+    def get_by_github_id(self, github_id: int) -> UserData | None:
+        user = self.session.query(User).filter(User.github_id == github_id).first()
+        return self._to_entity(user) if user else None
+
+    def get_by_github_username(self, username: str) -> UserData | None:
+        user = self.session.query(User).filter(User.github_username == username).first()
+        return self._to_entity(user) if user else None
+
+    def get_by_id(self, user_id: int) -> UserData | None:
+        user = self.session.query(User).filter(User.id == user_id).first()
+        return self._to_entity(user) if user else None
+
+    def get_all(self) -> list[UserData]:
+        users = self.session.query(User).order_by(User.id).all()
+        return [self._to_entity(u) for u in users]
+
+    def create(self, github_username: str, role: str = "user") -> UserData:
+        user = User(github_username=github_username, role=role)
+        self.session.add(user)
+        self.session.commit()
+        self.session.refresh(user)
+        return self._to_entity(user)
+
+    def update(self, user_id: int, **fields: object) -> UserData | None:
+        user = self.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        for key, value in fields.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+        self.session.commit()
+        self.session.refresh(user)
+        return self._to_entity(user)
+
+    def update_login_info(
+        self, user_id: int, github_id: int, email: str | None, avatar_url: str | None
+    ) -> UserData | None:
+        user = self.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        user.github_id = github_id
+        user.email = email
+        user.avatar_url = avatar_url
+        user.last_login_at = datetime.now(timezone.utc)
+        self.session.commit()
+        self.session.refresh(user)
+        return self._to_entity(user)
+
+    def delete(self, user_id: int) -> bool:
+        user = self.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        self.session.delete(user)
+        self.session.commit()
+        return True

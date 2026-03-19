@@ -1,22 +1,48 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    github_id = Column(Integer, unique=True, nullable=True, index=True)
+    github_username = Column(String(100), unique=True, nullable=False)
+    email = Column(String(255), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+    role = Column(String(20), nullable=False, default="user")
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime, nullable=True)
+
+
 class ExtractorConfig(Base):
     __tablename__ = "extractor_configs"
+    __table_args__ = (UniqueConstraint("name", "user_id", name="uq_extractor_configs_name_user"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(200), unique=True, nullable=False)
+    name = Column(String(200), nullable=False)
     description = Column(String(500), nullable=True)
     prompt = Column(Text, nullable=False)
     model = Column(String(100), nullable=False, default="claude-haiku-4-5-20251001")
     output_schema = Column(JSON, nullable=False)
     is_default = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     status = Column(String(20), nullable=False, default="active")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
@@ -49,6 +75,7 @@ class ExtractionLog(Base):
     extracted_fields = Column(JSON, default=dict)
     final_fields = Column(JSON, default=dict)
 
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     extractor_config_id = Column(Integer, ForeignKey("extractor_configs.id"), nullable=True)
     extractor_config_version_id = Column(
         Integer, ForeignKey("extractor_config_versions.id"), nullable=True
@@ -73,6 +100,7 @@ class TestExtractionLog(Base):
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     filename = Column(String, nullable=False)
     s3_key = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     extractor_config_id = Column(
         Integer, ForeignKey("extractor_configs.id", ondelete="SET NULL"), nullable=True
     )
@@ -90,6 +118,7 @@ class ApiCallLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     model = Column(String, nullable=False)
     success = Column(Boolean, nullable=False)
     error_type = Column(String, nullable=True)

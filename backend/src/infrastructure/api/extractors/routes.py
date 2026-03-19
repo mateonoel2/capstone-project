@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.core.logger import get_logger
-from src.domain.entities import ExtractorConfigData
+from src.domain.entities import ExtractorConfigData, UserData
 from src.domain.services.extractor_config import ExtractorConfigService
 
 logger = get_logger(__name__)
@@ -33,6 +33,7 @@ from src.infrastructure.api.extraction.dtos import (
     TestExtractResponse,
     UpdatePromptRequest,
 )
+from src.infrastructure.auth import UserDep
 from src.infrastructure.database import get_db
 from src.infrastructure.extractors.statement_extractor import (
     SUPPORTED_EXTENSIONS,
@@ -74,22 +75,28 @@ def _get_service(db: Session) -> ExtractorConfigService:
     return ExtractorConfigService(ExtractorConfigRepository(db))
 
 
+def _check_ownership(config: ExtractorConfigData, user: UserData) -> None:
+    if user.role != "admin" and config.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Extractor config not found")
+
+
 @router.get("", response_model=ExtractorConfigListResponse)
-async def list_extractor_configs(db: DbDep, status: str | None = None):
+async def list_extractor_configs(db: DbDep, user: UserDep, status: str | None = None):
+    user_filter = None if user.role == "admin" else user.id
     service = _get_service(db)
-    configs = service.get_all(status=status)
+    configs = service.get_all(status=status, user_id=user_filter)
     return ExtractorConfigListResponse(
         configs=[ExtractorConfigResponse.model_validate(c) for c in configs]
     )
 
 
 @router.get("/models", response_model=list[ModelInfo])
-async def get_available_models():
+async def get_available_models(user: UserDep):
     return AVAILABLE_MODELS
 
 
 @router.post("/generate-schema", response_model=GenerateSchemaResponse)
-async def generate_schema(request: GenerateSchemaRequest):
+async def generate_schema(request: GenerateSchemaRequest, user: UserDep):
     try:
         schema = generate_schema_from_description(request.description)
         return GenerateSchemaResponse(output_schema=schema)
@@ -98,7 +105,7 @@ async def generate_schema(request: GenerateSchemaRequest):
 
 
 @router.post("/generate-prompt", response_model=GeneratePromptResponse)
-async def generate_prompt(request: GeneratePromptRequest):
+async def generate_prompt(request: GeneratePromptRequest, user: UserDep):
     try:
         prompt = generate_prompt_from_schema(request.output_schema, request.document_type)
         return GeneratePromptResponse(prompt=prompt)
@@ -107,7 +114,7 @@ async def generate_prompt(request: GeneratePromptRequest):
 
 
 @router.post("/update-prompt", response_model=GeneratePromptResponse)
-async def update_prompt(request: UpdatePromptRequest):
+async def update_prompt(request: UpdatePromptRequest, user: UserDep):
     try:
         prompt = update_prompt_with_instructions(
             request.current_prompt, request.instructions, request.output_schema
@@ -118,7 +125,7 @@ async def update_prompt(request: UpdatePromptRequest):
 
 
 @router.post("/test-extract", response_model=TestExtractResponse)
-async def test_extract(request: TestExtractRequest, db: DbDep):
+async def test_extract(request: TestExtractRequest, db: DbDep, user: UserDep):
     config_data = request.config
     logger.info("=== Test extract request ===")
     logger.info("Filename: %s, S3 key: %s", request.filename, request.s3_key)
@@ -178,6 +185,7 @@ async def test_extract(request: TestExtractRequest, db: DbDep):
             success=True,
             response_time_ms=elapsed_ms,
             extractor_config_id=request.extractor_config_id,
+            user_id=user.id,
         )
 
         return TestExtractResponse(fields=result, response_time_ms=elapsed_ms, test_log_id=log.id)
@@ -198,6 +206,7 @@ async def test_extract(request: TestExtractRequest, db: DbDep):
                 error_message=str(e),
                 response_time_ms=elapsed_ms,
                 extractor_config_id=request.extractor_config_id,
+                user_id=user.id,
             )
         except Exception:
             pass
@@ -208,33 +217,40 @@ async def test_extract(request: TestExtractRequest, db: DbDep):
 
 
 @router.get("/{config_id}/test-logs", response_model=list[TestExtractionLogResponse])
-async def get_test_logs(config_id: int, db: DbDep):
+async def get_test_logs(config_id: int, db: DbDep, user: UserDep):
+    service = _get_service(db)
+    config = service.get_by_id(config_id)
+    if not config:
+        raise HTTPException(status_code=404, detail="Extractor config not found")
+    _check_ownership(config, user)
     test_log_repo = TestExtractionLogRepository(db)
     logs = test_log_repo.get_by_config_id(config_id)
     return [TestExtractionLogResponse.model_validate(log) for log in logs]
 
 
 @router.get("/{config_id}", response_model=ExtractorConfigResponse)
-async def get_extractor_config(config_id: int, db: DbDep):
+async def get_extractor_config(config_id: int, db: DbDep, user: UserDep):
     service = _get_service(db)
     config = service.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Extractor config not found")
+    _check_ownership(config, user)
     return ExtractorConfigResponse.model_validate(config)
 
 
 @router.get("/{config_id}/versions", response_model=list[ExtractorConfigVersionResponse])
-async def get_extractor_versions(config_id: int, db: DbDep):
+async def get_extractor_versions(config_id: int, db: DbDep, user: UserDep):
     service = _get_service(db)
     config = service.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Extractor config not found")
+    _check_ownership(config, user)
     versions = service.get_versions(config_id)
     return [ExtractorConfigVersionResponse.model_validate(v) for v in versions]
 
 
 @router.post("", response_model=ExtractorConfigResponse, status_code=201)
-async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbDep):
+async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbDep, user: UserDep):
     service = _get_service(db)
     data = ExtractorConfigData(
         id=None,
@@ -246,16 +262,19 @@ async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbD
         is_default=request.is_default,
         status=request.status,
     )
-    config = service.create(data)
+    config = service.create(data, user_id=user.id)
     return ExtractorConfigResponse.model_validate(config)
 
 
 @router.put("/{config_id}", response_model=ExtractorConfigResponse)
-async def update_extractor_config(config_id: int, request: ExtractorConfigUpdateRequest, db: DbDep):
+async def update_extractor_config(
+    config_id: int, request: ExtractorConfigUpdateRequest, db: DbDep, user: UserDep
+):
     service = _get_service(db)
     existing = service.get_by_id(config_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Extractor config not found")
+    _check_ownership(existing, user)
 
     data = ExtractorConfigData(
         id=config_id,
@@ -276,11 +295,12 @@ async def update_extractor_config(config_id: int, request: ExtractorConfigUpdate
 
 
 @router.delete("/{config_id}")
-async def delete_extractor_config(config_id: int, db: DbDep):
+async def delete_extractor_config(config_id: int, db: DbDep, user: UserDep):
     service = _get_service(db)
     existing = service.get_by_id(config_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Extractor config not found")
+    _check_ownership(existing, user)
     if existing.is_default:
         raise HTTPException(status_code=400, detail="No se puede eliminar el extractor por defecto")
     success = service.delete(config_id)
@@ -294,12 +314,13 @@ async def delete_extractor_config(config_id: int, db: DbDep):
     response_model=ExtractorConfigVersionResponse,
 )
 async def toggle_version_active(
-    config_id: int, version_id: int, request: SetActiveRequest, db: DbDep
+    config_id: int, version_id: int, request: SetActiveRequest, db: DbDep, user: UserDep
 ):
     repo = ExtractorConfigRepository(db)
     config = repo.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Extractor config no encontrado")
+    _check_ownership(config, user)
 
     # Find the version and verify it belongs to this config
     versions = repo.get_versions(config_id)

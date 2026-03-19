@@ -67,11 +67,14 @@ capstone-project/
 │   │   │   ├── entities.py         # Entidades de dominio y API calls
 │   │   │   └── services/           # Servicios de negocio
 │   │   ├── infrastructure/         # Integraciones externas
+│   │   │   ├── api/auth/           # Rutas de autenticación (/auth)
+│   │   │   ├── api/admin/          # Rutas de administración (/admin/users)
 │   │   │   ├── api/extraction/     # Rutas HTTP y DTOs (/extraction)
 │   │   │   ├── api/extractors/     # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── auth.py             # JWT y validación de tokens GitHub
 │   │   │   ├── ai_assist.py        # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py         # Configuracion PostgreSQL
-│   │   │   ├── models.py           # ORM (ExtractionLog, ApiCallLog, TestExtractionLog)
+│   │   │   ├── models.py           # ORM (User, ExtractionLog, ApiCallLog, etc.)
 │   │   │   ├── repository.py       # Acceso a datos
 │   │   │   ├── storage.py          # StorageBackend (S3 / local)
 │   │   │   ├── extractors/        # StatementExtractor (vision unificado)
@@ -86,11 +89,16 @@ capstone-project/
 │
 └── frontend/                       # Aplicacion Next.js
     ├── app/                        # Pages (Next.js 15 App Router)
+    │   ├── login/                  # Página de login (GitHub OAuth)
     │   ├── page.tsx                # Extraccion
     │   ├── extractors/             # Gestion de extractores (CRUD + wizard)
     │   ├── dashboard/              # Dashboard
+    │   ├── admin/users/            # Gestion de usuarios (admin)
     │   └── layout.tsx              # Layout con sidebar
+    ├── auth.ts                     # Configuración NextAuth.js (GitHub OAuth)
+    ├── middleware.ts               # Protección de rutas
     ├── components/                 # Componentes React + shadcn/ui
+    │   ├── auth-provider.tsx       # Proveedor de autenticación
     │   ├── assistant/              # Sidebar de asistente IA
     │   ├── extractor-wizard/       # Wizard multi-paso para extractores
     │   ├── schema-builder/         # Editor visual de schemas JSON
@@ -128,6 +136,9 @@ capstone-project/
 
 ### Completamente Implementado
 
+- Autenticacion con *GitHub OAuth* (*NextAuth.js*) y tokens *JWT* en el *backend*
+- *Multi-tenancy* con tabla de usuarios, roles (*user*/*admin*) y datos aislados por usuario
+- Panel de administracion para gestion de usuarios (crear, editar rol, activar/desactivar, eliminar)
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores con asistente de IA
 - Generacion de *schemas* y *prompts* asistida por Claude (`ai_assist.py`)

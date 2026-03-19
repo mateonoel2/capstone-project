@@ -45,17 +45,20 @@ Three layers under `src/`:
   - `constants.py` — `UNKNOWN_OWNER`, `UNKNOWN_ACCOUNT`, `CLABE_LENGTH`, `BANK_DICT_KUSHKI`
   - `validators.py` — CLABE/bank regex patterns and validation
   - `extractor_interface.py` — `BaseExtractor` ABC
-  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`, `ExtractorConfigData`
+  - `entities.py` — `SubmissionData`, `MetricsData`, `ApiCallResult`, `ApiCallMetricsData`, `ExtractionError`, `ExtractorConfigData`, `UserData`
   - `services/` — `ExtractionService`, `SubmissionService`, `MetricsService`, `ApiMetricsService`, `ExtractorConfigService`
 
 - **`src/infrastructure/`** — External integrations
+  - `api/auth/routes.py` — Authentication routes (`/auth/login`, `/auth/me`)
+  - `api/admin/routes.py` — Admin routes for user management (`/admin/users` CRUD)
   - `api/extraction/routes.py` — HTTP routes under `/extraction`
   - `api/extraction/dtos.py` — Request/response Pydantic models
   - `api/extractors/routes.py` — HTTP routes under `/extractors` (CRUD, versioning, AI generation, test extraction)
+  - `auth.py` — JWT token creation/validation, `get_current_user`/`get_admin_user` dependencies, GitHub token validation
   - `ai_assist.py` — Claude-powered schema generation, prompt generation, and prompt refinement
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
-  - `models.py` — `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog` ORM models
-  - `repository.py` — `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`
+  - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog` ORM models
+  - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`
   - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload URLs, download, CORS config)
   - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
@@ -68,20 +71,28 @@ Three layers under `src/`:
 
 Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React Query for server state, and Zustand for UI state.
 
+- `/login` — GitHub OAuth login page
 - `/` — Main extraction workflow: upload file (PDF/JPG/PNG) → preview → editable extracted fields → submit
 - `/extractors` — Extractor config management (list, create, edit, delete)
 - `/extractors/new` — Multi-step wizard to create extractor configs (identity, schema, prompt, test)
 - `/extractors/[id]/edit` — Edit existing extractor config
 - `/dashboard` — Accuracy metrics and extraction history
+- `/admin/users` — User management (admin only): create, edit roles, activate/deactivate, delete
+- `auth.ts` — NextAuth.js configuration (GitHub provider, JWT callbacks)
+- `middleware.ts` — Route protection (redirects unauthenticated users to `/login`)
+- `components/auth-provider.tsx` — `SessionProvider` + `BackendAuthSync` (exchanges GitHub token for backend JWT)
+- `components/app-shell.tsx` — Conditional layout (hides sidebar on login page)
 - `components/assistant/` — AI-powered sidebar for schema/prompt generation
 - `components/extractor-wizard/` — Multi-step wizard components
-- `lib/hooks.ts` — React Query hooks for server state (configs, versions, AI generation, extraction)
+- `lib/hooks.ts` — React Query hooks for server state (configs, versions, AI generation, extraction, users)
 - `lib/query-provider.tsx` — React Query provider configuration
-- `lib/store.ts` — Zustand store (sessionStorage persistence, UI state)
-- `lib/api.ts` — Typed fetch wrappers for backend endpoints
+- `lib/store.ts` — Zustand store (sessionStorage persistence, UI state, backend auth token/user)
+- `lib/api.ts` — Typed fetch wrappers for backend endpoints (includes JWT Authorization header)
 
 ## Key Domain Concepts
 
+- **Authentication**: GitHub OAuth via NextAuth.js (frontend) + JWT tokens for backend API. Frontend exchanges GitHub access token for a backend JWT via `POST /auth/login`
+- **Multi-tenancy**: `users` table with roles (`user`/`admin`). All data tables have `user_id` FK. Extractor configs scoped per user (unique name per user). Admin pre-registers users by GitHub username
 - **Extractor config**: User-defined extraction configuration with name, model, prompt, and JSON output schema. Supports draft/active status and versioning for A/B testing
 - **Upload flow**: Frontend requests presigned URL → direct S3 PUT (with backend fallback) → extract by S3 key
 - **Extraction flow**: S3 key → download from storage → vision-based Claude extractor (using config's prompt + schema) → structured output → user correction → persistence with correction flags
@@ -94,10 +105,14 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 
 - `ANTHROPIC_API_KEY` — Required for Claude API calls (backend)
 - `DATABASE_URL` — PostgreSQL connection string (backend)
+- `JWT_SECRET` — Secret key for signing JWT tokens (backend, defaults to dev value)
 - `AWS_ENDPOINT_URL` — S3/LocalStack endpoint (backend)
 - `AWS_PUBLIC_ENDPOINT_URL` — Browser-reachable S3 endpoint for presigned URLs (defaults to `AWS_ENDPOINT_URL`)
 - `AWS_S3_BUCKET_NAME` — S3 bucket for PDF uploads (backend)
 - `NEXT_PUBLIC_API_URL` — Backend URL, defaults to `http://localhost:8000` (frontend)
+- `AUTH_GITHUB_ID` — GitHub OAuth App client ID (frontend)
+- `AUTH_GITHUB_SECRET` — GitHub OAuth App client secret (frontend)
+- `AUTH_SECRET` / `NEXTAUTH_SECRET` — NextAuth.js secret for session encryption (frontend)
 
 ## Code Style
 

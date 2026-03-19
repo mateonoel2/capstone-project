@@ -17,6 +17,9 @@
 - [Comparación de *Parsers*](Comparación-de-Parsers)
 - [*Workflow* Semanal](Workflow-Semanal)
 
+### Operación
+- [Análisis de Costos](Análisis-de-Costos)
+
 ### *Frontend*
 - [Configuración](Configuración-Frontend)
 - [Resumen de Implementación](Resumen-Implementación)

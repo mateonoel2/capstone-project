@@ -2,6 +2,20 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Autenticacion y *Multi-tenancy* (Marzo 2026)
+
+### Cambios principales
+
+- **Autenticacion con *GitHub OAuth***: Login via *NextAuth.js* con proveedor de *GitHub*. El *frontend* intercambia el *access token* de *GitHub* por un *JWT* del *backend* (`POST /auth/login`). Middleware protege todas las rutas excepto `/login`
+- ***Multi-tenancy***: Nueva tabla `users` con roles (`user`/`admin`). Todas las tablas existentes (`extractor_configs`, `extraction_logs`, `api_call_logs`, `test_extraction_logs`) tienen `user_id` *FK*. Extractores con restriccion de nombre unico por usuario
+- **Panel de administracion**: Nueva pagina `/admin/users` (solo admins) para gestionar usuarios: crear por *username* de *GitHub*, cambiar rol, activar/desactivar, eliminar
+- **Autenticacion en *backend***: Nuevo modulo `auth.py` con creacion/validacion de *JWT*, dependencias `get_current_user` y `get_admin_user`. Rutas protegidas reciben `user_id` del token
+- **Sidebar con usuario**: Muestra avatar y nombre del usuario autenticado, badge de admin, boton de cerrar sesion. Navegacion de admin condicional
+- **Nuevas variables de entorno**: `JWT_SECRET` (*backend*), `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET` (*frontend*)
+- **Migracion Alembic**: Tabla `users`, columna `user_id` en tablas existentes, *backfill* de datos existentes al usuario admin
+
+---
+
 ## Actualizacion: Extractores Configurables, Asistente IA y *React Query* (Marzo 2026)
 
 ### Cambios principales
@@ -54,8 +68,9 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 
 ### 1. Navegacion con *Sidebar*
 - *Sidebar* oscuro con navegación implementado
-- Dos páginas funcionales: "Extraer PDF" y "*Dashboard*"
+- Páginas: "Extraer PDF", "Extractores", "*Dashboard*", y "Usuarios" (admin)
 - Resaltado de estado activo
+- Perfil de usuario con avatar, badge de admin y cierre de sesion
 - Diseño profesional con *sidebar* fijo
 
 ### 2. *Dropdown* de Selección de Banco
@@ -149,6 +164,12 @@ POST /extractors/update-prompt    - Refinar prompt con IA
 POST /extractors/test-extract     - Probar extraccion con registro
 GET  /extractors/models           - Listar modelos disponibles
 GET  /extractors/versions         - Versiones de un extractor
+POST /auth/login                 - Login con token de GitHub, retorna JWT
+GET  /auth/me                    - Obtener usuario autenticado
+GET  /admin/users                - Listar usuarios (admin)
+POST /admin/users                - Crear usuario (admin)
+PUT  /admin/users/{id}           - Actualizar usuario (admin)
+DELETE /admin/users/{id}         - Eliminar usuario (admin)
 GET  /health                    - Verificacion de salud
 GET  /docs                      - Documentacion interactiva
 ```
@@ -182,7 +203,8 @@ La aplicación inicia en http://localhost:3000
 ## Base de Datos
 
 *PostgreSQL* con tablas principales:
-- `extractor_configs`: Configuraciones de extractores (*schema*, *prompt*, modelo, estado)
+- `users`: Usuarios registrados (*GitHub* ID, *username*, rol, estado)
+- `extractor_configs`: Configuraciones de extractores (*schema*, *prompt*, modelo, estado, `user_id`)
 - `extractor_config_versions`: Versiones de configuraciones para pruebas A/B
 - `extraction_logs`: Valores extraidos, correcciones del usuario, *flags* de correccion por campo
 - `api_call_logs`: Modelo utilizado, exito/error, tiempo de respuesta, tipo de error
