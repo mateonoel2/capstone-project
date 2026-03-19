@@ -2,6 +2,30 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Documentacion de API para Clientes (Marzo 2026)
+
+### Cambios principales
+
+- **Documentacion de API filtrada**: Nueva vista en `/api/docs` con *Swagger UI* que muestra unicamente los *endpoints* disponibles para integracion programatica (extraccion, extractores, tokens). La documentacion completa (incluyendo rutas internas y de admin) sigue disponible en `/docs`
+- **Spec *OpenAPI* filtrado**: `GET /api/openapi.json` retorna un *OpenAPI spec* que incluye solo los *endpoints* de cliente, con *schemas* no utilizados eliminados automaticamente
+- **Info banner en pagina principal**: La pagina de extraccion (`/`) ahora incluye un banner informativo que enlaza a la documentacion de la API y menciona que las extracciones via API se registran en el *dashboard* del usuario
+- **Metadata de la app actualizada**: Titulo y descripcion del *FastAPI* app actualizados a "Extracto API"
+
+---
+
+## Actualizacion: Tokens API para Acceso Programatico (Marzo 2026)
+
+### Cambios principales
+
+- **Tokens API**: Los usuarios pueden crear tokens para acceder a la API de extraccion desde *scripts* o integraciones sin necesidad de autenticarse via navegador. Autenticacion via *header* `Authorization: Bearer <token>`
+- **Gestion de tokens**: Nueva pagina `/settings/tokens` para crear, ver y revocar tokens. Soporte para expiracion opcional y seguimiento de ultimo uso
+- **Atribucion a usuario**: Las extracciones realizadas con un token API se registran en el *dashboard* del usuario dueno del token, igual que las extracciones via interfaz web
+- **Nuevos *endpoints***: `GET /tokens`, `POST /tokens`, `DELETE /tokens/{token_id}`
+- **Modelo `ApiToken`**: Nueva tabla con *hash* del token, nombre, expiracion, estado de revocacion y ultimo uso
+- **Sidebar actualizado**: Nueva entrada "Tokens API" en la navegacion
+
+---
+
 ## Actualizacion: Autenticacion y *Multi-tenancy* (Marzo 2026)
 
 ### Cambios principales
@@ -170,8 +194,12 @@ GET  /admin/users                - Listar usuarios (admin)
 POST /admin/users                - Crear usuario (admin)
 PUT  /admin/users/{id}           - Actualizar usuario (admin)
 DELETE /admin/users/{id}         - Eliminar usuario (admin)
+GET  /tokens                    - Listar tokens API del usuario
+POST /tokens                    - Crear token API
+DELETE /tokens/{id}             - Revocar token API
 GET  /health                    - Verificacion de salud
-GET  /docs                      - Documentacion interactiva
+GET  /docs                      - Documentacion interactiva (completa)
+GET  /api/docs                  - Documentacion de API para clientes (filtrada)
 ```
 
 ## Cómo Usar

@@ -41,7 +41,9 @@
 │  - POST /extraction/upload (fallback)   │
 │  - POST /extraction/extract             │
 │  - POST /extraction/submit              │
+│  - GET/POST/DELETE /tokens (API tokens) │
 │  - GET /extraction/metrics, logs, etc.  │
+│  - GET /api/docs (client API docs)      │
 └─────────────────────────────────────────┘
                    ↓
 ┌─────────────────────────────────────────┐

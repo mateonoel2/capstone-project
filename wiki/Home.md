@@ -71,6 +71,7 @@ capstone-project/
 │   │   │   ├── api/admin/          # Rutas de administración (/admin/users)
 │   │   │   ├── api/extraction/     # Rutas HTTP y DTOs (/extraction)
 │   │   │   ├── api/extractors/     # Rutas HTTP (/extractors CRUD, AI, test)
+│   │   │   ├── api/tokens/        # Rutas HTTP (/tokens CRUD)
 │   │   │   ├── auth.py             # JWT y validación de tokens GitHub
 │   │   │   ├── ai_assist.py        # Generacion de schemas/prompts con Claude
 │   │   │   ├── database.py         # Configuracion PostgreSQL
@@ -94,6 +95,7 @@ capstone-project/
     │   ├── extractors/             # Gestion de extractores (CRUD + wizard)
     │   ├── dashboard/              # Dashboard
     │   ├── admin/users/            # Gestion de usuarios (admin)
+    │   ├── settings/tokens/       # Gestion de tokens API
     │   └── layout.tsx              # Layout con sidebar
     ├── auth.ts                     # Configuración NextAuth.js (GitHub OAuth)
     ├── middleware.ts               # Protección de rutas
@@ -147,8 +149,10 @@ capstone-project/
 - Versionado de extractores con soporte para pruebas A/B
 - Extracciones de prueba con registro detallado (*TestExtractionLog*)
 - Subida de archivos con *presigned URLs* (subida directa a S3, *fallback* via *backend*)
-- API REST con *endpoints* de extraccion, submission, extractores (CRUD), logs, metricas
-- *Frontend* con extraccion, gestion de extractores, visor de archivos y *dashboard*
+- Tokens API para acceso programatico con autenticacion *Bearer*
+- Documentacion de API filtrada para clientes en `/api/docs`
+- API REST con *endpoints* de extraccion, submission, extractores (CRUD), tokens, logs, metricas
+- *Frontend* con extraccion, gestion de extractores, tokens API, visor de archivos y *dashboard*
 - *React Query* para estado del servidor, *Zustand* para estado de UI
 - Base de datos *PostgreSQL* con migraciones *Alembic*
 - Seguimiento de llamadas a la API (*ApiCallLog*)
@@ -163,7 +167,8 @@ capstone-project/
 - [Repositorio Principal](https://github.com/mateonoel2/capstone-project)
 - [*Issues*](https://github.com/mateonoel2/capstone-project/issues)
 - [*Pull Requests*](https://github.com/mateonoel2/capstone-project/pulls)
-- [Documentación API](http://localhost:8000/docs) (cuando el *backend* está ejecutándose)
+- [Documentacion API (completa)](http://localhost:8000/docs) (cuando el *backend* esta ejecutandose)
+- [Documentacion API (clientes)](http://localhost:8000/api/docs) (vista filtrada para integracion programatica)
 
 ---
 
@@ -197,7 +202,8 @@ npm run dev
 
 - *Frontend*: http://localhost:3000
 - API: http://localhost:8000
-- Documentación API: http://localhost:8000/docs
+- Documentacion API (completa): http://localhost:8000/docs
+- Documentacion API (clientes): http://localhost:8000/api/docs
 
 ---
 
