@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from alembic import command
 from src.core.logger import get_logger
+from src.domain.entities import QuotaExceededError
 from src.infrastructure.api.admin.routes import router as admin_router
 from src.infrastructure.api.auth.routes import router as auth_router
 from src.infrastructure.api.extraction.routes import router as extraction_router
@@ -77,6 +78,11 @@ async def log_requests(request: Request, call_next):
         elapsed,
     )
     return response
+
+
+@app.exception_handler(QuotaExceededError)
+async def quota_exceeded_handler(request: Request, exc: QuotaExceededError):
+    return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
 @app.exception_handler(ValueError)

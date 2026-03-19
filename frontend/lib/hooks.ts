@@ -27,6 +27,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  getUsageQuota,
   SubmissionPayload,
 } from "@/lib/api";
 
@@ -43,6 +44,7 @@ export const queryKeys = {
   availableModels: ["availableModels"] as const,
   apiTokens: ["apiTokens"] as const,
   users: ["users"] as const,
+  usageQuota: ["usageQuota"] as const,
 };
 
 function useIsAuthenticated() {
@@ -122,8 +124,18 @@ export function useAvailableModels() {
   });
 }
 
+export function useUsageQuota() {
+  const authed = useIsAuthenticated();
+  return useQuery({
+    queryKey: queryKeys.usageQuota,
+    queryFn: getUsageQuota,
+    enabled: authed,
+  });
+}
+
 // Mutations
 export function useUploadAndExtract() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       file,
@@ -134,6 +146,9 @@ export function useUploadAndExtract() {
     }) => {
       const { s3_key, filename } = await uploadFile(file);
       return extractFromFile(s3_key, filename, extractorConfigId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });
     },
   });
 }
@@ -174,6 +189,7 @@ export function useCreateExtractorConfig() {
     }) => createExtractorConfig(config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.extractorConfigs });
+      queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });
     },
   });
 }
@@ -240,12 +256,17 @@ export function useTestExtract() {
 }
 
 export function useGenerateSchema() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (description: string) => generateSchema(description),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });
+    },
   });
 }
 
 export function useGeneratePrompt() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       output_schema,
@@ -254,10 +275,14 @@ export function useGeneratePrompt() {
       output_schema: Record<string, unknown>;
       document_type: string | null;
     }) => generatePrompt(output_schema, document_type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });
+    },
   });
 }
 
 export function useUpdatePrompt() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       current_prompt,
@@ -268,6 +293,9 @@ export function useUpdatePrompt() {
       instructions: string;
       output_schema: Record<string, unknown>;
     }) => updatePrompt(current_prompt, instructions, output_schema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });
+    },
   });
 }
 

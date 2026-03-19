@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApiTokens, useCreateApiToken, useRevokeApiToken } from "@/lib/hooks";
 import { useT } from "@/lib/i18n";
+import { useExtractionStore } from "@/lib/store";
 import type { CreateTokenResponse } from "@/lib/api";
 import { Key } from "lucide-react";
 
@@ -42,6 +43,8 @@ function formatDate(dateStr: string | null): string {
 
 export default function TokensPage() {
   const t = useT();
+  const backendUser = useExtractionStore((s) => s.backendUser);
+  const isGuest = backendUser?.role === "guest";
   const { data: tokens, isLoading, error } = useApiTokens();
   const createMutation = useCreateApiToken();
   const revokeMutation = useRevokeApiToken();
@@ -92,12 +95,14 @@ export default function TokensPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t("tokens.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">{t("tokens.subtitle")}</p>
         </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          {t("tokens.createToken")}
-        </button>
+        {!isGuest && (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            {t("tokens.createToken")}
+          </button>
+        )}
       </div>
 
       {createMutation.error && (
@@ -196,12 +201,14 @@ export default function TokensPage() {
           <p className="mt-2 max-w-md mx-auto text-sm text-gray-500">
             {t("tokens.emptyDescription")}
           </p>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="mt-6 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            {t("tokens.createToken")}
-          </button>
+          {!isGuest && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="mt-6 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              {t("tokens.createToken")}
+            </button>
+          )}
         </div>
       )}
 

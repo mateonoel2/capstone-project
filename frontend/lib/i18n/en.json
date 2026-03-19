@@ -11,6 +11,7 @@
     "admin": "Admin",
     "signOut": "Sign out",
     "apiTokens": "API Tokens",
+    "guest": "Guest",
     "version": "Extracto v1.0",
     "language": "EN"
   },
@@ -19,7 +20,7 @@
     "subtitle": "Sign in to access the system",
     "signingIn": "Signing in...",
     "signInWithGithub": "Sign in with GitHub",
-    "accessDenied": "User not registered. Contact the administrator for access.",
+    "accessDenied": "Could not sign in. Please try again.",
     "genericError": "Sign in error. Please try again."
   },
   "extraction": {
@@ -331,6 +332,13 @@
     "copy": "Copy",
     "copied": "Copied!",
     "close": "Close"
+  },
+  "quota": {
+    "guest": "Guest:",
+    "extractions": "extractions",
+    "extractors": "extractors",
+    "aiPrompts": "AI prompts",
+    "limitReached": "Limit reached"
   },
   "templates": {
     "bankStatement": "Bank statement",

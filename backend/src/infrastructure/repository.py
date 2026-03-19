@@ -11,6 +11,7 @@ from src.domain.entities import (
     UserData,
 )
 from src.infrastructure.models import (
+    AiUsageLog,
     ApiCallLog,
     ApiToken,
     ExtractionLog,
@@ -99,6 +100,15 @@ class ExtractionRepository:
             q = q.filter(ExtractionLog.extractor_config_id == extractor_config_id)
         return q.scalar() or 0
 
+    def count_today(self, user_id: int) -> int:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        return (
+            self.session.query(func.count(ExtractionLog.id))
+            .filter(ExtractionLog.user_id == user_id, ExtractionLog.timestamp >= today_start)
+            .scalar()
+            or 0
+        )
+
 
 class ExtractorConfigRepository:
     def __init__(self, session: Session):
@@ -143,6 +153,14 @@ class ExtractorConfigRepository:
             q = q.filter(ExtractorConfig.status == status)
         configs = q.order_by(ExtractorConfig.id).all()
         return [self._to_entity(c) for c in configs]
+
+    def count_by_user(self, user_id: int) -> int:
+        return (
+            self.session.query(func.count(ExtractorConfig.id))
+            .filter(ExtractorConfig.user_id == user_id)
+            .scalar()
+            or 0
+        )
 
     def _get_orm_by_id(self, config_id: int) -> ExtractorConfig | None:
         return self.session.query(ExtractorConfig).filter(ExtractorConfig.id == config_id).first()
@@ -354,6 +372,15 @@ class ApiCallRepository:
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.timestamp >= week_ago)
         return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
+    def count_today(self, user_id: int) -> int:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        return (
+            self.session.query(func.count(ApiCallLog.id))
+            .filter(ApiCallLog.user_id == user_id, ApiCallLog.timestamp >= today_start)
+            .scalar()
+            or 0
+        )
+
 
 class TestExtractionLogRepository:
     def __init__(self, session: Session):
@@ -533,3 +560,24 @@ class UserRepository:
         self.session.delete(user)
         self.session.commit()
         return True
+
+
+class AiUsageLogRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, user_id: int, action: str) -> AiUsageLog:
+        log = AiUsageLog(user_id=user_id, action=action)
+        self.session.add(log)
+        self.session.commit()
+        self.session.refresh(log)
+        return log
+
+    def count_today(self, user_id: int) -> int:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        return (
+            self.session.query(func.count(AiUsageLog.id))
+            .filter(AiUsageLog.user_id == user_id, AiUsageLog.created_at >= today_start)
+            .scalar()
+            or 0
+        )

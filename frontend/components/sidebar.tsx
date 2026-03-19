@@ -96,6 +96,11 @@ export function Sidebar() {
                     {t("sidebar.admin")}
                   </span>
                 )}
+                {backendUser.role === "guest" && (
+                  <span className="inline-flex rounded bg-gray-500/20 px-1.5 py-0.5 text-xs font-medium text-gray-400">
+                    {t("sidebar.guest")}
+                  </span>
+                )}
               </div>
             </div>
             <button

@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useExtractorConfigs, useDeleteExtractorConfig } from "@/lib/hooks";
+import { useExtractorConfigs, useDeleteExtractorConfig, useUsageQuota } from "@/lib/hooks";
 import { Loader2, Plus, Trash2, Star, PenLine } from "lucide-react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
@@ -15,7 +15,15 @@ import { useT } from "@/lib/i18n";
 export default function ExtractorsPage() {
   const { data: configs = [], isLoading } = useExtractorConfigs();
   const deleteMutation = useDeleteExtractorConfig();
+  const { data: quota } = useUsageQuota();
   const t = useT();
+
+  const extractorLimitReached = !!(
+    quota &&
+    !quota.unlimited &&
+    quota.extractors &&
+    quota.extractors.used >= quota.extractors.limit
+  );
 
   const handleDelete = async (id: number) => {
     if (!confirm(t("extractors.confirmDelete"))) return;
@@ -47,12 +55,19 @@ export default function ExtractorsPage() {
               {t("extractors.subtitle")}
             </p>
           </div>
-          <Button asChild>
-            <Link href="/extractors/new">
+          {extractorLimitReached ? (
+            <Button disabled title={t("quota.limitReached")}>
               <Plus className="h-4 w-4 mr-2" />
               {t("extractors.create")}
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/extractors/new">
+                <Plus className="h-4 w-4 mr-2" />
+                {t("extractors.create")}
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4">

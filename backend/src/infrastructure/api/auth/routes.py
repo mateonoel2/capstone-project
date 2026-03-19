@@ -4,9 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.domain.services.quota import QuotaService
 from src.infrastructure.auth import UserDep, create_access_token, validate_github_token
 from src.infrastructure.database import get_db
-from src.infrastructure.repository import UserRepository
+from src.infrastructure.repository import (
+    AiUsageLogRepository,
+    ApiCallRepository,
+    ExtractorConfigRepository,
+    UserRepository,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,15 +48,13 @@ async def login(request: LoginRequest, db: DbDep):
 
     repo = UserRepository(db)
 
-    # Try by github_id first (returning user), then by username (first login)
+    # Try by github_id first (returning user), then by username (first login / guest)
     user = repo.get_by_github_id(github_id)
     if not user:
         user = repo.get_by_github_username(github_username)
         if not user:
-            raise HTTPException(
-                status_code=403,
-                detail="Usuario no registrado. Contacta al administrador.",
-            )
+            # Auto-register as guest
+            user = repo.create(github_username=github_username, role="guest")
         # First login — fill in github_id and profile info
         repo.update_login_info(user.id, github_id, email, avatar_url)
         user = repo.get_by_id(user.id)
@@ -85,3 +89,13 @@ async def get_me(user: UserDep):
         avatar_url=user.avatar_url,
         role=user.role,
     )
+
+
+@router.get("/usage")
+async def get_usage(user: UserDep, db: DbDep):
+    quota = QuotaService(
+        api_call_repo=ApiCallRepository(db),
+        extractor_repo=ExtractorConfigRepository(db),
+        ai_usage_repo=AiUsageLogRepository(db),
+    )
+    return quota.get_usage(user)
