@@ -175,9 +175,7 @@ def analyze_results(results_df: pd.DataFrame, gt_df: pd.DataFrame) -> pd.DataFra
         if _is_empty(row.get("owner_real")):
             owner_vals.append((False, "no_ground_truth"))
         else:
-            owner_vals.append(
-                validate_owner(str(row["owner_pred"] or ""), str(row["owner_real"]))
-            )
+            owner_vals.append(validate_owner(str(row["owner_pred"] or ""), str(row["owner_real"])))
 
         if _is_empty(row.get("account_real")):
             clabe_vals.append((False, "no_ground_truth"))
@@ -189,9 +187,7 @@ def analyze_results(results_df: pd.DataFrame, gt_df: pd.DataFrame) -> pd.DataFra
         if _is_empty(row.get("bank_real")):
             bank_vals.append((False, "no_ground_truth"))
         else:
-            bank_vals.append(
-                validate_bank(str(row["bank_pred"] or ""), str(row["bank_real"]))
-            )
+            bank_vals.append(validate_bank(str(row["bank_pred"] or ""), str(row["bank_real"])))
 
     merged["owner_correct"] = [v[0] for v in owner_vals]
     merged["owner_match_type"] = [v[1] for v in owner_vals]
@@ -269,25 +265,14 @@ def compute_summary_metrics(merged: pd.DataFrame) -> dict:
         # Accuracy condicional: correct / (extraction attempted AND has ground truth)
         if field == "clabe":
             attempted = has_gt[
-                (has_gt["account_pred"] != "000000000000000000")
-                & (has_gt["account_pred"].notna())
+                (has_gt["account_pred"] != "000000000000000000") & (has_gt["account_pred"].notna())
             ]
         elif field == "owner":
-            attempted = has_gt[
-                (has_gt["owner_pred"] != "Unknown")
-                & (has_gt["owner_pred"].notna())
-            ]
+            attempted = has_gt[(has_gt["owner_pred"] != "Unknown") & (has_gt["owner_pred"].notna())]
         else:  # bank
-            attempted = has_gt[
-                (has_gt["bank_pred"] != "Unknown")
-                & (has_gt["bank_pred"].notna())
-            ]
+            attempted = has_gt[(has_gt["bank_pred"] != "Unknown") & (has_gt["bank_pred"].notna())]
 
-        acc_conditional = (
-            attempted[correct_col].sum() / len(attempted)
-            if len(attempted) > 0
-            else 0
-        )
+        acc_conditional = attempted[correct_col].sum() / len(attempted) if len(attempted) > 0 else 0
 
         # Not extracted count (among files with ground truth)
         not_extracted = total_with_gt - len(attempted)
