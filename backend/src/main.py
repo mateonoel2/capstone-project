@@ -42,7 +42,7 @@ def _get_allowed_origins() -> list[str]:
     origins = os.getenv("ALLOWED_ORIGINS", "")
     if origins:
         return [o.strip() for o in origins.split(",") if o.strip()]
-    return ["http://localhost:3000"]
+    return ["http://localhost:3000", "https://capstone-project-sigma-one.vercel.app"]
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -127,9 +127,7 @@ async def log_requests(request: Request, call_next):
                     token = auth_header[7:]
                     if not token.startswith("exto_"):
                         try:
-                            payload = pyjwt.decode(
-                                token, JWT_SECRET, algorithms=[JWT_ALGORITHM]
-                            )
+                            payload = pyjwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
                             user_id = payload.get("user_id")
                         except Exception:
                             pass
