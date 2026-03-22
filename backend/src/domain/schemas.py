@@ -1,3 +1,5 @@
+import re
+
 from pydantic import BaseModel, Field, field_validator
 
 from src.domain.constants import BANK_DICT_KUSHKI
@@ -17,12 +19,31 @@ class ExtractionOutput(BaseModel):
     )
     account_number: str = Field(
         ...,
-        description="Número CLABE de 18 dígitos. Usa '000000000000000000' si no se encuentra.",
+        description="CLABE interbancaria de EXACTAMENTE 18 dígitos. "
+        "NO es el número de cuenta (10-11 dígitos) ni el número de cliente (7-8 dígitos). "
+        "Busca la etiqueta 'CLABE' o 'CLABE Interbancaria'. "
+        "Elimina espacios si los tiene. "
+        "Usa '000000000000000000' si no se encuentra.",
     )
     bank_name: str = Field(
         ...,
         description="Nombre del banco en mayúsculas. Usa 'Unknown' si no se encuentra.",
     )
+
+    @field_validator("account_number")
+    @classmethod
+    def normalize_clabe(cls, v: str) -> str:
+        # Remove spaces, dots, dashes
+        digits = re.sub(r"[^\d]", "", v)
+        if digits == "0" * 18 or not digits:
+            return "000000000000000000"
+        # Zero-pad to 18 if close (e.g. leading zero was dropped)
+        if 16 <= len(digits) < 18:
+            digits = digits.zfill(18)
+        # Truncate if over 18 (e.g. check digit appended)
+        if len(digits) > 18:
+            digits = digits[:18]
+        return digits
 
 
 class BankAccount(BaseModel):
