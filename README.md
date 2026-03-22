@@ -37,6 +37,27 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 - CI con GitHub Actions (ruff format, lint, tests)
 - Docker Compose para desarrollo local (backend + PostgreSQL + LocalStack)
 
+## Resultados de Evaluacion
+
+Evaluado sobre 176 estados de cuenta bancarios de 11 instituciones financieras mexicanas, utilizando el enfoque de PDF directo a *Claude Haiku 4.5* (sin OCR ni conversion intermedia):
+
+| Campo | Precision | Correctos | Similaridad |
+|-------|-----------|-----------|-------------|
+| **Titular** | 92.8% | 163/175 | 0.93 |
+| **CLABE** | 90.9% | 160/176 | 0.91 |
+| **Banco** | 96.6% | 82/85 | 0.99 |
+
+- **Tiempo de procesamiento:** mediana 1.9s, 85% en <4s
+- **Costo:** ~$0.011 USD por documento
+- **Promedio general:** 93.4% de precision
+
+## Impacto Operativo
+
+- Reduccion estimada del 60% en intervenciones de soporte (de ~18 a ~7 casos/mes)
+- Ahorro anual: 315 horas-hombre (~1.8 FTE)
+- Ahorro economico estimado: USD $6,480–$16,200 anuales por *fintech* (escala a USD $540k+ en operaciones de alto volumen)
+- 80% de documentos procesados sin intervencion humana
+
 ## Estructura del Proyecto
 
 ```
