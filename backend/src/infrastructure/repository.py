@@ -14,6 +14,8 @@ from src.infrastructure.models import (
     AiUsageLog,
     ApiCallLog,
     ApiToken,
+    AuditLog,
+    DataConsent,
     ExtractionLog,
     ExtractorConfig,
     ExtractorConfigVersion,
@@ -581,3 +583,165 @@ class AiUsageLogRepository:
             .scalar()
             or 0
         )
+
+
+class AuditLogRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(
+        self,
+        action: str,
+        resource_type: str,
+        resource_id: str | None = None,
+        user_id: int | None = None,
+        details: str | None = None,
+        ip_address: str | None = None,
+    ) -> AuditLog:
+        log = AuditLog(
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=details,
+            ip_address=ip_address,
+        )
+        self.session.add(log)
+        self.session.commit()
+        return log
+
+    def get_by_user(
+        self, user_id: int, limit: int = 100
+    ) -> list[AuditLog]:
+        return (
+            self.session.query(AuditLog)
+            .filter(AuditLog.user_id == user_id)
+            .order_by(AuditLog.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_all(self, limit: int = 200) -> list[AuditLog]:
+        return (
+            self.session.query(AuditLog)
+            .order_by(AuditLog.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
+
+class DataConsentRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def grant(
+        self, user_id: int, consent_type: str, policy_version: str = "1.0"
+    ) -> DataConsent:
+        existing = (
+            self.session.query(DataConsent)
+            .filter(
+                DataConsent.user_id == user_id,
+                DataConsent.consent_type == consent_type,
+                DataConsent.revoked_at.is_(None),
+            )
+            .first()
+        )
+        if existing:
+            return existing
+
+        consent = DataConsent(
+            user_id=user_id,
+            consent_type=consent_type,
+            granted=True,
+            policy_version=policy_version,
+        )
+        self.session.add(consent)
+        self.session.commit()
+        self.session.refresh(consent)
+        return consent
+
+    def revoke(self, user_id: int, consent_type: str) -> bool:
+        consent = (
+            self.session.query(DataConsent)
+            .filter(
+                DataConsent.user_id == user_id,
+                DataConsent.consent_type == consent_type,
+                DataConsent.revoked_at.is_(None),
+            )
+            .first()
+        )
+        if not consent:
+            return False
+        consent.granted = False
+        consent.revoked_at = datetime.now(timezone.utc)
+        self.session.commit()
+        return True
+
+    def get_active_consents(self, user_id: int) -> list[DataConsent]:
+        return (
+            self.session.query(DataConsent)
+            .filter(
+                DataConsent.user_id == user_id,
+                DataConsent.granted.is_(True),
+                DataConsent.revoked_at.is_(None),
+            )
+            .all()
+        )
+
+    def has_consent(self, user_id: int, consent_type: str) -> bool:
+        return (
+            self.session.query(DataConsent)
+            .filter(
+                DataConsent.user_id == user_id,
+                DataConsent.consent_type == consent_type,
+                DataConsent.granted.is_(True),
+                DataConsent.revoked_at.is_(None),
+            )
+            .first()
+        ) is not None
+
+
+class DataRetentionRepository:
+    """Handles data deletion for retention policies and ARCO right-to-erasure."""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def delete_user_extraction_data(self, user_id: int) -> int:
+        """Delete all extraction logs for a user. Returns count of deleted records."""
+        count = (
+            self.session.query(ExtractionLog)
+            .filter(ExtractionLog.user_id == user_id)
+            .count()
+        )
+        self.session.query(ExtractionLog).filter(
+            ExtractionLog.user_id == user_id
+        ).delete()
+        self.session.commit()
+        return count
+
+    def delete_user_test_data(self, user_id: int) -> int:
+        count = (
+            self.session.query(TestExtractionLog)
+            .filter(TestExtractionLog.user_id == user_id)
+            .count()
+        )
+        self.session.query(TestExtractionLog).filter(
+            TestExtractionLog.user_id == user_id
+        ).delete()
+        self.session.commit()
+        return count
+
+    def delete_expired_data(self, retention_days: int = 1825) -> int:
+        """Delete extraction data older than retention period (default: 5 years)."""
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        count = (
+            self.session.query(ExtractionLog)
+            .filter(ExtractionLog.timestamp < cutoff)
+            .count()
+        )
+        self.session.query(ExtractionLog).filter(
+            ExtractionLog.timestamp < cutoff
+        ).delete()
+        self.session.commit()
+        return count

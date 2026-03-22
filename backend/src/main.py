@@ -1,4 +1,5 @@
 import copy
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from alembic import command
 from src.core.logger import get_logger
@@ -21,6 +23,7 @@ from src.infrastructure.api.admin.routes import router as admin_router
 from src.infrastructure.api.auth.routes import router as auth_router
 from src.infrastructure.api.extraction.routes import router as extraction_router
 from src.infrastructure.api.extractors.routes import router as extractors_router
+from src.infrastructure.api.privacy.routes import router as privacy_router
 from src.infrastructure.api.tokens.routes import router as tokens_router
 from src.infrastructure.storage import get_storage
 
@@ -35,11 +38,33 @@ def run_migrations():
     command.upgrade(alembic_cfg, "head")
 
 
+def _get_allowed_origins() -> list[str]:
+    origins = os.getenv("ALLOWED_ORIGINS", "")
+    if origins:
+        return [o.strip() for o in origins.split(",") if o.strip()]
+    return ["http://localhost:3000"]
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds security headers to all responses (HSTS, CSP, X-Content-Type-Options, etc.)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
     storage = get_storage()
-    storage.configure_cors(allowed_origins=["*"])
+    allowed = _get_allowed_origins()
+    storage.configure_cors(allowed_origins=allowed)
     yield
 
 
@@ -50,9 +75,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,6 +89,10 @@ app.include_router(admin_router)
 app.include_router(extraction_router)
 app.include_router(extractors_router)
 app.include_router(tokens_router)
+app.include_router(privacy_router)
+
+
+AUDITED_PATHS = {"/extraction/extract", "/extraction/submit", "/extraction/logs", "/admin/users"}
 
 
 @app.middleware("http")
@@ -77,6 +107,45 @@ async def log_requests(request: Request, call_next):
         response.status_code,
         elapsed,
     )
+
+    # Audit log for sensitive data access
+    path = request.url.path
+    if any(path.startswith(p) for p in AUDITED_PATHS) and response.status_code < 400:
+        try:
+            from src.infrastructure.database import SessionLocal
+            from src.infrastructure.repository import AuditLogRepository
+
+            db = SessionLocal()
+            try:
+                user_id = None
+                auth_header = request.headers.get("authorization", "")
+                if auth_header.startswith("Bearer "):
+                    import jwt as pyjwt
+
+                    from src.infrastructure.auth import JWT_ALGORITHM, JWT_SECRET
+
+                    token = auth_header[7:]
+                    if not token.startswith("exto_"):
+                        try:
+                            payload = pyjwt.decode(
+                                token, JWT_SECRET, algorithms=[JWT_ALGORITHM]
+                            )
+                            user_id = payload.get("user_id")
+                        except Exception:
+                            pass
+
+                ip = request.client.host if request.client else None
+                AuditLogRepository(db).create(
+                    action=f"{request.method} {path}",
+                    resource_type="api_access",
+                    user_id=user_id,
+                    ip_address=ip,
+                )
+            finally:
+                db.close()
+        except Exception:
+            pass  # Never block requests due to audit failures
+
     return response
 
 
