@@ -610,9 +610,7 @@ class AuditLogRepository:
         self.session.commit()
         return log
 
-    def get_by_user(
-        self, user_id: int, limit: int = 100
-    ) -> list[AuditLog]:
+    def get_by_user(self, user_id: int, limit: int = 100) -> list[AuditLog]:
         return (
             self.session.query(AuditLog)
             .filter(AuditLog.user_id == user_id)
@@ -622,21 +620,14 @@ class AuditLogRepository:
         )
 
     def get_all(self, limit: int = 200) -> list[AuditLog]:
-        return (
-            self.session.query(AuditLog)
-            .order_by(AuditLog.timestamp.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit).all()
 
 
 class DataConsentRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def grant(
-        self, user_id: int, consent_type: str, policy_version: str = "1.0"
-    ) -> DataConsent:
+    def grant(self, user_id: int, consent_type: str, policy_version: str = "1.0") -> DataConsent:
         existing = (
             self.session.query(DataConsent)
             .filter(
@@ -709,14 +700,8 @@ class DataRetentionRepository:
 
     def delete_user_extraction_data(self, user_id: int) -> int:
         """Delete all extraction logs for a user. Returns count of deleted records."""
-        count = (
-            self.session.query(ExtractionLog)
-            .filter(ExtractionLog.user_id == user_id)
-            .count()
-        )
-        self.session.query(ExtractionLog).filter(
-            ExtractionLog.user_id == user_id
-        ).delete()
+        count = self.session.query(ExtractionLog).filter(ExtractionLog.user_id == user_id).count()
+        self.session.query(ExtractionLog).filter(ExtractionLog.user_id == user_id).delete()
         self.session.commit()
         return count
 
@@ -726,22 +711,14 @@ class DataRetentionRepository:
             .filter(TestExtractionLog.user_id == user_id)
             .count()
         )
-        self.session.query(TestExtractionLog).filter(
-            TestExtractionLog.user_id == user_id
-        ).delete()
+        self.session.query(TestExtractionLog).filter(TestExtractionLog.user_id == user_id).delete()
         self.session.commit()
         return count
 
     def delete_expired_data(self, retention_days: int = 1825) -> int:
         """Delete extraction data older than retention period (default: 5 years)."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-        count = (
-            self.session.query(ExtractionLog)
-            .filter(ExtractionLog.timestamp < cutoff)
-            .count()
-        )
-        self.session.query(ExtractionLog).filter(
-            ExtractionLog.timestamp < cutoff
-        ).delete()
+        count = self.session.query(ExtractionLog).filter(ExtractionLog.timestamp < cutoff).count()
+        self.session.query(ExtractionLog).filter(ExtractionLog.timestamp < cutoff).delete()
         self.session.commit()
         return count
