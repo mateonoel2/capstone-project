@@ -15,10 +15,12 @@
 ### *Backend*
 - [Guía de *Scripts*](Guía-de-Scripts)
 - [Comparación de *Parsers*](Comparación-de-Parsers)
+- [Evaluación y Métricas](Evaluación-y-Métricas)
 - [*Workflow* Semanal](Workflow-Semanal)
 
 ### Operación
 - [Análisis de Costos](Análisis-de-Costos)
+- [Privacidad y Cumplimiento](Privacidad-y-Cumplimiento)
 
 ### *Frontend*
 - [Configuración](Configuración-Frontend)
