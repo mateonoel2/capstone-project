@@ -22,6 +22,7 @@ dependencies = [
     "alembic>=1.13.0",
     "PyJWT>=2.8.0",
     "langchain-anthropic>=0.3.0",
+    "pymupdf>=1.27.2.2",
 ]
 
 [dependency-groups]
@@ -30,6 +31,8 @@ dev = [
     "ruff>=0.9.0",
     "pandas>=2.0.0",
     "httpx>=0.27.0",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
 ]
 
 [tool.ruff]

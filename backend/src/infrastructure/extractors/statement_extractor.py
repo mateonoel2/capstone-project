@@ -1,6 +1,7 @@
 import base64
 import io
 import os
+import re
 from pathlib import Path
 
 import anthropic
@@ -20,17 +21,31 @@ EXTRACTION_PROMPT = """Analiza este documento y determina si es un estado de
 cuenta o carátula bancaria mexicana.
 
 Si ES un estado de cuenta o carátula bancaria, extrae:
-1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa)
-2. CLABE: Número de 18 dígitos (CLABE interbancaria).
-   IMPORTANTE: La CLABE puede aparecer con espacios entre grupos de dígitos
-   (ej: "072 691 00844421773 3"). Elimina todos los espacios y devuelve solo
-   los 18 dígitos consecutivos. Si el resultado tiene más de 18 dígitos, toma
-   los primeros 18.
-3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
-   BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX)
 
-Si NO es un estado de cuenta bancario (por ejemplo: facturas, contratos, recibos, documentos
-legales, etc.), marca is_valid_document como false.
+1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa).
+   Busca el nombre que aparece en la sección de datos del cliente, NO el nombre
+   del asesor, ejecutivo, o personas mencionadas en transacciones.
+
+2. CLABE Interbancaria: Número de EXACTAMENTE 18 dígitos.
+   IMPORTANTE — Distingue entre estos campos que son DIFERENTES:
+   - CLABE Interbancaria: SIEMPRE tiene 18 dígitos. Busca etiquetas como
+     "CLABE", "CLABE Interbancaria", "No. Cuenta CLABE", "Cuenta CLABE".
+   - Número de cuenta: Típicamente 10-11 dígitos. NO es la CLABE.
+   - Número de cliente: Típicamente 7-8 dígitos. NO es la CLABE.
+   La CLABE aparece inmediatamente al costado o debajo de su etiqueta
+   "CLABE Interbancaria". Lee el número que está junto a esa etiqueta.
+   La CLABE puede aparecer con espacios (ej: "072 691 00844421773 3").
+   Elimina todos los espacios y devuelve SOLO los 18 dígitos consecutivos.
+   Lee cada dígito individualmente con cuidado, no agrupes ni asumas.
+   Si ves la CLABE en la sección "PRODUCTOS DE VISTA" o "RESUMEN INTEGRAL",
+   usa ese valor.
+
+3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
+   BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX, INBURSA)
+
+Si NO es un estado de cuenta bancario (por ejemplo: facturas, contratos, recibos,
+comprobantes de transferencia, documentos legales, etc.), marca is_valid_document
+como false.
 
 Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
 y "000000000000000000" para account_number.
@@ -60,6 +75,15 @@ ORIENTATION_SCHEMA = {
     },
     "required": ["text_direction"],
 }
+
+CLABE_RETRY_PROMPT = """El valor de CLABE que extrajiste NO tiene 18 dígitos.
+Revisa el documento nuevamente. La CLABE interbancaria:
+- SIEMPRE tiene EXACTAMENTE 18 dígitos
+- Aparece etiquetada como "CLABE", "CLABE Interbancaria" o "No. Cuenta CLABE"
+- NO es el número de cuenta (10-13 dígitos) ni el número de cliente (7-8 dígitos)
+- Puede estar en la sección "PRODUCTOS DE VISTA" o "RESUMEN INTEGRAL"
+
+Extrae nuevamente TODOS los campos del documento."""
 
 # Map detected text direction to clockwise rotation needed to correct it
 DIRECTION_TO_ROTATION = {
@@ -169,9 +193,36 @@ class StatementExtractor:
 
         return [image_b64]
 
+    def _pdf_to_image(self, pdf_path: Path) -> Image.Image | None:
+        """Convert first page of PDF to PIL Image for orientation check."""
+        try:
+            import fitz  # PyMuPDF
+
+            doc = fitz.open(pdf_path)
+            page = doc[0]
+            pix = page.get_pixmap(dpi=200)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            doc.close()
+            return img
+        except Exception as e:
+            logger.warning("PDF to image conversion failed: %s", e)
+            return None
+
     def _extract_with_pdf(self, pdf_path: Path) -> dict:
         logger.info("=== PDF extraction ===")
         logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
+
+        # Check orientation by converting first page to image
+        img = self._pdf_to_image(pdf_path)
+        if img is not None:
+            img_b64 = self._image_to_base64(img)
+            rotation = self._check_orientation(img_b64)
+            if rotation != 0:
+                logger.info("PDF is rotated %d°, using vision extraction instead", rotation)
+                img = img.rotate(-rotation, expand=True)
+                img_b64 = self._image_to_base64(img)
+                return self._extract_with_vision([img_b64])
+
         pdf_data = pdf_path.read_bytes()
         pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
         content = [
@@ -209,16 +260,65 @@ class StatementExtractor:
         logger.info("Extraction result: %s", result)
         return result
 
+    def _needs_clabe_retry(self, result: dict) -> bool:
+        """Check if the CLABE needs a retry (not 18 digits and not default)."""
+        clabe = str(result.get("account_number", "000000000000000000"))
+        digits = re.sub(r"[^\d]", "", clabe)
+        if digits == "0" * 18:
+            return False
+        return len(digits) != 18
+
     def extract_file(self, file_path: Path) -> dict:
         suffix = file_path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
 
         if suffix in PDF_EXTENSIONS:
-            return self._extract_with_pdf(file_path)
+            result = self._extract_with_pdf(file_path)
+        else:
+            base64_images = self._load_image_file(file_path)
+            if not base64_images:
+                raise ValueError("No se pudo procesar el archivo")
+            result = self._extract_with_vision(base64_images)
 
-        base64_images = self._load_image_file(file_path)
-        if not base64_images:
-            raise ValueError("No se pudo procesar el archivo")
+        # Retry with reinforced prompt if CLABE is not 18 digits
+        if self._needs_clabe_retry(result):
+            bad_clabe = result.get("account_number", "")
+            logger.info("CLABE '%s' is not 18 digits, retrying...", bad_clabe)
+            original_prompt = self.prompt
+            self.prompt = self.prompt + "\n\n" + CLABE_RETRY_PROMPT
+            try:
+                if suffix in PDF_EXTENSIONS:
+                    retry_result = self._extract_with_pdf(file_path)
+                else:
+                    retry_result = self._extract_with_vision(base64_images)
+                retry_clabe = str(retry_result.get("account_number", ""))
+                retry_digits = re.sub(r"[^\d]", "", retry_clabe)
+                if len(retry_digits) == 18 and retry_digits != "0" * 18:
+                    logger.info("Retry fixed CLABE: %s", retry_digits)
+                    return retry_result
+                logger.info("Retry did not improve CLABE, keeping original")
+            except Exception as e:
+                logger.warning("Retry failed: %s", e)
+            finally:
+                self.prompt = original_prompt
 
-        return self._extract_with_vision(base64_images)
+            # If prompt retry didn't help and it's a PDF, try with 90° rotation
+            if suffix in PDF_EXTENSIONS and self._needs_clabe_retry(result):
+                logger.info("Attempting rotation retry for PDF...")
+                img = self._pdf_to_image(file_path)
+                if img is not None:
+                    rotated = img.rotate(-90, expand=True)
+                    img_b64 = self._image_to_base64(rotated)
+                    try:
+                        rot_result = self._extract_with_vision([img_b64])
+                        rot_clabe = str(rot_result.get("account_number", ""))
+                        rot_digits = re.sub(r"[^\d]", "", rot_clabe)
+                        if len(rot_digits) == 18 and rot_digits != "0" * 18:
+                            logger.info("Rotation retry fixed CLABE: %s", rot_digits)
+                            return rot_result
+                        logger.info("Rotation retry did not improve CLABE")
+                    except Exception as e:
+                        logger.warning("Rotation retry failed: %s", e)
+
+        return result

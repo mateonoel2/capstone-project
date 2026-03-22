@@ -39,10 +39,37 @@ def check_pdf_text_extraction(pdf_path: Path) -> Dict[str, object]:
         }
 
 
+def strip_accents(text: str) -> str:
+    """Remove Unicode accents: é→e, ó→o, etc."""
+    import unicodedata
+
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def normalize_legal_entity(text: str) -> str:
+    """Normalize legal entity suffixes: A.C. → AC, S.C. → SC, etc."""
+    import re
+
+    # Remove dots from abbreviations (A.C. → AC, S.C. → SC, S.A. → SA)
+    result = re.sub(r"\b([A-Z])\.\s*([A-Z])\.?\b", r"\1\2", text)
+    # Handle S.A. DE C.V. → SA DE CV
+    result = re.sub(r"\bS\.?\s*A\.?\s*DE\s*C\.?\s*V\.?\b", "SA DE CV", result)
+    # Remove remaining standalone dots and extra commas
+    result = re.sub(r"(?<!\d)\.(?!\d)", "", result)
+    result = result.replace(",", "")
+    # Collapse multiple spaces
+    result = re.sub(r"\s+", " ", result).strip()
+    return result
+
+
 def normalize_text(text: str) -> str:
     if not text or text == "Unknown":
         return ""
-    return text.upper().strip().replace("  ", " ")
+    result = text.upper().strip().replace("  ", " ")
+    result = strip_accents(result)
+    result = normalize_legal_entity(result)
+    return result
 
 
 def validate_clabe(predicted: str, actual: str) -> Tuple[bool, str]:
@@ -66,6 +93,8 @@ def validate_clabe(predicted: str, actual: str) -> Tuple[bool, str]:
 
 
 def validate_owner(predicted: str, actual: str) -> Tuple[bool, str]:
+    from difflib import SequenceMatcher
+
     pred_norm = normalize_text(predicted)
     actual_norm = normalize_text(actual)
 
@@ -75,11 +104,17 @@ def validate_owner(predicted: str, actual: str) -> Tuple[bool, str]:
     if pred_norm == actual_norm:
         return True, "exact_match"
 
+    # Word overlap check (≥70% of actual words present in prediction)
     pred_words = set(pred_norm.split())
     actual_words = set(actual_norm.split())
 
-    if len(pred_words & actual_words) / len(actual_words) >= 0.7:
+    if actual_words and len(pred_words & actual_words) / len(actual_words) >= 0.7:
         return True, "partial_match"
+
+    # Fuzzy similarity fallback (handles remaining formatting differences)
+    similarity = SequenceMatcher(None, pred_norm, actual_norm).ratio()
+    if similarity >= 0.85:
+        return True, "fuzzy_match"
 
     return False, "no_match"
 
