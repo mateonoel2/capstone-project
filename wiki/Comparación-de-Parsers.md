@@ -181,23 +181,89 @@ La comparación revela una perspectiva crítica: **OCR solo no es suficiente**. 
 
 ---
 
+## Fase 3: Enfoque PDF Directo (Marzo 2026)
+
+A partir de la disponibilidad de procesamiento de documentos PDF como binarios en la API de Claude, se evaluo un cuarto enfoque: **enviar el PDF completo directamente al modelo sin conversion intermedia** a texto ni a imagen. Este enfoque elimina la dependencia de herramientas externas de preprocesamiento y simplifica la arquitectura.
+
+### Resultados (176 PDFs depurados)
+
+| Campo | *Accuracy* Total | *Accuracy* Cond. | Correctos | Similaridad |
+|-------|-----------------|-----------------|-----------|-------------|
+| **Titular** | 92.8% | 94.9% | 167/175 | 0.93 |
+| **CLABE** | 90.9% | --- | 160/176 | 0.91 |
+| **Banco** | 96.6% | 98.8% | 84/85 | 0.99 |
+
+### Comparacion directa con Fase 2
+
+| Campo | Fase 2 (Claude OCR) | Fase 3 (PDF directo) | Mejora |
+|-------|---------------------|---------------------|--------|
+| Titular | 68.9% | 92.8% | +23.9 pp |
+| CLABE | 80.9% | 90.9% | +10.0 pp |
+| Banco | 41.5% | 96.6% | **+55.1 pp** |
+
+La mejora mas significativa fue en el campo Banco: al enviar el PDF directamente, el modelo procesa simultaneamente texto y elementos visuales (logotipos), resolviendo la limitacion del OCR que no podia reconocer el nombre del banco cuando aparecia como logotipo.
+
+### Precision por banco
+
+| Banco | n | Titular | CLABE | Banco |
+|-------|---|---------|-------|-------|
+| AFIRME | 3 | 100% | 100% | 100% |
+| BAJIO | 3 | 100% | 0% | 100% |
+| BANAMEX | 11 | 91% | 91% | 100% |
+| BANORTE | 21 | 86% | 67% | 90% |
+| BANREGIO | 5 | 100% | 60% | 100% |
+| BBVA | 19 | 95% | 95% | 100% |
+| HSBC | 6 | 100% | 100% | 100% |
+| SANTANDER | 14 | 93% | 93% | 100% |
+| SCOTIABANK | 4 | 75% | 50% | 75% |
+
+### Analisis de errores en CLABE
+
+Distribucion bimodal de errores:
+- **1–7 digitos diferentes**: lecturas cercanas, limitaciones de vision del modelo. Dificiles de resolver con cambios de *prompt*
+- **10–18 digitos diferentes**: confusion de campo (numero de cuenta vs CLABE). Mitigables con instrucciones especificas y validaciones post-extraccion
+
+### Rendimiento
+- **Mediana:** 1.9 segundos por archivo
+- **Media:** 2.6 segundos
+- **85%** procesados en <4 segundos
+- **Costo promedio:** $0.011 USD por archivo
+
+> Para el analisis completo de la metodologia de evaluacion, metricas y desglose de resultados, ver [Evaluacion y Metricas](Evaluación-y-Métricas).
+
+---
+
 ## Estado Actual (Marzo 2026)
 
-Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` basado en vision con *structured output*. El sistema ahora soporta extractores configurables con *schemas*, *prompts* y modelos personalizados. Cada extractor:
+Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` que envia el PDF directamente como documento binario al modelo, con *structured output*. El sistema ahora soporta extractores configurables con *schemas*, *prompts* y modelos personalizados. Cada extractor:
 - Usa un modelo Claude configurable (por defecto *Haiku 4.5*) con `with_structured_output()` de *LangChain*
-- Convierte PDFs a imagenes (*pdf2image*) y las envia directamente a la API de vision
+- Envia el PDF directamente al modelo como documento binario (sin conversion intermedia)
 - Soporta PDFs e imagenes (JPG/PNG)
 - Detecta automaticamente si el documento es valido para el tipo de extraccion (`is_valid_document`)
 - Registra cada llamada en `api_call_logs` para monitoreo
 - Soporta extracciones de prueba registradas en `test_extraction_logs`
 
-## Proximos Pasos
+## Recomendacion Actualizada
 
-1. **Monitorear precision** en nuevos documentos via el *dashboard*
-2. **Manejar casos extremos**:
-   - PDFs encriptados
-   - Imagenes de baja calidad
-   - Estados de cuenta de multiples paginas
+### **Usar enfoque de PDF directo para produccion**
+
+**Razones:**
+1. **Mejor precision en todos los campos** — 93.4% promedio vs 63.8% del anterior ganador (Claude OCR)
+2. **Arquitectura mas simple** — Sin dependencias de OCR ni conversion a imagen
+3. **Costo competitivo** — $0.011 USD por documento
+4. **Velocidad rapida** — Mediana de 1.9 segundos
+5. **Acceso a contenido visual** — Resuelve la extraccion de bancos por logotipo (96.6%)
+
+**Arquitectura:**
+
+```
+PDF → Claude Haiku 4.5 (PDF directo) → Datos Extraidos (JSON estructurado)
+```
+
+**Limitaciones conocidas:**
+- BanBajio: 0% CLABE (ambiguedad inherente del formato del documento)
+- Documentos manuscritos o de muy baja calidad
+- PDFs encriptados
 
 ---
 
