@@ -11,10 +11,10 @@ sys.path.insert(0, str(project_root))
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from alembic import command
 from src.core.logger import get_logger
@@ -43,6 +43,50 @@ def _get_allowed_origins() -> list[str]:
     if origins:
         return [o.strip() for o in origins.split(",") if o.strip()]
     return ["http://localhost:3000", "https://capstone-project-sigma-one.vercel.app"]
+
+
+class DynamicCORSMiddleware(BaseHTTPMiddleware):
+    """CORS middleware that allows any origin for API-token auth.
+
+    First-party origins (ALLOWED_ORIGINS) get ``Access-Control-Allow-Credentials``
+    so the browser can attach cookies/session headers.  Any other origin is still
+    allowed (the ``Origin`` header is reflected back) but *without* credentials —
+    those callers are expected to use an ``Authorization: Bearer exto_…`` API token,
+    which is the real security boundary.
+    """
+
+    def __init__(self, app, allowed_origins: list[str]):
+        super().__init__(app)
+        self.allowed_origins: set[str] = set(allowed_origins)
+
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "")
+
+        # --- Preflight (OPTIONS) -------------------------------------------------
+        if request.method == "OPTIONS":
+            resp = Response(status_code=204)
+            if origin:
+                resp.headers["Access-Control-Allow-Origin"] = origin
+                if origin in self.allowed_origins:
+                    resp.headers["Access-Control-Allow-Credentials"] = "true"
+                resp.headers["Access-Control-Allow-Methods"] = (
+                    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                )
+                resp.headers["Access-Control-Allow-Headers"] = (
+                    "Authorization, Content-Type"
+                )
+                resp.headers["Access-Control-Max-Age"] = "600"
+                resp.headers["Vary"] = "Origin"
+            return resp
+
+        # --- Actual request -------------------------------------------------------
+        response = await call_next(request)
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            if origin in self.allowed_origins:
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Vary"] = "Origin"
+        return response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -76,13 +120,7 @@ app = FastAPI(
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_get_allowed_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(DynamicCORSMiddleware, allowed_origins=_get_allowed_origins())
 
 app.include_router(auth_router)
 app.include_router(admin_router)
