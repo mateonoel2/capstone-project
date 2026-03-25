@@ -14,8 +14,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column("users", "role", server_default="guest")
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.alter_column("role", server_default="guest")
 
 
 def downgrade() -> None:
-    op.alter_column("users", "role", server_default="user")
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.alter_column("role", server_default="user")
