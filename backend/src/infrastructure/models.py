@@ -14,6 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 
+from src.infrastructure.encryption import EncryptedJSON
+
 Base = declarative_base()
 
 
@@ -87,8 +89,8 @@ class ExtractionLog(Base):
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     filename = Column(String, nullable=False)
 
-    extracted_fields = Column(JSON, default=dict)
-    final_fields = Column(JSON, default=dict)
+    extracted_fields = Column(EncryptedJSON, default=dict)
+    final_fields = Column(EncryptedJSON, default=dict)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     extractor_config_id = Column(Integer, ForeignKey("extractor_configs.id"), nullable=True)
@@ -153,3 +155,32 @@ class AiUsageLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     action = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class AuditLog(Base):
+    """Audit trail for sensitive data access and modifications."""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String(100), nullable=False)
+    resource_type = Column(String(50), nullable=False)
+    resource_id = Column(String(50), nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class DataConsent(Base):
+    """Tracks user consent for data processing per LFPDPPP/ARCO requirements."""
+
+    __tablename__ = "data_consents"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    consent_type = Column(String(100), nullable=False)
+    granted = Column(Boolean, nullable=False, default=True)
+    granted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    revoked_at = Column(DateTime, nullable=True)
+    policy_version = Column(String(20), nullable=False, default="1.0")
