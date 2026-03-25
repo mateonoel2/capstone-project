@@ -134,18 +134,25 @@ export function useUsageQuota() {
 }
 
 // Mutations
-export function useUploadAndExtract() {
+export function useUploadFile() {
+  return useMutation({
+    mutationFn: (file: File) => uploadFile(file),
+  });
+}
+
+export function useExtract() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      file,
+      s3Key,
+      filename,
       extractorConfigId,
     }: {
-      file: File;
+      s3Key: string;
+      filename: string;
       extractorConfigId?: number | null;
     }) => {
-      const { s3_key, filename } = await uploadFile(file);
-      return extractFromFile(s3_key, filename, extractorConfigId);
+      return extractFromFile(s3Key, filename, extractorConfigId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.usageQuota });

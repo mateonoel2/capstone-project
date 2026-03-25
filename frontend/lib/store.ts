@@ -10,16 +10,23 @@ interface AuthUser {
   role: string;
 }
 
+interface UploadResult {
+  s3_key: string;
+  filename: string;
+}
+
 interface ExtractionState {
   file: File | null;
   fileName: string | null;
   fileData: string | null;
+  uploadResult: UploadResult | null;
   extracted: ExtractionResult | null;
   formData: Record<string, string>;
   selectedExtractorId: number | null;
   backendToken: string | null;
   backendUser: AuthUser | null;
   setFile: (file: File | null) => void;
+  setUploadResult: (result: UploadResult | null) => void;
   setExtracted: (extracted: ExtractionResult | null) => void;
   setFormData: (formData: Record<string, string>) => void;
   updateFormField: (field: string, value: string) => void;
@@ -33,6 +40,7 @@ const initialState = {
   file: null,
   fileName: null,
   fileData: null,
+  uploadResult: null,
   extracted: null,
   formData: {} as Record<string, string>,
   selectedExtractorId: null as number | null,
@@ -62,6 +70,8 @@ export const useExtractionStore = create<ExtractionState>()(
         reader.readAsDataURL(file);
       },
 
+      setUploadResult: (uploadResult) => set({ uploadResult }),
+
       setExtracted: (extracted) => set({ extracted }),
 
       setFormData: (formData) => set({ formData }),
@@ -80,13 +90,20 @@ export const useExtractionStore = create<ExtractionState>()(
 
       clearBackendAuth: () => set({ backendToken: null, backendUser: null }),
 
-      reset: () => set(initialState),
+      reset: () =>
+        set((state) => ({
+          ...initialState,
+          backendToken: state.backendToken,
+          backendUser: state.backendUser,
+          selectedExtractorId: state.selectedExtractorId,
+        })),
     }),
     {
       name: "extraction-storage",
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         fileName: state.fileName,
+        uploadResult: state.uploadResult,
         extracted: state.extracted,
         formData: state.formData,
         selectedExtractorId: state.selectedExtractorId,

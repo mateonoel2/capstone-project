@@ -40,7 +40,9 @@ export class QuotaExceededError extends Error {
 async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
   try {
     const body = await response.json();
-    return body.detail || fallback;
+    if (typeof body.detail === "string") return body.detail;
+    if (body.detail) return JSON.stringify(body.detail);
+    return fallback;
   } catch {
     return `${fallback} (HTTP ${response.status})`;
   }

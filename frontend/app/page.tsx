@@ -24,17 +24,19 @@ import {
 } from "@/components/ui/select";
 import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
-import { useBanks, useExtractorConfigs, useUploadAndExtract, useSubmitExtraction, useUsageQuota } from "@/lib/hooks";
+import { useBanks, useExtractorConfigs, useUploadFile, useExtract, useSubmitExtraction, useUsageQuota } from "@/lib/hooks";
 import { Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 export default function Home() {
   const {
     file,
+    uploadResult,
     extracted,
     formData,
     selectedExtractorId,
     setFile,
+    setUploadResult,
     setExtracted,
     updateFormField,
     setFormData,
@@ -57,7 +59,8 @@ export default function Home() {
     quota.extractions.used >= quota.extractions.limit
   );
 
-  const uploadAndExtract = useUploadAndExtract();
+  const uploadFile = useUploadFile();
+  const extract = useExtract();
   const submitMutation = useSubmitExtraction();
 
   useEffect(() => {
@@ -74,9 +77,30 @@ export default function Home() {
     setFile(selectedFile);
     setError(null);
     setSuccess(false);
+    setUploadResult(null);
+    setExtracted(null);
+    setFormData({});
 
-    uploadAndExtract.mutate(
-      { file: selectedFile, extractorConfigId: selectedExtractorId },
+    uploadFile.mutate(selectedFile, {
+      onSuccess: (result) => {
+        setUploadResult(result);
+      },
+      onError: (err) => {
+        setError(err instanceof Error ? err.message : t("extraction.extractionFailed"));
+      },
+    });
+  };
+
+  const handleExtract = () => {
+    if (!uploadResult) return;
+    setError(null);
+
+    extract.mutate(
+      {
+        s3Key: uploadResult.s3_key,
+        filename: uploadResult.filename,
+        extractorConfigId: selectedExtractorId,
+      },
       {
         onSuccess: (result) => {
           setExtracted(result);
@@ -206,7 +230,7 @@ export default function Home() {
             )}
             <FileUpload
               onFileSelect={extractionLimitReached ? () => {} : handleFileSelect}
-              isLoading={uploadAndExtract.isPending}
+              isLoading={uploadFile.isPending}
             />
           </>
         ) : (
@@ -241,12 +265,44 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {uploadAndExtract.isPending ? (
+                  {uploadFile.isPending ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                      <span className="ml-2 text-gray-600">
+                        {t("extraction.uploading")}
+                      </span>
+                    </div>
+                  ) : extract.isPending ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                       <span className="ml-2 text-gray-600">
                         {t("extraction.extracting")}
                       </span>
+                    </div>
+                  ) : !extracted && uploadResult ? (
+                    <div className="space-y-4 py-6 text-center">
+                      <p className="text-sm text-gray-600">
+                        {t("extraction.readyToExtract")}
+                      </p>
+                      {error && (
+                        <div className="flex items-start gap-3 text-red-600 bg-red-50 p-4 rounded-lg text-left">
+                          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium">{t("extraction.extractionError")}</p>
+                            <p className="text-sm mt-1">{error}</p>
+                          </div>
+                        </div>
+                      )}
+                      <Button onClick={handleExtract} className="w-full">
+                        {t("extraction.extract")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleReset}
+                        className="w-full"
+                      >
+                        {t("extraction.reset")}
+                      </Button>
                     </div>
                   ) : error && !extracted ? (
                     <div className="space-y-4 py-6">
