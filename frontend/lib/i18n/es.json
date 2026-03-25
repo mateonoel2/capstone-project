@@ -130,7 +130,7 @@
   "fileUpload": {
     "processing": "Procesando...",
     "dragOrClick": "Arrastra tu archivo aquí o haz clic para buscar",
-    "acceptedFormats": "PDF, JPG o PNG"
+    "acceptedFormats": "PDF, JPG, PNG o WebP"
   },
   "extractionTable": {
     "corrected": "Corregido",
