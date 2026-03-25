@@ -1,0 +1,21 @@
+\chapter{Código fuente y plataforma desplegada}\label{apendice:recursos}
+
+En este apéndice se presentan los recursos asociados al proyecto, incluyendo el repositorio de código fuente, la aplicación web desplegada en producción y la documentación de la API. La Tabla~\ref{tab:recursos_proyecto} detalla los enlaces correspondientes a cada recurso.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4.5cm} p{9.5cm}}
+\toprule
+\textbf{Recurso} & \textbf{Enlace} \\
+\midrule
+Repositorio (GitHub) & \url{https://github.com/mateonoel2/capstone-project} \\
+Aplicación web & \url{https://capstone-project-sigma-one.vercel.app/} \\
+API: documentación completa & \url{https://capstone-project-production-1a75.up.railway.app/docs} \\
+API: documentación para clientes & \url{https://capstone-project-production-1a75.up.railway.app/api/docs} \\
+\bottomrule
+\end{tabular}
+\caption{Enlaces a los recursos del proyecto}
+\label{tab:recursos_proyecto}
+\end{table}
+
+\noindent El repositorio contiene el código del \textit{backend} (FastAPI) y del \textit{frontend} (Next.js) con la implementación de extractores configurables, el módulo de privacidad y el \textit{dashboard} de métricas; los \textit{scripts} de experimentación utilizados para evaluar las ocho estrategias de extracción descritas en el capítulo~\ref{chap:experimentos}; la wiki del proyecto con documentación de arquitectura, guías de despliegue, el autodiagnóstico del prototipo y decisiones de diseño; y la configuración de infraestructura para despliegue en Railway y Vercel. La documentación completa de la API incluye todos los \textit{endpoints} internos y externos del sistema, mientras que la documentación para clientes expone únicamente los \textit{endpoints} de extracción, gestión de extractores y \textit{tokens} de acceso programático.

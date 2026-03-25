@@ -1,0 +1,72 @@
+\chapter{Conclusiones, limitaciones y recomendaciones}\label{chap:conclusiones}
+
+Este capítulo cierra el trabajo mediante una evaluación de los logros alcanzados y de los aspectos que quedaron pendientes frente a los objetivos planteados al inicio del proyecto. Asimismo, examina qué decisiones resultaron efectivas durante el desarrollo, qué limitaciones se identificaron en el proceso, cuáles fueron los aprendizajes más relevantes y hacia dónde conviene orientar el esfuerzo en futuras iteraciones.
+
+\section{Cumplimiento de objetivos}
+
+En el capítulo~\ref{chap:problema} se plantearon cuatro objetivos SMART y cinco KPIs para evaluar el éxito del proyecto. Esta sección contrasta cada uno con los resultados obtenidos durante el desarrollo y la experimentación.
+
+\subsection{Objetivos SMART}
+
+Como se observa en la Tabla~\ref{tab:cumplimiento_smart}, de los cuatro objetivos SMART planteados, uno se cumplió, uno se cumplió parcialmente y dos no se alcanzaron. El objetivo de precisión del 95\% por campo solo se alcanzó en Banco (96.6\%), el campo Titular quedó en 92.8\% y CLABE en 90.9\%. Hay que decirlo con claridad: no se llegó a la meta. Sin embargo, los tres campos superan el 90\%, y el análisis de errores mostró que las mejoras pendientes son acotadas: en CLABE, los errores se concentran en formatos específicos de BanBajío y Banorte donde el documento presenta la CLABE junto a campos numéricos de longitud similar, lo que confunde al modelo. No es un problema generalizado, sino localizado en ciertos formatos, y el diseño de extractores configurables permite abordarlo con \textit{prompts} especializados por banco. Respecto al tiempo de procesamiento se cumplió con margen: la mediana de 1.9 segundos por documento está muy por debajo del límite de 10 segundos, incluso considerando los casos que activan el mecanismo de \textit{retry} (máximo observado: 15.3 segundos para un PDF de múltiples páginas).
+
+El piloto con tres organizaciones no se concretó. El MVP está desplegado y operativo en producción, pero la adopción por parte de organizaciones externas requiere procesos comerciales y de integración que excedieron el alcance temporal del proyecto. Esto no invalida la solución, pero sí deja pendiente la validación en un entorno multicliente. En cuanto al cumplimiento regulatorio, se implementaron los controles técnicos descritos en el capítulo~\ref{chap:datos}: cifrado en tránsito y en reposo, control de acceso basado en roles, módulo de anonimización, \textit{logs} de auditoría y política de retención de datos. Se considera cumplimiento parcial porque una validación completa requeriría una auditoría formal que no se realizó dentro del alcance del proyecto.
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{3.5cm} p{4cm} p{4cm} p{2cm}}
+\toprule
+\textbf{Objetivo} & \textbf{Meta} & \textbf{Resultado} & \textbf{Estado} \\
+\midrule
+Extracción automatizada precisa & $\geq$95\% de precisión por campo & Promedio 93.4\% (Titular 92.8\%, CLABE 90.9\%, Banco 96.6\%) & No cumplido \\
+Reducción del tiempo de registro & $<$10 segundos por documento & Mediana de 1.9s, media de 2.6s & Cumplido \\
+Implementación piloto & 3 organizaciones antes de marzo 2026 & MVP desplegado en producción, sin piloto formal con 3 organizaciones & No cumplido \\
+Cumplimiento regulatorio & Controles alineados con LFPDPPP & Cifrado, RBAC, anonimización, auditoría y retención implementados & Parcial \\
+\bottomrule
+\end{tabular}
+}
+\caption{Evaluación de cumplimiento de los objetivos SMART}
+\label{tab:cumplimiento_smart}
+\end{table}
+
+\subsection{Indicadores clave (KPIs)}
+
+Como se muestra en la Tabla~\ref{tab:cumplimiento_kpis}, de los cinco KPIs definidos, solo el tiempo de procesamiento está cumplido con certeza. La precisión por campo, en cambio, no llegó a la meta y la tasa de correcciones manuales muestra señales positivas, dado que la precisión de 93.4\% sugiere que aproximadamente el 6.6\% de los campos requería corrección que es un valor inferior al 15\%. No obstante, esta estimación se calculó frente a un \textit{ground truth} controlado y no contra correcciones reales de usuarios en producción, por lo que se marca como pendiente de confirmar. La tasa de autoservicio y la tasa de abandono dependen de datos que solo pueden obtenerse una vez que la \textit{fintech} cliente integre la API en su flujo de \textit{onboarding} y acumule volumen operativo suficiente.
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{4.5cm} p{2.5cm} p{4cm} p{3cm}}
+\toprule
+\textbf{KPI} & \textbf{Meta} & \textbf{Resultado} & \textbf{Estado} \\
+\midrule
+Precisión de extracción por campo & $\geq$95\% & 93.4\% promedio (solo Banco cumple) & No cumplido \\
+Tiempo de procesamiento & $<$10s & 1.9s (mediana) & Cumplido \\
+Casos con corrección manual & $<$15\% & $\sim$6.6\% de error promedio en experimentos & Por confirmar en producción \\
+Tasa de autoservicio & 75--90\% & Sin datos (requiere operación post-implementación) & Pendiente \\
+Tasa de abandono & $<$10\% & Sin datos (requiere integración con \textit{frontend} del cliente) & Pendiente \\
+\bottomrule
+\end{tabular}
+}
+\caption{Estado de los KPIs al cierre del proyecto}
+\label{tab:cumplimiento_kpis}
+\end{table}
+
+\section{Conclusiones}
+
+Más allá de los números puntuales, lo que este proyecto dejó claro es que la extracción de documentos no estructurados no se resuelve con un único modelo ni con un único \textit{prompt}. La variabilidad entre bancos, desde 0\% de precisión en CLABE para BanBajío hasta 100\% para HSBC, hizo evidente que un extractor monolítico no puede ofrecer garantías uniformes. Esa fue la observación que más influyó en el diseño final: en lugar de perseguir un extractor perfecto, se construyó una plataforma donde cada caso puede configurarse y evaluarse por separado. El enfoque de enviar el PDF directo al modelo fue el mejor resultado del proyecto, no solo por la precisión (93.4\% promedio), sino porque simplificó la arquitectura. Cada etapa intermedia que se eliminó, el \textit{OCR}, la conversión a imagen, el \textit{parsing} de texto, redujo una fuente de error. Eso fue contraintuitivo: la solución más simple resultó ser la más precisa. El costo de \$0.011 USD por documento confirmó que el enfoque es económicamente viable incluso a escala. El proyecto también mostró sus límites: no se llegó al 95\% de precisión en todos los campos, no se ejecutó el piloto con tres organizaciones, y los KPIs de abandono y autoservicio quedan pendientes de medición real. Son deudas honestas que el trabajo deja, y que solo podrán saldarse con operación en producción y tiempo.
+
+\section{Limitaciones}
+
+La arquitectura de extractores configurables resuelve el problema de variabilidad entre documentos, pero introduce uno nuevo: cada tipo de documento requiere definir su \textit{schema}, su \textit{prompt} y validar que funcione. Ese costo de configuración puede volverse un cuello de botella si se quiere cubrir muchos tipos de documentos a la vez. El asistente de IA para generación de \textit{schemas} y \textit{prompts} ayuda, pero no elimina la necesidad de iterar y probar. A esto se suma la dependencia de una API externa (Claude), lo que implica que el costo, la latencia y la disponibilidad del servicio están fuera de control del sistema. A \$0.011 USD por documento el costo es bajo, pero a volúmenes altos se acumula, y una caída del servicio detiene la extracción por completo ya que no hay \textit{fallback} local implementado. Por último, el sistema extrae y valida formato (que la CLABE tenga 18 dígitos, que el banco esté en la lista conocida), pero no valida contra fuentes externas: no verifica si la CLABE existe, si la cuenta está activa, ni si el documento es auténtico. Eso limita el alcance a la extracción y validación inicial, sin cubrir \textit{compliance} avanzado ni detección de fraude.
+
+\section{Aprendizajes y lecciones}
+
+El desarrollo del proyecto generó aprendizajes relevantes en tres dimensiones. En primer lugar, el punto de vista técnico, nos mostró que los mejores resultados no provinieron de sofisticar el preprocesamiento, sino de simplificar la arquitectura. Además, el envío directo del PDF al modelo superó a todas las variantes que incorporaban etapas intermedias de OCR o conversión a imagen, lo que demuestra que agregar complejidad al \textit{pipeline} no necesariamente mejora la precisión y, en cambio, incrementa la superficie de error. Asimismo, se confirmó que las reglas determinísticas y los modelos de lenguaje no son alternativas excluyentes sino complementarias; mientras que las expresiones regulares resultaron insuficientes como método de extracción (4.7--12.6\% de precisión), funcionaron de manera eficaz como mecanismo de validación y normalización post-extracción. En segundo lugar, la perspectiva metodológica, el enfoque iterativo de prototipo-experimentación-MVP resultó fundamental para tomar decisiones fundamentadas. Sin la fase experimental, la selección de la arquitectura de extracción habría dependido de supuestos; en cambio, la evaluación comparativa sobre documentos reales proporcionó evidencia objetiva para descartar enfoques y justificar la arquitectura final. También se evidenció la importancia de invertir en la calidad del \textit{ground truth}: la corrección de 15 entradas erróneas en el CSV de referencia mejoró la precisión reportada de CLABE de 80.8\% a 85.2\%, lo que muestra que los datos de evaluación deben ser tan rigurosos como el modelo que evalúan. Por último, desde la dimensión de negocio, el hallazgo más relevante fue que la variabilidad de precisión entre bancos (desde 0\% en BanBajío hasta 100\% en HSBC) impide ofrecer una solución de extracción monolítica con garantías uniformes. Esta observación motivó la decisión de diseñar un sistema de extractores configurables, delegando la especialización al usuario y proporcionando herramientas de asistencia para facilitar la creación y ajuste de configuraciones. Por esto, el producto no depende de que un único extractor funcione bien para todos los casos, sino que permite a cada organización adaptar el sistema a sus documentos específicos.
+
+\section{Trabajo futuro y recomendaciones}
+
+Se sugiere avanzar hacia la estandarización del proceso de creación de extractores mediante el uso de plantillas reutilizables, asistentes automáticos o interfaces declarativas que reduzcan el esfuerzo necesario para definir nuevos \textit{schemas} y \textit{prompts}. Esta mejora permitiría escalar el sistema de manera más eficiente hacia múltiples tipos de documentos. Por un lado, también se recomienda optimizar el costo asociado al uso de modelos de lenguaje mediante estrategias como la reducción del número de \textit{tokens}, la selección de modelos más eficientes o el fortalecimiento de las validaciones post-extracción con reglas determinísticas, como ya se implementó para la verificación del formato de la CLABE. Los experimentos mostraron que las reglas determinísticas por sí solas resultan insuficientes para la extracción (4.7--12.6\% de precisión promedio), pero complementan eficazmente al modelo de lenguaje en la etapa de validación y normalización de resultados. Esta optimización es clave para garantizar la sostenibilidad del sistema en escenarios de uso intensivo. Por otro lado, se sugiere integrar el sistema con servicios externos que permitan validar la información extraída, como APIs bancarias, así como incorporar mecanismos de detección de fraude y autenticidad de los documentos. Estas funcionalidades permitirían fortalecer la confiabilidad del sistema y ampliar su aplicabilidad en procesos críticos.
+
+En cuanto a la escalabilidad del producto, una línea de trabajo futuro consiste en validar el sistema con tipos de documentos distintos a las carátulas bancarias, como constancias de situación fiscal, comprobantes de domicilio o documentos de identidad, para los cuales la organización ya dispone de conjuntos de datos preliminares. Adicionalmente, se recomienda implementar mecanismos de \textit{feedback} automático que permitan utilizar las correcciones de los usuarios para refinar los \textit{prompts} de extracción de manera progresiva, cerrando así el ciclo de mejora continua entre la operación del sistema y la calidad de sus resultados. El código fuente, la aplicación en producción y la documentación completa de la API se encuentran disponibles en el Apéndice~\ref{apendice:recursos}.

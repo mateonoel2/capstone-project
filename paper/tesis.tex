@@ -1,0 +1,116 @@
+\documentclass[a4paper,openany,12pt]{book}
+\usepackage{graphicx}
+\usepackage[spanish,mexico]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{fancyhdr}
+\usepackage{ae}
+\usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=2cm]{geometry}
+\usepackage[printonlyused]{acronym}
+\usepackage{xspace}
+\usepackage{hlundef}
+\usepackage{tesis}
+\usepackage{booktabs}
+\usepackage{setspace}
+
+%Paquetes nuevos%
+\usepackage{titlesec}
+
+\titlespacing*{\subsection}{0pt}{1.0ex}{0.8ex}
+\usepackage[square,numbers,comma,sort&compress]{natbib}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{orcidlink}
+\usepackage{academicons}
+\hypersetup{urlcolor=blue, colorlinks=true}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgf-pie}
+\usepackage{pgfgantt}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usepackage{grffile}
+\usepackage{xcolor}
+\newcommand{\cambio}[1]{\textcolor{blue}{#1}}
+
+\makeatletter
+\define@key{Gin}{page}{}
+\makeatother
+
+\usepackage{svg}
+
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+\title{Extracción inteligente de datos financieros en documentos visualmente ricos}
+
+\author{
+    Mateo Noel \orcidlink{0000-0002-7239-3427}\par
+\vspace{0.3em}
+    Max Tresierra \orcidlink{0000-0000-0000-0000}\par
+\vspace{0.3em}
+    Maicol Mendo \orcidlink{0000-0000-0000-0000}
+} 
+
+\advisor{Ing. Rensso Mora}
+
+\examinerone{Prof. Dr. Hidalgo Buena Gente}{Presidente}%
+\examinertwo{Prof. Dr. Manuel Armando Líos}{Secretario}%
+\examinerthree{Prof. Dr. Antero A. Gal Oppe}{Integrante}%
+\examinerfour{Prof. Dr. Casso E. Staria}{Externo}{Universidad del ABC} % of being the case
+\date{30 de Junio del 2004}
+\date{\today}
+
+\dedicado{"A Dios, por todo lo que nos ha dado; a todos los profesores, por sus enseñanzas; y a nuestras familias, por su apoyo." Maicol Mendo}
+
+
+\begin{document}
+\raggedbottom
+\pagestyle{fancy}
+
+\maketitle %Compone la carátula y la dedicatoria
+\newpage
+
+%\approved{\dos}  {\tres} or {\cuatro}
+
+%\include{abreviaturas}
+
+\input{Agradecimientos} %Inserta los agradecimientos
+\input{Resumen} %Inserta el resumen
+\input{Abstract} %Inserta el abstract
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+\setcounter{secnumdepth}{3}
+\pagestyle{plain}
+
+\tableofcontents %Inserta el índice general
+\listoftables %Inserta el índice de cuadros
+\listoffigures %Inserta el índice de figuras
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%   En esta parte deberas incluir los archivos de tu tesis   %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{plain}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\input{Cap_1} %Inserta el capítulo 1
+\input{capitulo_marco} %Inserta el marco metodológico
+\input{Cap_2} %Inserta el capítulo 2
+\input{Cap_3} %Inserta el capítulo 3
+\input{Cap_4} %Inserta el capítulo 4
+\input{Cap_5} %Inserta el capítulo 5
+\input{Cap_6}
+\input{conclusiones}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliographystyle{IEEEtran}
+\bibliography{Bibliog}
+\addcontentsline{toc}{chapter}{Bibliografía}
+
+\appendix
+\input{Anexo_A} %Inserta el Anexo A
+\end{document}
