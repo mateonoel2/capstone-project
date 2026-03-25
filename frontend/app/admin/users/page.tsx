@@ -100,6 +100,7 @@ export default function AdminUsersPage() {
               >
                 <option value="user">{t("admin.roleUser")}</option>
                 <option value="admin">{t("admin.roleAdmin")}</option>
+                <option value="guest">{t("admin.roleGuest")}</option>
               </select>
             </div>
             <button
@@ -175,6 +176,7 @@ export default function AdminUsersPage() {
                     >
                       <option value="user">{t("admin.roleUser")}</option>
                       <option value="admin">{t("admin.roleAdmin")}</option>
+                      <option value="guest">{t("admin.roleGuest")}</option>
                     </select>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">

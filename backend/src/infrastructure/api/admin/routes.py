@@ -57,7 +57,7 @@ async def create_user(request: CreateUserRequest, admin: AdminDep, db: DbDep):
     existing = repo.get_by_github_username(request.github_username)
     if existing:
         raise HTTPException(status_code=409, detail="El usuario ya existe")
-    if request.role not in ("user", "admin"):
+    if request.role not in ("user", "admin", "guest"):
         raise HTTPException(status_code=400, detail="Rol inválido")
     user = repo.create(request.github_username, request.role)
     return UserResponse(
@@ -76,7 +76,7 @@ async def update_user(user_id: int, request: UpdateUserRequest, admin: AdminDep,
     repo = UserRepository(db)
     fields = {}
     if request.role is not None:
-        if request.role not in ("user", "admin"):
+        if request.role not in ("user", "admin", "guest"):
             raise HTTPException(status_code=400, detail="Rol inválido")
         fields["role"] = request.role
     if request.is_active is not None:

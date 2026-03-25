@@ -112,6 +112,7 @@
     "role": "Rol",
     "roleUser": "Usuario",
     "roleAdmin": "Admin",
+    "roleGuest": "Invitado",
     "creating": "Creando...",
     "create": "Crear",
     "cancel": "Cancelar",
