@@ -130,7 +130,7 @@
   "fileUpload": {
     "processing": "Processing...",
     "dragOrClick": "Drag your file here or click to browse",
-    "acceptedFormats": "PDF, JPG or PNG"
+    "acceptedFormats": "PDF, JPG, PNG or WebP"
   },
   "extractionTable": {
     "corrected": "Corrected",

@@ -13,7 +13,7 @@ from src.core.logger import get_logger
 
 logger = get_logger(__name__)
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PDF_EXTENSIONS = {".pdf"}
 SUPPORTED_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS
 

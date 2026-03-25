@@ -8,6 +8,7 @@ const ACCEPTED_TYPES = [
   "application/pdf",
   "image/jpeg",
   "image/png",
+  "image/webp",
 ];
 
 interface FileUploadProps {
@@ -47,7 +48,7 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     >
       <input
         type="file"
-        accept=".pdf,.jpg,.jpeg,.png"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
         onChange={handleFileInput}
         className="hidden"
         id="file-upload"
