@@ -523,7 +523,7 @@ class UserRepository:
         users = self.session.query(User).order_by(User.id).all()
         return [self._to_entity(u) for u in users]
 
-    def create(self, github_username: str, role: str = "user") -> UserData:
+    def create(self, github_username: str, role: str = "guest") -> UserData:
         user = User(github_username=github_username, role=role)
         self.session.add(user)
         self.session.commit()

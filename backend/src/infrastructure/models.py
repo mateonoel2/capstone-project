@@ -27,7 +27,7 @@ class User(Base):
     github_username = Column(String(100), unique=True, nullable=False)
     email = Column(String(255), nullable=True)
     avatar_url = Column(String(500), nullable=True)
-    role = Column(String(20), nullable=False, default="user")
+    role = Column(String(20), nullable=False, default="guest")
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login_at = Column(DateTime, nullable=True)
