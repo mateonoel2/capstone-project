@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Bienvenido a la API de Extracto</h2>
+
+<p>
+  Extracto permite extraer datos estructurados de documentos (PDF, imagenes)
+  usando modelos de IA. Esta documentacion cubre los endpoints disponibles
+  para integracion programatica con tu propio frontend o aplicacion.
+</p>
+
+<div class="card">
+  <h3 style="margin-top: 0;">Inicio rapido</h3>
+  <p>Para empezar a usar la API necesitas:</p>
+  <ol style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+    <li style="margin-bottom: 8px;">
+      <strong style="color: var(--text);">Obtener un token de API</strong> —
+      Crea uno desde la interfaz web en <em>Configuracion &rarr; Tokens API</em>,
+      o usa el endpoint <a href="/api/docs/create-token">POST /tokens</a>.
+    </li>
+    <li style="margin-bottom: 8px;">
+      <strong style="color: var(--text);">Elegir un extractor</strong> —
+      Lista tus extractores con <a href="/api/docs/list-extractors">GET /extractors</a>
+      y elige el ID del que quieras usar. Cada extractor define que campos se extraen
+      y con que modelo de IA.
+    </li>
+    <li style="margin-bottom: 8px;">
+      <strong style="color: var(--text);">Subir un archivo</strong> —
+      Obtén una URL pre-firmada con <a href="/api/docs/upload-url">POST /extraction/upload-url</a>
+      y sube el archivo directamente a S3.
+    </li>
+    <li style="margin-bottom: 8px;">
+      <strong style="color: var(--text);">Extraer campos</strong> —
+      Llama a <a href="/api/docs/extract">POST /extraction/extract</a> con la clave S3
+      y el ID del extractor para obtener los datos estructurados.
+    </li>
+    <li>
+      <strong style="color: var(--text);">Enviar correcciones</strong> (opcional) —
+      Si el usuario corrige algun campo, registra la correccion con
+      <a href="/api/docs/submit">POST /extraction/submit</a> para mejorar las metricas.
+    </li>
+  </ol>
+</div>
+
+<h3>Autenticacion</h3>
+
+<p>
+  Todos los endpoints requieren un header <code>Authorization</code> con un token Bearer:
+</p>
+
+<pre><code class="language-bash">Authorization: Bearer exto_tu_token_aqui</code></pre>
+
+<p>
+  Los tokens de API se identifican con el prefijo <code>exto_</code>.
+  Puedes crear y revocar tokens desde la interfaz web o via la API.
+</p>
+
+<div class="note">
+  <strong>Importante:</strong> Los endpoints de creacion de tokens
+  (<a href="/api/docs/create-token">POST /tokens</a>) requieren autenticacion
+  con sesion web (JWT), no con un API token. Todos los demas endpoints
+  aceptan ambos metodos.
+</div>
+
+<h3>Flujo completo de extraccion</h3>
+
+<p>Este diagrama muestra el flujo tipico para extraer datos de un documento:</p>
+
+<svg viewBox="0 0 720 480" fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="width:100%;max-width:720px;margin:0 auto 16px;display:block;">
+
+  <!-- Row 1: Tu app → GET /extractors → elegir extractor_id -->
+
+  <!-- Step 1: Tu app -->
+  <rect x="20" y="24" width="130" height="48" rx="8" stroke="#3b82f6" stroke-width="1.5" fill="rgba(59,130,246,0.08)"/>
+  <text x="85" y="53" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="14" font-weight="600">Tu app</text>
+  <circle cx="36" cy="14" r="10" fill="#3b82f6"/>
+  <text x="36" y="18" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">1</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="150" y1="48" x2="195" y2="48" stroke="#525252" stroke-width="1.5"/>
+  <polygon points="195,43 205,48 195,53" fill="#525252"/>
+
+  <!-- Step 2: GET /extractors -->
+  <rect x="205" y="24" width="180" height="48" rx="8" stroke="#22c55e" stroke-width="1.5" fill="rgba(34,197,94,0.08)"/>
+  <text x="295" y="45" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11" font-weight="700">GET</text>
+  <text x="295" y="61" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="13">/extractors</text>
+  <circle cx="221" cy="14" r="10" fill="#22c55e"/>
+  <text x="221" y="18" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">2</text>
+
+  <!-- Arrow 2→label -->
+  <line x1="385" y1="48" x2="415" y2="48" stroke="#525252" stroke-width="1.5"/>
+  <polygon points="415,43 425,48 415,53" fill="#525252"/>
+
+  <!-- extractor_id label -->
+  <text x="435" y="44" fill="#a855f7" font-family="monospace" font-size="12" font-weight="600">extractor_id</text>
+  <text x="435" y="60" fill="#a3a3a3" font-family="sans-serif" font-size="11">elegir extractor</text>
+
+  <!-- Row 2: POST /upload-url → PUT S3 -->
+
+  <!-- Arrow down from row 1 to row 2 -->
+  <line x1="295" y1="72" x2="295" y2="100" stroke="#525252" stroke-width="1.5"/>
+  <polygon points="290,100 295,110 300,100" fill="#525252"/>
+
+  <!-- Step 3: POST /upload-url -->
+  <rect x="205" y="110" width="180" height="48" rx="8" stroke="#3b82f6" stroke-width="1.5" fill="rgba(59,130,246,0.08)"/>
+  <text x="295" y="131" text-anchor="middle" fill="#3b82f6" font-family="monospace" font-size="11" font-weight="700">POST</text>
+  <text x="295" y="147" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="12">/extraction/upload-url</text>
+  <circle cx="221" cy="100" r="10" fill="#3b82f6"/>
+  <text x="221" y="104" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">3</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="385" y1="134" x2="435" y2="134" stroke="#525252" stroke-width="1.5"/>
+  <polygon points="435,129 445,134 435,139" fill="#525252"/>
+
+  <!-- Step 4: PUT a S3 -->
+  <rect x="445" y="110" width="200" height="48" rx="8" stroke="#22c55e" stroke-width="1.5" fill="rgba(34,197,94,0.08)"/>
+  <text x="545" y="131" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11" font-weight="700">PUT</text>
+  <text x="545" y="147" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="13">Subir archivo a S3</text>
+  <circle cx="461" cy="100" r="10" fill="#22c55e"/>
+  <text x="461" y="104" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">4</text>
+
+  <!-- Arrow from S3 down+left to extract -->
+  <line x1="545" y1="158" x2="545" y2="195" stroke="#525252" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <line x1="545" y1="195" x2="385" y2="195" stroke="#525252" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <line x1="385" y1="195" x2="385" y2="220" stroke="#525252" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <polygon points="380,220 385,230 390,220" fill="#525252"/>
+
+  <!-- Step 5: POST /extract -->
+  <rect x="205" y="230" width="180" height="48" rx="8" stroke="#3b82f6" stroke-width="1.5" fill="rgba(59,130,246,0.08)"/>
+  <text x="295" y="251" text-anchor="middle" fill="#3b82f6" font-family="monospace" font-size="11" font-weight="700">POST</text>
+  <text x="295" y="267" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="13">/extraction/extract</text>
+  <circle cx="221" cy="220" r="10" fill="#3b82f6"/>
+  <text x="221" y="224" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">5</text>
+
+  <!-- Params labels -->
+  <text x="400" y="243" fill="#a3a3a3" font-family="monospace" font-size="11">s3_key +</text>
+  <text x="400" y="258" fill="#a855f7" font-family="monospace" font-size="11">extractor_id</text>
+
+  <!-- Arrow 5→result -->
+  <line x1="295" y1="278" x2="295" y2="306" stroke="#525252" stroke-width="1.5"/>
+  <polygon points="290,306 295,316 300,306" fill="#525252"/>
+
+  <!-- Result: Campos extraidos -->
+  <rect x="205" y="316" width="180" height="48" rx="8" stroke="#eab308" stroke-width="1.5" fill="rgba(234,179,8,0.06)"/>
+  <text x="295" y="337" text-anchor="middle" fill="#eab308" font-family="monospace" font-size="11" font-weight="700">JSON</text>
+  <text x="295" y="353" text-anchor="middle" fill="#e5e5e5" font-family="monospace" font-size="13">Campos extraidos</text>
+
+  <!-- Arrow result→submit -->
+  <line x1="295" y1="364" x2="295" y2="392" stroke="#525252" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <polygon points="290,392 295,402 300,392" fill="#525252"/>
+
+  <!-- Step 6: POST /submit (optional) -->
+  <rect x="205" y="402" width="180" height="48" rx="8" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="4,3" fill="rgba(163,163,163,0.04)"/>
+  <text x="295" y="423" text-anchor="middle" fill="#a3a3a3" font-family="monospace" font-size="11" font-weight="700">POST</text>
+  <text x="295" y="439" text-anchor="middle" fill="#a3a3a3" font-family="monospace" font-size="13">/extraction/submit</text>
+  <circle cx="221" cy="392" r="10" fill="#525252"/>
+  <text x="221" y="396" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">6</text>
+
+  <!-- Optional label -->
+  <text x="400" y="430" fill="#a3a3a3" font-family="sans-serif" font-size="12" font-style="italic">opcional: registrar correcciones</text>
+</svg>
+
+<h3>Ejemplo completo en Python</h3>
+
+<pre><code class="language-python">import requests
+
+API = "$$API_BASE$$"
+TOKEN = "exto_tu_token_aqui"
+headers = {"Authorization": f"Bearer {TOKEN}"}
+
+# 1. Elegir extractor
+resp = requests.get(f"{API}/extractors", headers=headers)
+configs = resp.json()["configs"]
+for c in configs:
+    print(f"  {c['name']} ({c['id']}) — {c['status']}")
+# Usar el primero activo, o elegir por nombre
+extractor = next(c for c in configs if c["status"] == "active")
+extractor_id = extractor["id"]
+print(f"Usando extractor: {extractor['name']}")
+
+# 2. Obtener URL de subida
+resp = requests.post(
+    f"{API}/extraction/upload-url",
+    headers=headers,
+    json={"filename": "factura.pdf", "content_type": "application/pdf"},
+)
+data = resp.json()
+s3_key = data["s3_key"]
+
+# 3. Subir archivo a S3
+with open("factura.pdf", "rb") as f:
+    requests.put(data["upload_url"], data=f, headers={"Content-Type": "application/pdf"})
+
+# 4. Extraer campos con el extractor elegido
+resp = requests.post(
+    f"{API}/extraction/extract",
+    headers=headers,
+    json={
+        "s3_key": s3_key,
+        "filename": "factura.pdf",
+        "extractor_config_id": extractor_id,
+    },
+)
+fields = resp.json()["fields"]
+print(fields)
+# {"titular": "Juan Perez", "monto": "$1,500.00", "fecha": "2026-03-15"}
+
+# 5. (Opcional) Enviar correcciones
+corrected = {**fields, "titular": "Juan Pérez"}  # corregir acento
+requests.post(
+    f"{API}/extraction/submit",
+    headers=headers,
+    json={
+        "filename": "factura.pdf",
+        "extracted_fields": fields,
+        "final_fields": corrected,
+        "extractor_config_id": extractor_id,
+    },
+)</code></pre>
+
+<h3>Ejemplo completo en JavaScript</h3>
+
+<pre><code class="language-javascript">const API = "$$API_BASE$$";
+const TOKEN = "exto_tu_token_aqui";
+const headers = {
+  "Authorization": `Bearer ${TOKEN}`,
+  "Content-Type": "application/json",
+};
+
+// 1. Elegir extractor
+const cfgResp = await fetch(`${API}/extractors`, { headers });
+const { configs } = await cfgResp.json();
+configs.forEach(c => console.log(`  ${c.name} (${c.id}) — ${c.status}`));
+// Usar el primero activo, o elegir por nombre
+const extractor = configs.find(c => c.status === "active");
+const extractorId = extractor.id;
+console.log("Usando extractor:", extractor.name);
+
+// 2. Obtener URL de subida
+const urlResp = await fetch(`${API}/extraction/upload-url`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({
+    filename: "factura.pdf",
+    content_type: "application/pdf",
+  }),
+});
+const { s3_key, upload_url } = await urlResp.json();
+
+// 3. Subir archivo a S3
+await fetch(upload_url, {
+  method: "PUT",
+  headers: { "Content-Type": "application/pdf" },
+  body: file, // File object del input
+});
+
+// 4. Extraer campos con el extractor elegido
+const extractResp = await fetch(`${API}/extraction/extract`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({
+    s3_key,
+    filename: "factura.pdf",
+    extractor_config_id: extractorId,
+  }),
+});
+const { fields } = await extractResp.json();
+console.log(fields);
+
+// 5. (Opcional) Enviar correcciones
+await fetch(`${API}/extraction/submit`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({
+    filename: "factura.pdf",
+    extracted_fields: fields,
+    final_fields: { ...fields, titular: "Juan Pérez" },
+    extractor_config_id: extractorId,
+  }),
+});</code></pre>
+
+<h3>Codigos de error comunes</h3>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Codigo</th>
+        <th>Significado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>400</code></td>
+        <td>Solicitud invalida (archivo no soportado, campos faltantes, documento incompatible)</td>
+      </tr>
+      <tr>
+        <td><code>401</code></td>
+        <td>Token invalido o expirado</td>
+      </tr>
+      <tr>
+        <td><code>403</code></td>
+        <td>Sin permisos (ej: invitado intentando crear token)</td>
+      </tr>
+      <tr>
+        <td><code>404</code></td>
+        <td>Recurso no encontrado (extractor, archivo, token)</td>
+      </tr>
+      <tr>
+        <td><code>429</code></td>
+        <td>Limite de uso excedido (cuota diaria de extracciones)</td>
+      </tr>
+      <tr>
+        <td><code>500</code></td>
+        <td>Error interno del servidor</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Tipos de archivo soportados</h3>
+
+<p>
+  La API acepta los siguientes formatos de archivo:
+</p>
+
+<ul style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+  <li><code>application/pdf</code> — Documentos PDF</li>
+  <li><code>image/jpeg</code> — Imagenes JPEG</li>
+  <li><code>image/png</code> — Imagenes PNG</li>
+  <li><code>image/webp</code> — Imagenes WebP</li>
+</ul>
+
+{% endblock %}

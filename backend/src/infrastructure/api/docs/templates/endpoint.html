@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="endpoint-header">
+  <span class="method-badge method-{{ endpoint.method }}">{{ endpoint.method }}</span>
+  <span class="endpoint-path">{{ endpoint.path }}</span>
+</div>
+
+<h2>{{ endpoint.title }}</h2>
+
+<p>{{ endpoint.description }}</p>
+
+{% if endpoint.notes %}
+<div class="note">{{ endpoint.notes | safe }}</div>
+{% endif %}
+
+{% if endpoint.params %}
+<h3>Parametros</h3>
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Ubicacion</th>
+        <th>Tipo</th>
+        <th></th>
+        <th>Descripcion</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in endpoint.params %}
+      <tr>
+        <td><code>{{ p.name }}</code></td>
+        <td>{{ p.location }}</td>
+        <td><code>{{ p.type }}</code></td>
+        <td>
+          {% if p.required %}
+          <span class="required-badge">requerido</span>
+          {% else %}
+          <span class="optional-badge">opcional</span>
+          {% endif %}
+        </td>
+        <td>{{ p.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if endpoint.request_body %}
+<h3>Request body</h3>
+<pre><code class="language-json">{{ endpoint.request_body }}</code></pre>
+{% endif %}
+
+{% if endpoint.response_body %}
+<h3>Respuesta</h3>
+<pre><code class="language-json">{{ endpoint.response_body }}</code></pre>
+{% endif %}
+
+{% if endpoint.examples %}
+<h3>Ejemplos</h3>
+
+<div>
+  <div class="tabs">
+    {% for ex in endpoint.examples %}
+    <button class="tab-btn {% if loop.first %}active{% endif %}"
+            data-group="examples" data-tab="{{ ex.language }}">
+      {{ ex.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% for ex in endpoint.examples %}
+  <div class="tab-content {% if loop.first %}active{% endif %}"
+       data-group="examples" data-tab="{{ ex.language }}">
+    <pre><code class="language-{{ ex.language | replace('curl', 'bash') }}">{{ ex.code }}</code></pre>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div style="margin-top: 32px; display: flex; gap: 16px;">
+  {% if prev_endpoint %}
+  <a href="/api/docs/{{ prev_endpoint.slug }}" style="color: var(--text-muted);">
+    &larr; {{ prev_endpoint.title }}
+  </a>
+  {% endif %}
+  {% if next_endpoint %}
+  <a href="/api/docs/{{ next_endpoint.slug }}" style="margin-left: auto;">
+    {{ next_endpoint.title }} &rarr;
+  </a>
+  {% endif %}
+</div>
+
+{% endblock %}

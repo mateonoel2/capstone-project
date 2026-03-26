@@ -11,8 +11,7 @@ sys.path.insert(0, str(project_root))
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
@@ -21,6 +20,7 @@ from src.core.logger import get_logger
 from src.domain.entities import QuotaExceededError
 from src.infrastructure.api.admin.routes import router as admin_router
 from src.infrastructure.api.auth.routes import router as auth_router
+from src.infrastructure.api.docs.router import router as docs_router
 from src.infrastructure.api.extraction.routes import router as extraction_router
 from src.infrastructure.api.extractors.routes import router as extractors_router
 from src.infrastructure.api.privacy.routes import router as privacy_router
@@ -90,7 +90,7 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Adds security headers to all responses (HSTS, CSP, X-Content-Type-Options, etc.)."""
 
-    DOCS_PATHS = {"/docs", "/api/docs", "/redoc"}
+    DOCS_PATHS_PREFIXES = ("/docs", "/api/docs", "/redoc")
     DOCS_CSP = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -107,7 +107,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if request.url.path in self.DOCS_PATHS:
+        if any(request.url.path.startswith(p) for p in self.DOCS_PATHS_PREFIXES):
             response.headers["Content-Security-Policy"] = self.DOCS_CSP
         else:
             response.headers["Content-Security-Policy"] = self.DEFAULT_CSP
@@ -139,6 +139,7 @@ app.include_router(extraction_router)
 app.include_router(extractors_router)
 app.include_router(tokens_router)
 app.include_router(privacy_router)
+app.include_router(docs_router)
 
 
 AUDITED_PATHS = {"/extraction/extract", "/extraction/submit", "/extraction/logs", "/admin/users"}
@@ -292,14 +293,6 @@ def get_client_openapi_schema() -> dict:
 @app.get("/api/openapi.json", include_in_schema=False)
 async def client_openapi():
     return JSONResponse(get_client_openapi_schema())
-
-
-@app.get("/api/docs", include_in_schema=False, response_class=HTMLResponse)
-async def client_docs():
-    return get_swagger_ui_html(
-        openapi_url="/api/openapi.json",
-        title="Extracto Client API",
-    )
 
 
 @app.get("/")
