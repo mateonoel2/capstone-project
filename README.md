@@ -22,7 +22,7 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores (identidad, *schema*, *prompt*, prueba)
 - Asistente de IA para generacion de *schemas* y *prompts* (alimentado por Claude)
-- Extractor multi-proveedor (*DocumentExtractor*) con soporte para Anthropic, OpenAI y Google Gemini
+- Extractor multi-proveedor (*DocumentExtractor*) con arquitectura extensible para Anthropic, OpenAI y Google Gemini. Actualmente solo *Claude Haiku* esta disponible en produccion
 - Soporte para PDFs e imagenes (JPG/PNG) con visor integrado (*react-zoom-pan-pinch*)
 - Versionado de extractores con soporte para pruebas A/B
 - Extracciones de prueba con registro detallado (*TestExtractionLog*)
