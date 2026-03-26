@@ -235,7 +235,7 @@ Distribucion bimodal de errores:
 
 ## Estado Actual (Marzo 2026)
 
-Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `StatementExtractor` que envia el PDF directamente como documento binario al modelo, con *structured output*. El sistema ahora soporta extractores configurables con *schemas*, *prompts* y modelos personalizados. Cada extractor:
+Los 3 *parsers* de *Claude* (OCR, Text, Vision) se unificaron en un unico `DocumentExtractor` que envia el PDF directamente como documento binario al modelo, con *structured output*. El sistema ahora soporta extractores configurables con *schemas*, *prompts* y modelos personalizados. Cada extractor:
 - Usa un modelo Claude configurable (por defecto *Haiku 4.5*) con `with_structured_output()` de *LangChain*
 - Envia el PDF directamente al modelo como documento binario (sin conversion intermedia)
 - Soporta PDFs e imagenes (JPG/PNG)
@@ -291,4 +291,4 @@ El texto OCR tiene problemas que rompen patrones *regex*:
 ---
 
 Generado: 7 de noviembre de 2025
-Ultima Actualizacion: Marzo 2026 (Parsers unificados en `StatementExtractor`)
+Ultima Actualizacion: Marzo 2026 (Parsers unificados en `DocumentExtractor`)

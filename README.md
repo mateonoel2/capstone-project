@@ -22,7 +22,7 @@ Sistema de producción (*FastAPI* + *Next.js*) que extrae información estructur
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores (identidad, *schema*, *prompt*, prueba)
 - Asistente de IA para generacion de *schemas* y *prompts* (alimentado por Claude)
-- *Parser* unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
+- Extractor multi-proveedor (*DocumentExtractor*) con arquitectura extensible para Anthropic, OpenAI y Google Gemini. Actualmente solo *Claude Haiku* esta disponible en produccion
 - Soporte para PDFs e imagenes (JPG/PNG) con visor integrado (*react-zoom-pan-pinch*)
 - Versionado de extractores con soporte para pruebas A/B
 - Extracciones de prueba con registro detallado (*TestExtractionLog*)
@@ -84,7 +84,7 @@ capstone-project/
 │   │   │   ├── models.py             # ORM (User, ExtractionLog, ApiCallLog, etc.)
 │   │   │   ├── repository.py         # Acceso a datos
 │   │   │   ├── storage.py            # StorageBackend (S3 / local)
-│   │   │   ├── extractors/           # StatementExtractor (vision unificado)
+│   │   │   ├── extractors/           # DocumentExtractor (multi-proveedor)
 │   │   │   ├── preprocessing/        # OCR, validación, limpieza, descarga
 │   │   │   ├── evaluation/           # Experimentos y métricas
 │   │   │   └── data_pipeline/        # Scripts de datos
@@ -179,7 +179,9 @@ ruff format .   # formato
 
 | Variable | Descripción |
 |---|---|
-| `ANTHROPIC_API_KEY` | API key de Anthropic (backend) |
+| `ANTHROPIC_API_KEY` | API key de Anthropic (backend, proveedor por defecto) |
+| `OPENAI_KEY` | API key de OpenAI (backend, opcional) |
+| `GOOGLE_API_KEY` | API key de Google Gemini (backend, opcional) |
 | `DATABASE_URL` | URL de PostgreSQL (backend) |
 | `JWT_SECRET` | Clave secreta para firmar tokens JWT (backend) |
 | `AWS_ENDPOINT_URL` | Endpoint S3 / LocalStack (backend) |

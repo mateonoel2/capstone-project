@@ -2,6 +2,19 @@
 
 **Ultima actualizacion:** Marzo 2026
 
+## Actualizacion: Soporte Multi-Proveedor, *DocumentExtractor* y Campos *Array* (Marzo 2026)
+
+### Cambios principales
+
+- **Arquitectura multi-proveedor**: Nuevo registro `PROVIDERS` extensible que soporta Anthropic (activo), OpenAI y Google Gemini (preparados, pendientes de activacion). Cada proveedor se resuelve por prefijo del modelo, con *imports* lazy y formato de imagen especifico. Actualmente solo Claude Haiku esta en uso en produccion
+- **Renombrado `StatementExtractor` a `DocumentExtractor`**: El extractor ya no es especifico de estados de cuenta bancarios. La logica de reintento de CLABE se extrajo a una funcion standalone `retry_bank_statement_clabe()`, que solo se ejecuta para el extractor por defecto (`is_default=True`)
+- **Campos tipo *array* en el *schema builder***: Nuevo tipo "Lista" en el editor visual de *schemas* con columnas configurables (nombre, tipo, descripcion). Los resultados de extraccion con *arrays* se muestran como tablas editables con botones para agregar y eliminar filas
+- **Mejora de UX al cambiar extractor**: Al cambiar de extractor en la pagina de extraccion, se muestra un dialogo de confirmacion y se reinician el documento y los resultados
+- **Correccion de `toStr`**: Los objetos y *arrays* ahora se serializan como JSON en vez de mostrar `[object Object]`
+- **URL de descarga para S3**: Nuevo metodo `generate_download_url` en `StorageBackend` para pasar *presigned URLs* directamente al LLM (solo HTTPS)
+
+---
+
 ## Actualizacion: Cuotas de Uso y Tier *Guest* (Marzo 2026)
 
 ### Cambios principales
@@ -88,7 +101,7 @@
 
 ### Cambios principales
 
-- **Parser unificado**: Los 3 *parsers* anteriores (*claude_ocr*, *claude_text*, *claude_vision*) se reemplazaron por un unico `StatementExtractor` basado en vision con *structured output*
+- **Parser unificado**: Los 3 *parsers* anteriores (*claude_ocr*, *claude_text*, *claude_vision*) se reemplazaron por un unico extractor basado en vision con *structured output* (ahora renombrado a `DocumentExtractor`)
 - **Soporte de imagenes**: El sistema ahora acepta JPG y PNG ademas de PDF
 - **Seguimiento de llamadas API**: Nuevo modelo `ApiCallLog` que registra cada llamada a Claude (exito/error, tiempo de respuesta, tipo de error)
 - **Metricas de API**: Nuevo *endpoint* `GET /extraction/api-metrics` y seccion en el *dashboard*
@@ -141,7 +154,7 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 - Iconos para todos los controles
 
 ### 5. Sistema de Extraccion
-- *Parser* unificado `StatementExtractor` basado en vision con *Claude Haiku 4.5*
+- Extractor `DocumentExtractor` multi-proveedor basado en vision (*Claude Haiku* por defecto)
 - Soporte para PDFs e imagenes (JPG/PNG)
 - *Structured output* via *LangChain* (`ExtractionOutput`)
 - Deteccion automatica de documentos no bancarios
@@ -164,7 +177,7 @@ El proyecto esta completamente funcional con todas las funcionalidades principal
 - `backend/src/infrastructure/models.py` - Modelos ORM de base de datos
 - `backend/src/domain/entities.py` - Entidades de dominio
 - `backend/src/domain/constants.py` - Constantes y diccionario de bancos
-- `backend/src/infrastructure/extractors/statement_extractor.py` - Extractor unificado
+- `backend/src/infrastructure/extractors/document_extractor.py` - Extractor multi-proveedor
 - `backend/src/infrastructure/storage.py` - Abstraccion de *storage* (S3 / local)
 
 ### *Frontend*
