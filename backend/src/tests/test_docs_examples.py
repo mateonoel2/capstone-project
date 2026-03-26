@@ -32,7 +32,7 @@ from src.tests.conftest import (
 def _parse_doc_json(text: str) -> dict | list:
     """Parse a documentation JSON body, replacing placeholders."""
     text = re.sub(r'"([^"]*)\.\.\."', r'"\1placeholder"', text)
-    text = re.sub(r'\{\s*\.\.\.\s*\}', '{}', text)
+    text = re.sub(r"\{\s*\.\.\.\s*\}", "{}", text)
     text = text.replace("...", '"__placeholder__"')
     return json.loads(text)
 
@@ -257,8 +257,9 @@ class TestExtractionExamples:
         }
 
         config = _make_config()
-        call_result = ApiCallResult(model="claude-haiku-4-5-20251001", success=True,
-                                    response_time_ms=150.0)
+        call_result = ApiCallResult(
+            model="claude-haiku-4-5-20251001", success=True, response_time_ms=150.0
+        )
 
         with (
             patch("src.infrastructure.api.extraction.routes.get_storage") as mock_storage,
@@ -302,9 +303,7 @@ class TestExtractionExamples:
             "extractor_config_id": str(CONFIG_UUID),
         }
 
-        with patch(
-            "src.infrastructure.api.extraction.routes.ExtractionRepository"
-        ) as MockRepo:
+        with patch("src.infrastructure.api.extraction.routes.ExtractionRepository") as MockRepo:
             MockRepo.return_value.create.return_value = MagicMock(id=LOG_UUID)
             resp = client.post("/extraction/submit", json=request_body)
 
@@ -394,18 +393,14 @@ class TestDocumentedParamsAccepted:
         with (
             patch("src.infrastructure.api.extraction.routes.get_storage") as mock_storage,
             patch("src.infrastructure.api.extraction.routes.ExtractionService") as MockSvc,
-            patch(
-                "src.infrastructure.api.extraction.routes.ExtractorConfigRepository"
-            ) as MockCfg,
+            patch("src.infrastructure.api.extraction.routes.ExtractorConfigRepository") as MockCfg,
             patch("src.infrastructure.api.extraction.routes.ApiCallRepository"),
             patch("src.infrastructure.api.extraction.routes.AiUsageLogRepository"),
             patch("src.infrastructure.api.extraction.routes.QuotaService") as MockQ,
         ):
             MockQ.return_value.check_extraction_quota.return_value = None
             mock_storage.return_value.download.return_value = b"bytes"
-            MockSvc.return_value.extract.return_value = (
-                {}, ApiCallResult("m", True, 1.0), None
-            )
+            MockSvc.return_value.extract.return_value = ({}, ApiCallResult("m", True, 1.0), None)
             MockCfg.return_value.get_by_id.return_value = _make_config()
             MockCfg.return_value.get_active_versions.return_value = []
             resp = client.post("/extraction/extract", json=body)
@@ -419,9 +414,7 @@ class TestDocumentedParamsAccepted:
             "final_fields": {"titular": "Juan Perez", "monto": "$1,500.00"},
             "extractor_config_id": str(CONFIG_UUID),
         }
-        with patch(
-            "src.infrastructure.api.extraction.routes.ExtractionRepository"
-        ) as MockRepo:
+        with patch("src.infrastructure.api.extraction.routes.ExtractionRepository") as MockRepo:
             MockRepo.return_value.create.return_value = MagicMock(id=LOG_UUID)
             resp = client.post("/extraction/submit", json=body)
         assert resp.status_code != 422, f"Documented body caused validation error: {resp.json()}"
@@ -524,9 +517,7 @@ class TestDocumentedFullFlow:
         # ── Step 5: POST /extraction/submit with corrections ─────────────
         corrected_fields = {**fields, "titular": "Juan Perez"}
 
-        with patch(
-            "src.infrastructure.api.extraction.routes.ExtractionRepository"
-        ) as MockRepo:
+        with patch("src.infrastructure.api.extraction.routes.ExtractionRepository") as MockRepo:
             MockRepo.return_value.create.return_value = MagicMock(id=LOG_UUID)
             resp = client.post(
                 "/extraction/submit",
@@ -562,9 +553,7 @@ class TestDocumentedFullFlow:
         ):
             MockQuota.return_value.check_extraction_quota.return_value = None
             mock_storage.return_value.download.return_value = b"bytes"
-            MockSvc.return_value.extract.return_value = (
-                {"titular": "Test"}, call_result, None
-            )
+            MockSvc.return_value.extract.return_value = ({"titular": "Test"}, call_result, None)
             MockCfgRepo.return_value.get_by_id.return_value = None
             MockCfgRepo.return_value.get_default.return_value = default_config
 

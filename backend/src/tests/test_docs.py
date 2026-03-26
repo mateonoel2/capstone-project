@@ -87,9 +87,7 @@ class TestDocsMatchOpenAPI:
 
             operation = spec_paths.get(ep.path, {}).get(ep.method.lower(), {})
             spec_params = operation.get("parameters", [])
-            spec_query_names = {
-                p["name"] for p in spec_params if p.get("in") == "query"
-            }
+            spec_query_names = {p["name"] for p in spec_params if p.get("in") == "query"}
 
             for param in query_params:
                 assert param.name in spec_query_names, (
@@ -108,9 +106,7 @@ class TestDocsMatchOpenAPI:
 
             operation = spec_paths.get(ep.path, {}).get(ep.method.lower(), {})
             spec_params = operation.get("parameters", [])
-            spec_path_names = {
-                p["name"] for p in spec_params if p.get("in") == "path"
-            }
+            spec_path_names = {p["name"] for p in spec_params if p.get("in") == "path"}
 
             for param in path_params:
                 assert param.name in spec_path_names, (
@@ -162,7 +158,7 @@ class TestDocsMatchOpenAPI:
         # Replace "value..." patterns inside strings
         text = re.sub(r'"([^"]*)\.\.\."', r'"\1_placeholder"', text)
         # Replace { ... } (object placeholder) with empty object
-        text = re.sub(r'\{\s*\.\.\.\s*\}', '{}', text)
+        text = re.sub(r"\{\s*\.\.\.\s*\}", "{}", text)
         # Replace standalone ...  (e.g. as object value)
         text = text.replace("...", '"__placeholder__"')
         return text
@@ -195,8 +191,7 @@ class TestDocsMatchOpenAPI:
                 json.loads(body)
             except json.JSONDecodeError:
                 pytest.fail(
-                    f"Request body for {ep.method} {ep.path} "
-                    f"is not valid JSON:\n{ep.request_body}"
+                    f"Request body for {ep.method} {ep.path} is not valid JSON:\n{ep.request_body}"
                 )
 
 
@@ -209,9 +204,7 @@ class TestDocsContent:
 
     def test_all_endpoints_have_at_least_one_example(self):
         for ep in ENDPOINTS:
-            assert len(ep.examples) >= 1, (
-                f"{ep.method} {ep.path} has no code examples"
-            )
+            assert len(ep.examples) >= 1, f"{ep.method} {ep.path} has no code examples"
 
     def test_all_endpoints_have_unique_slugs(self):
         slugs = [ep.slug for ep in ENDPOINTS]
@@ -266,9 +259,7 @@ class TestIndexExamples:
 
     def test_python_example_uses_extractor_id(self, client):
         resp = client.get("/api/docs")
-        assert "extractor_id" in resp.text, (
-            "Python example missing extractor_id in extract call"
-        )
+        assert "extractor_id" in resp.text, "Python example missing extractor_id in extract call"
 
     def test_quick_start_mentions_extractor_step(self, client):
         resp = client.get("/api/docs")

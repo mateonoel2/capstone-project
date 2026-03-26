@@ -43,9 +43,7 @@ def _render(template_name: str, request: Request, **kwargs) -> HTMLResponse:
 
 @router.get("", response_class=HTMLResponse)
 async def docs_index(request: Request):
-    return _render(
-        "index.html", request, title="Inicio", **_common_context("index")
-    )
+    return _render("index.html", request, title="Inicio", **_common_context("index"))
 
 
 @router.get("/{slug}", response_class=HTMLResponse)
