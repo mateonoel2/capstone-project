@@ -29,7 +29,7 @@ Frontend envia s3_key + extractor_config_id al backend
     ↓
 Backend descarga documento de S3
     ↓
-StatementExtractor envia PDF directo a Claude Haiku 4.5
+DocumentExtractor envia PDF directo a Claude Haiku 4.5
   (sin OCR, sin conversion a imagen)
     ↓
 Structured output: JSON con campos extraidos
@@ -64,7 +64,7 @@ Este flujo **no es parte del producto**, sino el proceso interno para validar y 
    - Scripts: upload_bank_accounts.py, process_accounts.py
    ↓
 2. Experimentacion
-   - Script: run_experiment.py + StatementExtractor
+   - Script: run_experiment.py + DocumentExtractor
    - Extraccion sobre dataset completo
    - Modos: completo, subconjunto, o reanalisis sin llamadas API
    ↓
@@ -116,7 +116,7 @@ El *backend* sigue una arquitectura de tres capas:
                    ↓
 ┌─────────────────────────────────────────┐
 │     infrastructure/ (externo)           │
-│  - StatementExtractor (Claude vision)   │
+│  - DocumentExtractor (Claude vision)   │
 │  - AI Assist (schema/prompt generation) │
 │  - Repository (SQLAlchemy)              │
 │  - Storage (S3/Tigris)                  │

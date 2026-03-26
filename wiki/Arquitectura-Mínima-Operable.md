@@ -7,8 +7,8 @@
 | Componente | Descripción |
 |------------|-------------|
 | **Datos** | PDFs e imagenes de documentos almacenados en S3 (Tigris) |
-| **Procesamiento** | *Backend* *FastAPI* con extractores configurables (*StatementExtractor* basado en vision) |
-| **Modelo** | *Claude Haiku 4.5* (configurable) con *structured output* para extraccion de campos |
+| **Procesamiento** | *Backend* *FastAPI* con extractores configurables (*DocumentExtractor* multi-proveedor) |
+| **Modelo** | *Claude Haiku 4.5* por defecto (configurable: OpenAI, Gemini) con *structured output* para extraccion de campos |
 | ***Output*** | JSON estructurado con campos validados y metadatos de extracción |
 
 ---
@@ -21,7 +21,7 @@
 - ***Backend*:** *FastAPI* (Python)
 - **Base de Datos:** *PostgreSQL* (datos, metadatos y resultados de extracción)
 - **Almacenamiento:** S3 / Tigris (documentos subidos), *LocalStack* en desarrollo
-- **Procesamiento:** *Claude Haiku 4.5* via *LangChain* para extraccion por vision
+- **Procesamiento:** *DocumentExtractor* multi-proveedor via *LangChain* (Anthropic por defecto, OpenAI y Gemini opcionales)
 - ***Frontend*:** *Next.js* 15 en *Vercel*
 
 ### Arquitectura de Capas
@@ -48,7 +48,7 @@
                    ↓
 ┌─────────────────────────────────────────┐
 │      Capa de Procesamiento              │
-│  - StatementExtractor (vision)          │
+│  - DocumentExtractor (multi-provider)   │
 │  - Extractor Configs (schema + prompt)  │
 │  - AI Assist (schema/prompt generation) │
 │  - QuotaService (guest limits)          │

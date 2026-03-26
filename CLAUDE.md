@@ -60,8 +60,8 @@ Three layers under `src/`:
   - `database.py` — SQLAlchemy engine + session (PostgreSQL via `DATABASE_URL`)
   - `models.py` — `User`, `ExtractorConfig`, `ExtractorConfigVersion`, `ExtractionLog`, `ApiCallLog`, `TestExtractionLog`, `ApiToken`, `AiUsageLog` ORM models
   - `repository.py` — `UserRepository`, `ExtractionRepository`, `ExtractorConfigRepository`, `ApiCallRepository`, `TestExtractionLogRepository`, `ApiTokenRepository`, `AiUsageLogRepository`
-  - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload URLs, download, CORS config)
-  - `extractors/` — `StatementExtractor`: unified vision-based extractor (PDF + images)
+  - `storage.py` — `StorageBackend` ABC with `LocalStorage` and `S3Storage` (presigned upload/download URLs, CORS config)
+  - `extractors/` — `DocumentExtractor`: multi-provider vision-based extractor (PDF + images). Supports Anthropic, OpenAI, and Google Gemini via `PROVIDERS` registry with lazy imports. Bank-statement-specific CLABE retry logic in standalone `retry_bank_statement_clabe()`
   - `preprocessing/` — `OCRProcessor`, `DataCleaner`, `FileValidator`, `FileDownloader`
   - `evaluation/` — `ExperimentRunner` + validation metrics
   - `data_pipeline/` — Download/cleanup scripts
@@ -87,6 +87,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 - `components/quota-banner.tsx` — Usage quota display for guest users
 - `components/assistant/` — AI-powered sidebar for schema/prompt generation
 - `components/extractor-wizard/` — Multi-step wizard components
+- `components/schema-builder/` — Visual schema editor with field types: string, number, boolean, enum, date, array (with sub-field columns)
+- `components/dynamic-fields-form.tsx` — Renders extraction results: scalar fields as inputs, array fields as editable tables (add/remove/edit rows)
 - `lib/hooks.ts` — React Query hooks for server state (configs, versions, AI generation, extraction, users)
 - `lib/query-provider.tsx` — React Query provider configuration
 - `lib/store.ts` — Zustand store (sessionStorage persistence, UI state, backend auth token/user)
@@ -100,7 +102,8 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 - **Guest quotas**: Guest users have daily limits on extractions (10/day), extractors (1 max), and AI prompts (10/day). Enforced by `QuotaService` with `QuotaExceededError`. Usage tracked via `GET /auth/usage`
 - **Extractor config**: User-defined extraction configuration with name, model, prompt, and JSON output schema. Supports draft/active status and versioning for A/B testing
 - **Upload flow**: Frontend requests presigned URL → direct S3 PUT (with backend fallback) → extract by S3 key
-- **Extraction flow**: S3 key → download from storage → vision-based Claude extractor (using config's prompt + schema) → structured output → user correction → persistence with correction flags
+- **Multi-provider extraction**: `DocumentExtractor` supports Anthropic (native PDF), OpenAI (`gpt-*`, `o1`, `o3`, `o4`), and Google Gemini (`gemini-*`) via `PROVIDERS` registry. Provider resolved from model name, API key from corresponding env var. Non-Anthropic providers convert PDFs to images via `pdf2image`. Currently only Claude Haiku is active in production; OpenAI and Gemini are wired but untested in prod
+- **Extraction flow**: S3 key → download from storage → `DocumentExtractor` (using config's prompt + schema + model) → structured output → user correction → persistence with correction flags. CLABE retry logic runs only for default extractor (`is_default=True`)
 - **AI assistant**: Claude-powered generation of JSON schemas from descriptions, extraction prompts from schemas, and prompt refinement (`ai_assist.py`)
 - **Test extraction**: Test an extractor config against a sample file, logged in `test_extraction_logs` for debugging
 - **CLABE**: 18-digit Mexican interbank account number (validated with `^\d{18}$`)
@@ -108,7 +111,9 @@ Next.js 15 App Router with TypeScript, Tailwind CSS, Radix UI (shadcn/ui), React
 
 ## Environment Variables
 
-- `ANTHROPIC_API_KEY` — Required for Claude API calls (backend)
+- `ANTHROPIC_API_KEY` — Required for Claude API calls (backend, default provider)
+- `OPENAI_KEY` — Required for OpenAI models (backend, optional)
+- `GOOGLE_API_KEY` — Required for Gemini models (backend, optional)
 - `DATABASE_URL` — PostgreSQL connection string (backend)
 - `JWT_SECRET` — Secret key for signing JWT tokens (backend, defaults to dev value)
 - `AWS_ENDPOINT_URL` — S3/LocalStack endpoint (backend)

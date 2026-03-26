@@ -16,7 +16,7 @@ El sistema ahora soporta extractores configurables donde cada tipo de documento 
 ### 2. Capa de abstraccion de *parsers*
 **Estado: Completado**
 
-Los *parsers* fueron reemplazados por un unico `StatementExtractor` basado en vision que retorna datos estructurados genericos via `ExtractionOutput` (*Pydantic* + *LangChain structured output*). El `BaseExtractor` ABC define la interfaz comun.
+Los *parsers* fueron reemplazados por un unico `DocumentExtractor` basado en vision que retorna datos estructurados genericos via `ExtractionOutput` (*Pydantic* + *LangChain structured output*). El `BaseExtractor` ABC define la interfaz comun.
 
 ### 3. Soporte para multiples tipos de documentos
 **Estado: Completado**

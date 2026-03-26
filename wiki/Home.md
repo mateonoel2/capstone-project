@@ -30,7 +30,7 @@ Bienvenido a la *wiki* del proyecto de extracción automática de información e
 - **Lenguaje**: Python 3.12+
 - ***Framework* API**: *FastAPI*
 - **Base de Datos**: *PostgreSQL* con *SQLAlchemy* y migraciones *Alembic*
-- **Extraccion**: Extractores configurables con *schemas*, *prompts* y modelos personalizados. *StatementExtractor* basado en vision con *Claude Haiku 4.5*
+- **Extraccion**: Extractores configurables con *schemas*, *prompts* y modelos personalizados. *DocumentExtractor* multi-proveedor (Anthropic, OpenAI, Google Gemini)
 - **Gestion de dependencias**: *uv*
 
 ### *Frontend*
@@ -79,7 +79,7 @@ capstone-project/
 │   │   │   ├── models.py           # ORM (User, ExtractionLog, ApiCallLog, etc.)
 │   │   │   ├── repository.py       # Acceso a datos
 │   │   │   ├── storage.py          # StorageBackend (S3 / local)
-│   │   │   ├── extractors/        # StatementExtractor (vision unificado)
+│   │   │   ├── extractors/        # DocumentExtractor (vision unificado)
 │   │   │   ├── preprocessing/      # Validacion y descarga
 │   │   │   ├── evaluation/         # Experimentos y metricas
 │   │   │   └── data_pipeline/      # Scripts de datos
@@ -165,7 +165,7 @@ Tiempo de procesamiento: mediana 1.9s. Costo: ~$0.011 USD/documento. Ver detalle
 - Extractores configurables con *schemas*, *prompts* y modelos personalizados
 - *Wizard* multi-paso para crear extractores con asistente de IA
 - Generacion de *schemas* y *prompts* asistida por Claude (`ai_assist.py`)
-- Extractor unificado (*StatementExtractor*) basado en vision con *Claude Haiku 4.5*
+- Extractor unificado (*DocumentExtractor*) basado en vision con *Claude Haiku 4.5*
 - Soporte para PDFs e imagenes (JPG/PNG)
 - Versionado de extractores con soporte para pruebas A/B
 - Extracciones de prueba con registro detallado (*TestExtractionLog*)
