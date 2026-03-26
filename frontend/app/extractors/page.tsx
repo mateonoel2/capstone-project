@@ -25,7 +25,7 @@ export default function ExtractorsPage() {
     quota.extractors.used >= quota.extractors.limit
   );
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t("extractors.confirmDelete"))) return;
     try {
       await deleteMutation.mutateAsync(id);

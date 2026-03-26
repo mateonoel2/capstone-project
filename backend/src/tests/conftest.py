@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,10 +9,20 @@ from src.infrastructure.auth import get_admin_user, get_current_user
 from src.infrastructure.database import get_db
 from src.main import app
 
+USER_UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+ADMIN_UUID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+GUEST_UUID = uuid.UUID("00000000-0000-0000-0000-000000000003")
+CONFIG_UUID = uuid.UUID("00000000-0000-0000-0000-000000000010")
+CONFIG_UUID_2 = uuid.UUID("00000000-0000-0000-0000-000000000011")
+VERSION_UUID = uuid.UUID("00000000-0000-0000-0000-000000000020")
+TOKEN_UUID = uuid.UUID("00000000-0000-0000-0000-000000000030")
+TOKEN_UUID_2 = uuid.UUID("00000000-0000-0000-0000-000000000031")
+LOG_UUID = uuid.UUID("00000000-0000-0000-0000-000000000040")
+
 
 def make_user(
     role: str = "user",
-    user_id: int = 1,
+    user_id: uuid.UUID = USER_UUID,
     is_active: bool = True,
     github_username: str = "testuser",
 ) -> UserData:
@@ -28,17 +39,17 @@ def make_user(
 
 @pytest.fixture()
 def fake_user():
-    return make_user(role="user", user_id=1)
+    return make_user(role="user", user_id=USER_UUID)
 
 
 @pytest.fixture()
 def fake_admin():
-    return make_user(role="admin", user_id=2, github_username="adminuser")
+    return make_user(role="admin", user_id=ADMIN_UUID, github_username="adminuser")
 
 
 @pytest.fixture()
 def fake_guest():
-    return make_user(role="guest", user_id=3, github_username="guestuser")
+    return make_user(role="guest", user_id=GUEST_UUID, github_username="guestuser")
 
 
 @pytest.fixture()

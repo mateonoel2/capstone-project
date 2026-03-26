@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import replace
 from typing import Annotated
 
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 DbDep = Annotated[Session, Depends(get_db)]
 
 
-def _create_default_extractor(db: Session, user_id: int) -> None:
+def _create_default_extractor(db: Session, user_id: uuid.UUID) -> None:
     """Crea el extractor default de boletas para un usuario nuevo."""
     repo = ExtractorConfigRepository(db)
     existing = repo.get_all(user_id=user_id)
@@ -43,7 +44,7 @@ class LoginResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     github_username: str
     email: str | None
     avatar_url: str | None

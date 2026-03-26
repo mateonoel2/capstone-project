@@ -1,5 +1,6 @@
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from typing import Annotated
 
@@ -239,7 +240,7 @@ async def test_extract(request: TestExtractRequest, db: DbDep, user: UserDep):
 
 
 @router.get("/{config_id}/test-logs", response_model=list[TestExtractionLogResponse])
-async def get_test_logs(config_id: int, db: DbDep, user: UserDep):
+async def get_test_logs(config_id: uuid.UUID, db: DbDep, user: UserDep):
     service = _get_service(db)
     config = service.get_by_id(config_id)
     if not config:
@@ -251,7 +252,7 @@ async def get_test_logs(config_id: int, db: DbDep, user: UserDep):
 
 
 @router.get("/{config_id}", response_model=ExtractorConfigResponse)
-async def get_extractor_config(config_id: int, db: DbDep, user: UserDep):
+async def get_extractor_config(config_id: uuid.UUID, db: DbDep, user: UserDep):
     service = _get_service(db)
     config = service.get_by_id(config_id)
     if not config:
@@ -261,7 +262,7 @@ async def get_extractor_config(config_id: int, db: DbDep, user: UserDep):
 
 
 @router.get("/{config_id}/versions", response_model=list[ExtractorConfigVersionResponse])
-async def get_extractor_versions(config_id: int, db: DbDep, user: UserDep):
+async def get_extractor_versions(config_id: uuid.UUID, db: DbDep, user: UserDep):
     service = _get_service(db)
     config = service.get_by_id(config_id)
     if not config:
@@ -292,7 +293,7 @@ async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbD
 
 @router.put("/{config_id}", response_model=ExtractorConfigResponse)
 async def update_extractor_config(
-    config_id: int, request: ExtractorConfigUpdateRequest, db: DbDep, user: UserDep
+    config_id: uuid.UUID, request: ExtractorConfigUpdateRequest, db: DbDep, user: UserDep
 ):
     service = _get_service(db)
     existing = service.get_by_id(config_id)
@@ -319,7 +320,7 @@ async def update_extractor_config(
 
 
 @router.delete("/{config_id}")
-async def delete_extractor_config(config_id: int, db: DbDep, user: UserDep):
+async def delete_extractor_config(config_id: uuid.UUID, db: DbDep, user: UserDep):
     service = _get_service(db)
     existing = service.get_by_id(config_id)
     if not existing:
@@ -338,7 +339,7 @@ async def delete_extractor_config(config_id: int, db: DbDep, user: UserDep):
     response_model=ExtractorConfigVersionResponse,
 )
 async def toggle_version_active(
-    config_id: int, version_id: int, request: SetActiveRequest, db: DbDep, user: UserDep
+    config_id: uuid.UUID, version_id: uuid.UUID, request: SetActiveRequest, db: DbDep, user: UserDep
 ):
     repo = ExtractorConfigRepository(db)
     config = repo.get_by_id(config_id)

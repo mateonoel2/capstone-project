@@ -1,3 +1,5 @@
+import uuid
+
 from src.domain.entities import ApiCallMetricsData
 from src.infrastructure.repository import ApiCallRepository
 
@@ -7,7 +9,7 @@ class ApiMetricsService:
         self.repository = repository
 
     def get_metrics(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> ApiCallMetricsData:
         total = self.repository.count_total(extractor_config_id, user_id=user_id)
         failures = self.repository.count_failures(extractor_config_id, user_id=user_id)

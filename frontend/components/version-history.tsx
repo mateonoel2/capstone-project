@@ -14,7 +14,7 @@ import { Loader2, RotateCcw } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 interface VersionHistoryProps {
-  configId: number;
+  configId: string;
   onRestore?: () => void;
 }
 
@@ -22,7 +22,7 @@ export function VersionHistory({ configId, onRestore }: VersionHistoryProps) {
   const { data: versions = [], isLoading } = useExtractorVersions(configId);
   const updateMutation = useUpdateExtractorConfig();
   const toggleMutation = useToggleVersionActive();
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const t = useT();
 
   const handleRestore = async (version: typeof versions[number]) => {

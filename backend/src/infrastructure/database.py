@@ -1,6 +1,5 @@
 import os
 from collections.abc import Generator
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -16,19 +15,13 @@ def get_database_url() -> str:
             url = url.replace("postgres://", "postgresql://", 1)
         return url
 
-    # Default: SQLite for local dev without Docker
-    db_dir = Path(__file__).parent.parent.parent / "data"
-    db_dir.mkdir(exist_ok=True)
-    return f"sqlite:///{db_dir / 'extractions.db'}"
+    # Default: local Docker PostgreSQL
+    return "postgresql://postgres:postgres@localhost:5432/extractions"
 
 
 database_url = get_database_url()
 
-connect_args = {}
-if database_url.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-
-engine = create_engine(database_url, connect_args=connect_args)
+engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

@@ -1,11 +1,20 @@
+import uuid
 from unittest.mock import patch
 
-from src.tests.conftest import make_user
+from src.tests.conftest import ADMIN_UUID, USER_UUID, make_user
+
+USER_UUID_5 = uuid.UUID("00000000-0000-0000-0000-000000000005")
+USER_UUID_10 = uuid.UUID("00000000-0000-0000-0000-00000000000a")
+USER_UUID_99 = uuid.UUID("00000000-0000-0000-0000-000000000099")
+USER_UUID_999 = uuid.UUID("00000000-0000-0000-0000-000000000999")
 
 
 class TestListUsers:
     def test_admin_gets_users(self, admin_client):
-        users = [make_user(user_id=1), make_user(user_id=2, github_username="other")]
+        users = [
+            make_user(user_id=USER_UUID),
+            make_user(user_id=ADMIN_UUID, github_username="other"),
+        ]
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.get_all.return_value = users
             resp = admin_client.get("/admin/users")
@@ -19,7 +28,7 @@ class TestListUsers:
 
 class TestCreateUser:
     def test_creates_user(self, admin_client):
-        new_user = make_user(user_id=10, github_username="newuser")
+        new_user = make_user(user_id=USER_UUID_10, github_username="newuser")
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.get_by_github_username.return_value = None
             MockRepo.return_value.create.return_value = new_user
@@ -42,17 +51,17 @@ class TestCreateUser:
 
 class TestUpdateUser:
     def test_updates_user(self, admin_client):
-        updated = make_user(user_id=5, role="admin")
+        updated = make_user(user_id=USER_UUID_5, role="admin")
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.update.return_value = updated
-            resp = admin_client.put("/admin/users/5", json={"role": "admin"})
+            resp = admin_client.put(f"/admin/users/{USER_UUID_5}", json={"role": "admin"})
         assert resp.status_code == 200
         assert resp.json()["role"] == "admin"
 
     def test_not_found_returns_404(self, admin_client):
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.update.return_value = None
-            resp = admin_client.put("/admin/users/999", json={"role": "user"})
+            resp = admin_client.put(f"/admin/users/{USER_UUID_999}", json={"role": "user"})
         assert resp.status_code == 404
 
 
@@ -60,7 +69,7 @@ class TestDeleteUser:
     def test_deletes_user(self, admin_client, fake_admin):
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.delete.return_value = True
-            resp = admin_client.delete("/admin/users/99")
+            resp = admin_client.delete(f"/admin/users/{USER_UUID_99}")
         assert resp.status_code == 200
 
     def test_self_delete_returns_400(self, admin_client, fake_admin):
@@ -70,5 +79,5 @@ class TestDeleteUser:
     def test_not_found_returns_404(self, admin_client):
         with patch("src.infrastructure.api.admin.routes.UserRepository") as MockRepo:
             MockRepo.return_value.delete.return_value = False
-            resp = admin_client.delete("/admin/users/999")
+            resp = admin_client.delete(f"/admin/users/{USER_UUID_999}")
         assert resp.status_code == 404

@@ -1,11 +1,16 @@
+import uuid
 from unittest.mock import patch
 
 from src.domain.entities import ExtractorConfigData, QuotaExceededError
+from src.tests.conftest import CONFIG_UUID, CONFIG_UUID_2, USER_UUID
+
+CONFIG_UUID_5 = uuid.UUID("00000000-0000-0000-0000-000000000015")
+CONFIG_UUID_999 = uuid.UUID("00000000-0000-0000-0000-000000000999")
 
 
 def _make_config(**overrides):
     defaults = dict(
-        id=1,
+        id=CONFIG_UUID,
         name="test-extractor",
         description="A test extractor",
         prompt="Extract fields",
@@ -13,7 +18,7 @@ def _make_config(**overrides):
         output_schema={"type": "object", "properties": {"name": {"type": "string"}}},
         is_default=False,
         status="active",
-        user_id=1,
+        user_id=USER_UUID,
         created_at="2026-01-01T00:00:00",
         updated_at="2026-01-01T00:00:00",
     )
@@ -23,7 +28,7 @@ def _make_config(**overrides):
 
 class TestListExtractorConfigs:
     def test_lists_configs(self, client):
-        configs = [_make_config(id=1), _make_config(id=2, name="other")]
+        configs = [_make_config(id=CONFIG_UUID), _make_config(id=CONFIG_UUID_2, name="other")]
         with patch(
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
@@ -44,7 +49,7 @@ class TestGetAvailableModels:
 
 class TestCreateExtractorConfig:
     def test_creates_config(self, client):
-        config = _make_config(id=5)
+        config = _make_config(id=CONFIG_UUID_5)
         with (
             patch("src.infrastructure.api.extractors.routes.ExtractorConfigRepository") as MockRepo,
             patch("src.infrastructure.api.extractors.routes.ApiCallRepository"),
@@ -104,8 +109,8 @@ class TestCreateExtractorConfig:
 
 class TestUpdateExtractorConfig:
     def test_updates_config(self, client):
-        existing = _make_config(id=1)
-        updated = _make_config(id=1, name="updated-name")
+        existing = _make_config(id=CONFIG_UUID)
+        updated = _make_config(id=CONFIG_UUID, name="updated-name")
         with patch(
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
@@ -113,7 +118,7 @@ class TestUpdateExtractorConfig:
             MockRepo.return_value.get_all.return_value = []
             MockRepo.return_value.update.return_value = updated
             resp = client.put(
-                "/extractors/1",
+                f"/extractors/{CONFIG_UUID}",
                 json={"name": "updated-name"},
             )
         assert resp.status_code == 200
@@ -124,28 +129,28 @@ class TestUpdateExtractorConfig:
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
             MockRepo.return_value.get_by_id.return_value = None
-            resp = client.put("/extractors/999", json={"name": "x"})
+            resp = client.put(f"/extractors/{CONFIG_UUID_999}", json={"name": "x"})
         assert resp.status_code == 404
 
 
 class TestDeleteExtractorConfig:
     def test_deletes_config(self, client):
-        config = _make_config(id=1, is_default=False)
+        config = _make_config(id=CONFIG_UUID, is_default=False)
         with patch(
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
             MockRepo.return_value.get_by_id.return_value = config
             MockRepo.return_value.delete.return_value = True
-            resp = client.delete("/extractors/1")
+            resp = client.delete(f"/extractors/{CONFIG_UUID}")
         assert resp.status_code == 200
 
     def test_default_config_returns_400(self, client):
-        config = _make_config(id=1, is_default=True)
+        config = _make_config(id=CONFIG_UUID, is_default=True)
         with patch(
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
             MockRepo.return_value.get_by_id.return_value = config
-            resp = client.delete("/extractors/1")
+            resp = client.delete(f"/extractors/{CONFIG_UUID}")
         assert resp.status_code == 400
 
     def test_not_found_returns_404(self, client):
@@ -153,5 +158,5 @@ class TestDeleteExtractorConfig:
             "src.infrastructure.api.extractors.routes.ExtractorConfigRepository"
         ) as MockRepo:
             MockRepo.return_value.get_by_id.return_value = None
-            resp = client.delete("/extractors/999")
+            resp = client.delete(f"/extractors/{CONFIG_UUID_999}")
         assert resp.status_code == 404

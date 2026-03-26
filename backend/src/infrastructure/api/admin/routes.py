@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,7 +25,7 @@ class UpdateUserRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     github_id: int | None
     github_username: str
     email: str | None
@@ -72,7 +73,7 @@ async def create_user(request: CreateUserRequest, admin: AdminDep, db: DbDep):
 
 
 @router.put("/users/{user_id}", response_model=UserResponse)
-async def update_user(user_id: int, request: UpdateUserRequest, admin: AdminDep, db: DbDep):
+async def update_user(user_id: uuid.UUID, request: UpdateUserRequest, admin: AdminDep, db: DbDep):
     repo = UserRepository(db)
     fields = {}
     if request.role is not None:
@@ -98,7 +99,7 @@ async def update_user(user_id: int, request: UpdateUserRequest, admin: AdminDep,
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: int, admin: AdminDep, db: DbDep):
+async def delete_user(user_id: uuid.UUID, admin: AdminDep, db: DbDep):
     if admin.id == user_id:
         raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
     repo = UserRepository(db)

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,7 +18,7 @@ class CreateTokenRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     created_at: datetime | None
     expires_at: datetime | None
@@ -27,7 +28,7 @@ class TokenResponse(BaseModel):
 
 class CreateTokenResponse(BaseModel):
     token: str
-    id: int
+    id: uuid.UUID
     name: str
     expires_at: datetime | None
 
@@ -82,7 +83,7 @@ def list_tokens(
 
 @router.delete("/{token_id}")
 def revoke_token(
-    token_id: int,
+    token_id: uuid.UUID,
     user: UserDep,
     db: Session = Depends(get_db),
 ):

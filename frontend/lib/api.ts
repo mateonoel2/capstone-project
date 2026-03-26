@@ -59,9 +59,9 @@ async function throwIfError(response: Response, fallback: string): Promise<void>
 
 export interface ExtractionResult {
   fields: Record<string, unknown>;
-  extractor_config_id: number | null;
+  extractor_config_id: string | null;
   extractor_config_name: string;
-  extractor_config_version_id: number | null;
+  extractor_config_version_id: string | null;
   extractor_config_version_number: number | null;
 }
 
@@ -69,8 +69,8 @@ export interface SubmissionPayload {
   filename: string;
   extracted_fields: Record<string, string>;
   final_fields: Record<string, string>;
-  extractor_config_id?: number | null;
-  extractor_config_version_id?: number | null;
+  extractor_config_id?: string | null;
+  extractor_config_version_id?: string | null;
 }
 
 export interface Bank {
@@ -79,7 +79,7 @@ export interface Bank {
 }
 
 export interface ExtractionLog {
-  id: number;
+  id: string;
   timestamp: string;
   filename: string;
   extracted_fields: Record<string, string>;
@@ -123,7 +123,7 @@ export interface ApiCallMetrics {
 }
 
 export interface ExtractorConfig {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   prompt: string;
@@ -136,7 +136,7 @@ export interface ExtractorConfig {
 }
 
 export interface ExtractorConfigVersion {
-  id: number;
+  id: string;
   version_number: number;
   prompt: string;
   model: string;
@@ -155,7 +155,7 @@ export interface ModelInfo {
 
 // Auth
 export interface BackendUser {
-  id: number;
+  id: string;
   github_username: string;
   email: string | null;
   avatar_url: string | null;
@@ -209,7 +209,7 @@ export async function getUsageQuota(): Promise<UsageQuota> {
 
 // Admin
 export interface AdminUser {
-  id: number;
+  id: string;
   github_id: number | null;
   github_username: string;
   email: string | null;
@@ -234,7 +234,7 @@ export async function createUser(github_username: string, role: string = "user")
   return response.json();
 }
 
-export async function updateUser(id: number, data: { role?: string; is_active?: boolean }): Promise<AdminUser> {
+export async function updateUser(id: string, data: { role?: string; is_active?: boolean }): Promise<AdminUser> {
   const response = await authFetch(`${API_BASE_URL}/admin/users/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -244,7 +244,7 @@ export async function updateUser(id: number, data: { role?: string; is_active?: 
   return response.json();
 }
 
-export async function deleteUser(id: number): Promise<void> {
+export async function deleteUser(id: string): Promise<void> {
   const response = await authFetch(`${API_BASE_URL}/admin/users/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to delete user"));
 }
@@ -308,7 +308,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
 }
 
 // Extraction
-export async function extractFromFile(s3Key: string, filename: string, extractorConfigId?: number | null): Promise<ExtractionResult> {
+export async function extractFromFile(s3Key: string, filename: string, extractorConfigId?: string | null): Promise<ExtractionResult> {
   const response = await authFetch(`${API_BASE_URL}/extraction/extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -342,7 +342,7 @@ export async function getBanks(): Promise<Bank[]> {
   return data.banks;
 }
 
-export async function getExtractionLogs(page: number = 1, pageSize: number = 50, extractorConfigId?: number | null): Promise<PaginatedLogsResponse> {
+export async function getExtractionLogs(page: number = 1, pageSize: number = 50, extractorConfigId?: string | null): Promise<PaginatedLogsResponse> {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   if (extractorConfigId != null) params.set("extractor_config_id", String(extractorConfigId));
   const response = await authFetch(`${API_BASE_URL}/extraction/logs?${params}`);
@@ -350,14 +350,14 @@ export async function getExtractionLogs(page: number = 1, pageSize: number = 50,
   return response.json();
 }
 
-export async function getApiCallMetrics(extractorConfigId?: number | null): Promise<ApiCallMetrics> {
+export async function getApiCallMetrics(extractorConfigId?: string | null): Promise<ApiCallMetrics> {
   const params = extractorConfigId != null ? `?extractor_config_id=${extractorConfigId}` : "";
   const response = await authFetch(`${API_BASE_URL}/extraction/api-metrics${params}`);
   if (!response.ok) throw new Error("Failed to fetch API call metrics");
   return response.json();
 }
 
-export async function getMetrics(extractorConfigId?: number | null): Promise<Metrics> {
+export async function getMetrics(extractorConfigId?: string | null): Promise<Metrics> {
   const params = extractorConfigId != null ? `?extractor_config_id=${extractorConfigId}` : "";
   const response = await authFetch(`${API_BASE_URL}/extraction/metrics${params}`);
   if (!response.ok) throw new Error("Failed to fetch metrics");
@@ -373,7 +373,7 @@ export async function getExtractorConfigs(status?: string): Promise<ExtractorCon
   return data.configs;
 }
 
-export async function getExtractorConfig(id: number): Promise<ExtractorConfig> {
+export async function getExtractorConfig(id: string): Promise<ExtractorConfig> {
   const response = await authFetch(`${API_BASE_URL}/extractors/${id}`);
   if (!response.ok) throw new Error("Failed to fetch extractor config");
   return response.json();
@@ -397,7 +397,7 @@ export async function createExtractorConfig(config: {
   return response.json();
 }
 
-export async function updateExtractorConfig(id: number, config: {
+export async function updateExtractorConfig(id: string, config: {
   name?: string;
   description?: string;
   prompt?: string;
@@ -417,7 +417,7 @@ export async function updateExtractorConfig(id: number, config: {
   return response.json();
 }
 
-export async function deleteExtractorConfig(id: number): Promise<void> {
+export async function deleteExtractorConfig(id: string): Promise<void> {
   const response = await authFetch(`${API_BASE_URL}/extractors/${id}`, { method: "DELETE" });
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to delete extractor config"));
@@ -430,7 +430,7 @@ export async function getAvailableModels(): Promise<ModelInfo[]> {
   return response.json();
 }
 
-export async function getExtractorVersions(id: number): Promise<ExtractorConfigVersion[]> {
+export async function getExtractorVersions(id: string): Promise<ExtractorConfigVersion[]> {
   const response = await authFetch(`${API_BASE_URL}/extractors/${id}/versions`);
   if (!response.ok) throw new Error("Failed to fetch versions");
   return response.json();
@@ -440,8 +440,8 @@ export async function testExtract(
   s3Key: string,
   filename: string,
   config: { prompt: string; model: string; output_schema: Record<string, unknown> },
-  extractorConfigId?: number | null
-): Promise<{ fields: Record<string, unknown>; response_time_ms: number; test_log_id: number | null }> {
+  extractorConfigId?: string | null
+): Promise<{ fields: Record<string, unknown>; response_time_ms: number; test_log_id: string | null }> {
   const response = await authFetch(`${API_BASE_URL}/extractors/test-extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -499,7 +499,7 @@ export async function updatePrompt(
 
 // API Tokens
 export interface ApiToken {
-  id: number;
+  id: string;
   name: string;
   created_at: string | null;
   expires_at: string | null;
@@ -509,7 +509,7 @@ export interface ApiToken {
 
 export interface CreateTokenResponse {
   token: string;
-  id: number;
+  id: string;
   name: string;
   expires_at: string | null;
 }
@@ -533,14 +533,14 @@ export async function createApiToken(
   return response.json();
 }
 
-export async function revokeApiToken(id: number): Promise<void> {
+export async function revokeApiToken(id: string): Promise<void> {
   const response = await authFetch(`${API_BASE_URL}/tokens/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error(await parseErrorDetail(response, "Failed to revoke token"));
 }
 
 export async function toggleVersionActive(
-  configId: number,
-  versionId: number,
+  configId: string,
+  versionId: string,
   isActive: boolean
 ): Promise<ExtractorConfigVersion> {
   const response = await authFetch(

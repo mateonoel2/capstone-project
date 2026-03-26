@@ -1,3 +1,5 @@
+import uuid
+
 from src.domain.entities import MetricsData
 from src.infrastructure.repository import ExtractionRepository
 
@@ -7,7 +9,7 @@ class MetricsService:
         self.repository = repository
 
     def get_metrics(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> MetricsData:
         any_corrected, field_corrections, total = self.repository.count_corrections(
             extractor_config_id, user_id=user_id

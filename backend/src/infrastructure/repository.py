@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
@@ -28,7 +29,9 @@ class ExtractionRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _base_query(self, extractor_config_id: int | None = None, user_id: int | None = None):
+    def _base_query(
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
+    ):
         q = self.session.query(ExtractionLog)
         if user_id is not None:
             q = q.filter(ExtractionLog.user_id == user_id)
@@ -40,8 +43,8 @@ class ExtractionRepository:
         self,
         page: int,
         page_size: int,
-        extractor_config_id: int | None = None,
-        user_id: int | None = None,
+        extractor_config_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> tuple[list[ExtractionLog], int]:
         q = self._base_query(extractor_config_id, user_id=user_id)
         total = q.count()
@@ -49,7 +52,7 @@ class ExtractionRepository:
         logs = q.order_by(ExtractionLog.timestamp.desc()).offset(offset).limit(page_size).all()
         return logs, total
 
-    def get_by_id(self, log_id: int) -> ExtractionLog | None:
+    def get_by_id(self, log_id: uuid.UUID) -> ExtractionLog | None:
         return self.session.query(ExtractionLog).filter(ExtractionLog.id == log_id).first()
 
     def create(self, log_entry: ExtractionLog) -> ExtractionLog:
@@ -59,7 +62,7 @@ class ExtractionRepository:
         return log_entry
 
     def count_total(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> int:
         q = self.session.query(func.count(ExtractionLog.id))
         if user_id is not None:
@@ -69,7 +72,7 @@ class ExtractionRepository:
         return q.scalar() or 0
 
     def count_corrections(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> tuple[int, dict[str, int], int]:
         """Returns (any_corrected_count, {field: correction_count}, total)."""
         q = self._base_query(extractor_config_id, user_id=user_id)
@@ -90,7 +93,7 @@ class ExtractionRepository:
         return any_corrected, field_corrections, total
 
     def count_this_week(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> int:
         week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ExtractionLog.id)).filter(
@@ -102,7 +105,7 @@ class ExtractionRepository:
             q = q.filter(ExtractionLog.extractor_config_id == extractor_config_id)
         return q.scalar() or 0
 
-    def count_today(self, user_id: int) -> int:
+    def count_today(self, user_id: uuid.UUID) -> int:
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         return (
             self.session.query(func.count(ExtractionLog.id))
@@ -146,7 +149,7 @@ class ExtractorConfigRepository:
         )
 
     def get_all(
-        self, status: str | None = None, user_id: int | None = None
+        self, status: str | None = None, user_id: uuid.UUID | None = None
     ) -> list[ExtractorConfigData]:
         q = self.session.query(ExtractorConfig)
         if user_id is not None:
@@ -156,7 +159,7 @@ class ExtractorConfigRepository:
         configs = q.order_by(ExtractorConfig.id).all()
         return [self._to_entity(c) for c in configs]
 
-    def count_by_user(self, user_id: int) -> int:
+    def count_by_user(self, user_id: uuid.UUID) -> int:
         return (
             self.session.query(func.count(ExtractorConfig.id))
             .filter(
@@ -167,10 +170,10 @@ class ExtractorConfigRepository:
             or 0
         )
 
-    def _get_orm_by_id(self, config_id: int) -> ExtractorConfig | None:
+    def _get_orm_by_id(self, config_id: uuid.UUID) -> ExtractorConfig | None:
         return self.session.query(ExtractorConfig).filter(ExtractorConfig.id == config_id).first()
 
-    def get_by_id(self, config_id: int) -> ExtractorConfigData | None:
+    def get_by_id(self, config_id: uuid.UUID) -> ExtractorConfigData | None:
         config = self._get_orm_by_id(config_id)
         return self._to_entity(config) if config else None
 
@@ -180,7 +183,9 @@ class ExtractorConfigRepository:
         )
         return self._to_entity(config) if config else None
 
-    def create(self, data: ExtractorConfigData, user_id: int | None = None) -> ExtractorConfigData:
+    def create(
+        self, data: ExtractorConfigData, user_id: uuid.UUID | None = None
+    ) -> ExtractorConfigData:
         config = ExtractorConfig(
             name=data.name,
             description=data.description,
@@ -196,7 +201,7 @@ class ExtractorConfigRepository:
         self.session.refresh(config)
         return self._to_entity(config)
 
-    def update(self, config_id: int, data: ExtractorConfigData) -> ExtractorConfigData | None:
+    def update(self, config_id: uuid.UUID, data: ExtractorConfigData) -> ExtractorConfigData | None:
         config = self._get_orm_by_id(config_id)
         if not config:
             return None
@@ -231,7 +236,7 @@ class ExtractorConfigRepository:
 
         return self._to_entity(config)
 
-    def delete(self, config_id: int) -> bool:
+    def delete(self, config_id: uuid.UUID) -> bool:
         config = self._get_orm_by_id(config_id)
         if not config:
             return False
@@ -240,7 +245,7 @@ class ExtractorConfigRepository:
         self.session.commit()
         return True
 
-    def get_versions(self, config_id: int) -> list[ExtractorConfigVersionData]:
+    def get_versions(self, config_id: uuid.UUID) -> list[ExtractorConfigVersionData]:
         versions = (
             self.session.query(ExtractorConfigVersion)
             .filter(ExtractorConfigVersion.extractor_config_id == config_id)
@@ -249,11 +254,11 @@ class ExtractorConfigRepository:
         )
         return [self._version_to_entity(v) for v in versions]
 
-    def get_active_versions(self, config_id: int) -> list[ExtractorConfigVersionData]:
+    def get_active_versions(self, config_id: uuid.UUID) -> list[ExtractorConfigVersionData]:
         versions = self._get_active_versions_orm(config_id)
         return [self._version_to_entity(v) for v in versions]
 
-    def _get_active_versions_orm(self, config_id: int) -> list[ExtractorConfigVersion]:
+    def _get_active_versions_orm(self, config_id: uuid.UUID) -> list[ExtractorConfigVersion]:
         return (
             self.session.query(ExtractorConfigVersion)
             .filter(
@@ -264,7 +269,7 @@ class ExtractorConfigRepository:
         )
 
     def set_version_active(
-        self, version_id: int, active: bool
+        self, version_id: uuid.UUID, active: bool
     ) -> ExtractorConfigVersionData | None:
         version = (
             self.session.query(ExtractorConfigVersion)
@@ -278,7 +283,7 @@ class ExtractorConfigRepository:
         self.session.refresh(version)
         return self._version_to_entity(version)
 
-    def _deactivate_incompatible_versions(self, config_id: int, schema: dict) -> None:
+    def _deactivate_incompatible_versions(self, config_id: uuid.UUID, schema: dict) -> None:
         current_keys = sorted(schema.get("properties", {}).keys())
         active_versions = self._get_active_versions_orm(config_id)
         for version in active_versions:
@@ -296,9 +301,9 @@ class ApiCallRepository:
         self,
         call_result: ApiCallResult,
         filename: str | None = None,
-        extractor_config_id: int | None = None,
-        extractor_config_version_id: int | None = None,
-        user_id: int | None = None,
+        extractor_config_id: uuid.UUID | None = None,
+        extractor_config_version_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> ApiCallLog:
         log = ApiCallLog(
             model=call_result.model,
@@ -316,7 +321,7 @@ class ApiCallRepository:
         self.session.refresh(log)
         return log
 
-    def _filtered(self, q, extractor_config_id: int | None, user_id: int | None):
+    def _filtered(self, q, extractor_config_id: uuid.UUID | None, user_id: uuid.UUID | None):
         if user_id is not None:
             q = q.filter(ApiCallLog.user_id == user_id)
         if extractor_config_id is not None:
@@ -324,19 +329,19 @@ class ApiCallRepository:
         return q
 
     def count_total(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> int:
         q = self.session.query(func.count(ApiCallLog.id))
         return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
     def count_failures(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> int:
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.success.is_(False))
         return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
     def count_by_error_type(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> list[tuple[str, int]]:
         q = self.session.query(ApiCallLog.error_type, func.count(ApiCallLog.id)).filter(
             ApiCallLog.error_type.isnot(None)
@@ -344,20 +349,20 @@ class ApiCallRepository:
         return self._filtered(q, extractor_config_id, user_id).group_by(ApiCallLog.error_type).all()
 
     def avg_response_time_ms(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> float:
         q = self.session.query(func.avg(ApiCallLog.response_time_ms))
         result = self._filtered(q, extractor_config_id, user_id).scalar()
         return round(result, 1) if result else 0.0
 
     def count_this_week(
-        self, extractor_config_id: int | None = None, user_id: int | None = None
+        self, extractor_config_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None
     ) -> int:
         week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         q = self.session.query(func.count(ApiCallLog.id)).filter(ApiCallLog.timestamp >= week_ago)
         return self._filtered(q, extractor_config_id, user_id).scalar() or 0
 
-    def count_today(self, user_id: int) -> int:
+    def count_today(self, user_id: uuid.UUID) -> int:
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         return (
             self.session.query(func.count(ApiCallLog.id))
@@ -382,8 +387,8 @@ class TestExtractionLogRepository:
         success: bool,
         response_time_ms: float,
         error_message: str | None = None,
-        extractor_config_id: int | None = None,
-        user_id: int | None = None,
+        extractor_config_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> TestExtractionLog:
         log = TestExtractionLog(
             filename=filename,
@@ -403,7 +408,7 @@ class TestExtractionLogRepository:
         self.session.refresh(log)
         return log
 
-    def get_by_config_id(self, config_id: int) -> list[TestExtractionLog]:
+    def get_by_config_id(self, config_id: uuid.UUID) -> list[TestExtractionLog]:
         return (
             self.session.query(TestExtractionLog)
             .filter(TestExtractionLog.extractor_config_id == config_id)
@@ -429,7 +434,7 @@ class ApiTokenRepository:
         )
 
     def create(
-        self, user_id: int, name: str, token_hash: str, expires_at: datetime | None = None
+        self, user_id: uuid.UUID, name: str, token_hash: str, expires_at: datetime | None = None
     ) -> ApiTokenData:
         token = ApiToken(
             user_id=user_id,
@@ -446,7 +451,7 @@ class ApiTokenRepository:
         token = self.session.query(ApiToken).filter(ApiToken.token_hash == token_hash).first()
         return self._to_entity(token) if token else None
 
-    def get_by_user(self, user_id: int) -> list[ApiTokenData]:
+    def get_by_user(self, user_id: uuid.UUID) -> list[ApiTokenData]:
         tokens = (
             self.session.query(ApiToken)
             .filter(ApiToken.user_id == user_id)
@@ -455,7 +460,7 @@ class ApiTokenRepository:
         )
         return [self._to_entity(t) for t in tokens]
 
-    def revoke(self, token_id: int, user_id: int) -> bool:
+    def revoke(self, token_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         token = (
             self.session.query(ApiToken)
             .filter(ApiToken.id == token_id, ApiToken.user_id == user_id)
@@ -498,7 +503,7 @@ class UserRepository:
         user = self.session.query(User).filter(User.github_username == username).first()
         return self._to_entity(user) if user else None
 
-    def get_by_id(self, user_id: int) -> UserData | None:
+    def get_by_id(self, user_id: uuid.UUID) -> UserData | None:
         user = self.session.query(User).filter(User.id == user_id).first()
         return self._to_entity(user) if user else None
 
@@ -513,7 +518,7 @@ class UserRepository:
         self.session.refresh(user)
         return self._to_entity(user)
 
-    def update(self, user_id: int, **fields: object) -> UserData | None:
+    def update(self, user_id: uuid.UUID, **fields: object) -> UserData | None:
         user = self.session.query(User).filter(User.id == user_id).first()
         if not user:
             return None
@@ -525,7 +530,7 @@ class UserRepository:
         return self._to_entity(user)
 
     def update_login_info(
-        self, user_id: int, github_id: int, email: str | None, avatar_url: str | None
+        self, user_id: uuid.UUID, github_id: int, email: str | None, avatar_url: str | None
     ) -> UserData | None:
         user = self.session.query(User).filter(User.id == user_id).first()
         if not user:
@@ -538,7 +543,7 @@ class UserRepository:
         self.session.refresh(user)
         return self._to_entity(user)
 
-    def delete(self, user_id: int) -> bool:
+    def delete(self, user_id: uuid.UUID) -> bool:
         user = self.session.query(User).filter(User.id == user_id).first()
         if not user:
             return False
@@ -551,14 +556,14 @@ class AiUsageLogRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def create(self, user_id: int, action: str) -> AiUsageLog:
+    def create(self, user_id: uuid.UUID, action: str) -> AiUsageLog:
         log = AiUsageLog(user_id=user_id, action=action)
         self.session.add(log)
         self.session.commit()
         self.session.refresh(log)
         return log
 
-    def count_today(self, user_id: int) -> int:
+    def count_today(self, user_id: uuid.UUID) -> int:
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         return (
             self.session.query(func.count(AiUsageLog.id))
@@ -577,7 +582,7 @@ class AuditLogRepository:
         action: str,
         resource_type: str,
         resource_id: str | None = None,
-        user_id: int | None = None,
+        user_id: uuid.UUID | None = None,
         details: str | None = None,
         ip_address: str | None = None,
     ) -> AuditLog:
@@ -593,7 +598,7 @@ class AuditLogRepository:
         self.session.commit()
         return log
 
-    def get_by_user(self, user_id: int, limit: int = 100) -> list[AuditLog]:
+    def get_by_user(self, user_id: uuid.UUID, limit: int = 100) -> list[AuditLog]:
         return (
             self.session.query(AuditLog)
             .filter(AuditLog.user_id == user_id)
@@ -610,7 +615,9 @@ class DataConsentRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def grant(self, user_id: int, consent_type: str, policy_version: str = "1.0") -> DataConsent:
+    def grant(
+        self, user_id: uuid.UUID, consent_type: str, policy_version: str = "1.0"
+    ) -> DataConsent:
         existing = (
             self.session.query(DataConsent)
             .filter(
@@ -634,7 +641,7 @@ class DataConsentRepository:
         self.session.refresh(consent)
         return consent
 
-    def revoke(self, user_id: int, consent_type: str) -> bool:
+    def revoke(self, user_id: uuid.UUID, consent_type: str) -> bool:
         consent = (
             self.session.query(DataConsent)
             .filter(
@@ -651,7 +658,7 @@ class DataConsentRepository:
         self.session.commit()
         return True
 
-    def get_active_consents(self, user_id: int) -> list[DataConsent]:
+    def get_active_consents(self, user_id: uuid.UUID) -> list[DataConsent]:
         return (
             self.session.query(DataConsent)
             .filter(
@@ -662,7 +669,7 @@ class DataConsentRepository:
             .all()
         )
 
-    def has_consent(self, user_id: int, consent_type: str) -> bool:
+    def has_consent(self, user_id: uuid.UUID, consent_type: str) -> bool:
         return (
             self.session.query(DataConsent)
             .filter(
@@ -681,14 +688,14 @@ class DataRetentionRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def delete_user_extraction_data(self, user_id: int) -> int:
+    def delete_user_extraction_data(self, user_id: uuid.UUID) -> int:
         """Delete all extraction logs for a user. Returns count of deleted records."""
         count = self.session.query(ExtractionLog).filter(ExtractionLog.user_id == user_id).count()
         self.session.query(ExtractionLog).filter(ExtractionLog.user_id == user_id).delete()
         self.session.commit()
         return count
 
-    def delete_user_test_data(self, user_id: int) -> int:
+    def delete_user_test_data(self, user_id: uuid.UUID) -> int:
         count = (
             self.session.query(TestExtractionLog)
             .filter(TestExtractionLog.user_id == user_id)

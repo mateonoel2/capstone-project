@@ -1,6 +1,7 @@
 import hashlib
 import os
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -22,7 +23,7 @@ TOKEN_PREFIX = "exto_"
 
 def create_access_token(user: UserData) -> str:
     payload = {
-        "user_id": user.id,
+        "user_id": str(user.id),
         "role": user.role,
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
         "iat": datetime.now(timezone.utc),
@@ -62,8 +63,13 @@ def _authenticate_jwt(token: str, db: Session) -> UserData:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
-    user_id = payload.get("user_id")
-    if not user_id:
+    raw_user_id = payload.get("user_id")
+    if not raw_user_id:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    try:
+        user_id = uuid.UUID(raw_user_id)
+    except (ValueError, AttributeError):
         raise HTTPException(status_code=401, detail="Token inválido")
 
     repo = UserRepository(db)
