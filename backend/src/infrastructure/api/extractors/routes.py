@@ -96,9 +96,8 @@ def _check_ownership(config: ExtractorConfigData, user: UserData) -> None:
 
 @router.get("", response_model=ExtractorConfigListResponse)
 async def list_extractor_configs(db: DbDep, user: UserDep, status: str | None = None):
-    user_filter = None if user.role == "admin" else user.id
     service = _get_service(db)
-    configs = service.get_all(status=status, user_id=user_filter)
+    configs = service.get_all(status=status, user_id=user.id)
     return ExtractorConfigListResponse(
         configs=[ExtractorConfigResponse.model_validate(c) for c in configs]
     )
