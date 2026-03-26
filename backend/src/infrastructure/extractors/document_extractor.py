@@ -4,8 +4,6 @@ import os
 import re
 from pathlib import Path
 
-import anthropic
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from PIL import Image
 
@@ -59,6 +57,7 @@ ORIENTATION_CHECK_PROMPT = (
 )
 
 ORIENTATION_SCHEMA = {
+    "title": "orientation_check",
     "type": "object",
     "properties": {
         "text_direction": {
@@ -94,7 +93,65 @@ DIRECTION_TO_ROTATION = {
 }
 
 
-class StatementExtractor:
+PROVIDERS = {
+    "anthropic": {
+        "prefixes": ("claude-",),
+        "env_key": "ANTHROPIC_API_KEY",
+        "native_pdf": True,
+        "llm_factory": lambda model, api_key, max_tokens: _import_anthropic()(
+            model=model, api_key=api_key, max_tokens=max_tokens, temperature=0
+        ),
+    },
+    "openai": {
+        "prefixes": ("gpt-", "o1", "o3", "o4"),
+        "env_key": "OPENAI_KEY",
+        "native_pdf": False,
+        "llm_factory": lambda model, api_key, max_tokens: _import_openai()(
+            model=model, api_key=api_key, max_tokens=max_tokens, temperature=0
+        ),
+    },
+    "google": {
+        "prefixes": ("gemini-",),
+        "env_key": "GOOGLE_API_KEY",
+        "native_pdf": False,
+        "llm_factory": lambda model, api_key, max_tokens: _import_google()(
+            model=model, api_key=api_key, max_tokens=max_tokens, temperature=0
+        ),
+    },
+}
+
+
+def _import_anthropic():
+    from langchain_anthropic import ChatAnthropic
+
+    return ChatAnthropic
+
+
+def _import_openai():
+    from langchain_openai import ChatOpenAI
+
+    return ChatOpenAI
+
+
+def _import_google():
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI
+
+
+def _resolve_provider(model: str) -> dict:
+    for provider in PROVIDERS.values():
+        if model.startswith(provider["prefixes"]):
+            return provider
+    return PROVIDERS["anthropic"]
+
+
+def _create_llm(model: str, api_key: str, max_tokens: int):
+    provider = _resolve_provider(model)
+    return provider["llm_factory"](model, api_key, max_tokens)
+
+
+class DocumentExtractor:
     def __init__(
         self,
         prompt: str = EXTRACTION_PROMPT,
@@ -103,17 +160,16 @@ class StatementExtractor:
         api_key: str | None = None,
         max_tokens: int = 1024,
     ):
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        self.provider = _resolve_provider(model)
+        if api_key:
+            self.api_key = api_key
+        else:
+            self.api_key = os.environ.get(self.provider["env_key"], "")
         self.model_name = model
         self.max_tokens = max_tokens
         self.prompt = prompt
         self.output_schema = output_schema
-        self.llm = ChatAnthropic(
-            model=model,
-            api_key=self.api_key,
-            max_tokens=max_tokens,
-            temperature=0,
-        )
+        self.llm = _create_llm(model, self.api_key, max_tokens)
         if output_schema:
             if isinstance(output_schema, dict) and "title" not in output_schema:
                 output_schema = {"title": "extraction_output", **output_schema}
@@ -122,6 +178,28 @@ class StatementExtractor:
             from src.domain.schemas import ExtractionOutput
 
             self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
+
+    def _image_content(self, *, b64: str | None = None, url: str | None = None) -> dict:
+        """Build the image content block in the correct format for the current provider."""
+        if url and url.startswith("https://"):
+            if self.provider["native_pdf"]:
+                return {
+                    "type": "image",
+                    "source": {"type": "url", "url": url},
+                }
+            return {"type": "image_url", "image_url": {"url": url}}
+
+        if b64 is None:
+            raise ValueError("Se requiere b64 o url")
+
+        if self.provider["native_pdf"]:
+            # Anthropic format
+            return {
+                "type": "image",
+                "source": {"type": "base64", "media_type": "image/jpeg", "data": b64},
+            }
+        # OpenAI / others format
+        return {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
 
     def _image_to_base64(self, image: Image.Image) -> str:
         max_dimension = 2048
@@ -137,38 +215,17 @@ class StatementExtractor:
     def _check_orientation(self, image_b64: str) -> int:
         """Ask the model to detect text orientation. Returns CW degrees to correct."""
         try:
-            client = anthropic.Anthropic(api_key=self.api_key)
-            response = client.messages.create(
-                model=self.model_name,
-                max_tokens=256,
-                temperature=0,
-                tools=[
-                    {
-                        "name": "orientation_check",
-                        "description": "Report the orientation of the document text",
-                        "input_schema": ORIENTATION_SCHEMA,
-                    }
-                ],
-                tool_choice={"type": "tool", "name": "orientation_check"},
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": image_b64,
-                                },
-                            },
-                            {"type": "text", "text": ORIENTATION_CHECK_PROMPT},
-                        ],
-                    }
-                ],
-            )
-            tool_block = next(b for b in response.content if b.type == "tool_use")
-            direction = tool_block.input.get("text_direction", "normal")
+            orientation_llm = _create_llm(self.model_name, self.api_key, 256)
+            structured = orientation_llm.with_structured_output(ORIENTATION_SCHEMA)
+            content = [
+                self._image_content(b64=image_b64),
+                {"type": "text", "text": ORIENTATION_CHECK_PROMPT},
+            ]
+            message = HumanMessage(content=content)
+            result = structured.invoke([message])
+            if hasattr(result, "model_dump"):
+                result = result.model_dump()
+            direction = result.get("text_direction", "normal")
             rotation = DIRECTION_TO_ROTATION.get(direction, 0)
             logger.info("Orientation check: %s → rotation %d°", direction, rotation)
             return rotation
@@ -196,14 +253,10 @@ class StatementExtractor:
     def _pdf_to_image(self, pdf_path: Path) -> Image.Image | None:
         """Convert first page of PDF to PIL Image for orientation check."""
         try:
-            import fitz  # PyMuPDF
+            from pdf2image import convert_from_path
 
-            doc = fitz.open(pdf_path)
-            page = doc[0]
-            pix = page.get_pixmap(dpi=200)
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            doc.close()
-            return img
+            images = convert_from_path(str(pdf_path), first_page=1, last_page=1, dpi=200)
+            return images[0] if images else None
         except Exception as e:
             logger.warning("PDF to image conversion failed: %s", e)
             return None
@@ -223,6 +276,15 @@ class StatementExtractor:
                 img_b64 = self._image_to_base64(img)
                 return self._extract_with_vision([img_b64])
 
+        # Non-Anthropic models don't support native PDF — use vision
+        if not self.provider["native_pdf"]:
+            if img is None:
+                img = self._pdf_to_image(pdf_path)
+            if img is None:
+                raise ValueError("No se pudo convertir el PDF a imagen")
+            img_b64 = self._image_to_base64(img)
+            return self._extract_with_vision([img_b64])
+
         pdf_data = pdf_path.read_bytes()
         pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
         content = [
@@ -241,18 +303,19 @@ class StatementExtractor:
         logger.info("Extraction result: %s", result)
         return result
 
-    def _extract_with_vision(self, base64_images: list[str]) -> dict:
+    def _extract_with_vision(
+        self, base64_images: list[str] | None = None, *, image_url: str | None = None
+    ) -> dict:
         logger.info("=== Vision extraction ===")
         logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
-        content = [
-            {
-                "type": "image",
-                "source_type": "base64",
-                "data": base64_images[0],
-                "mime_type": "image/jpeg",
-            },
-            {"type": "text", "text": self.prompt},
-        ]
+        if image_url:
+            logger.info("Using direct URL (no base64 encoding)")
+            img_block = self._image_content(url=image_url)
+        elif base64_images:
+            img_block = self._image_content(b64=base64_images[0])
+        else:
+            raise ValueError("Se requiere base64_images o image_url")
+        content = [img_block, {"type": "text", "text": self.prompt}]
         message = HumanMessage(content=content)
         result = self.structured_llm.invoke([message])
         if hasattr(result, "model_dump"):
@@ -260,65 +323,77 @@ class StatementExtractor:
         logger.info("Extraction result: %s", result)
         return result
 
-    def _needs_clabe_retry(self, result: dict) -> bool:
-        """Check if the CLABE needs a retry (not 18 digits and not default)."""
-        clabe = str(result.get("account_number", "000000000000000000"))
-        digits = re.sub(r"[^\d]", "", clabe)
-        if digits == "0" * 18:
-            return False
-        return len(digits) != 18
-
-    def extract_file(self, file_path: Path) -> dict:
+    def extract_file(self, file_path: Path, *, image_url: str | None = None) -> dict:
         suffix = file_path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Tipo de archivo no soportado: {suffix}")
 
         if suffix in PDF_EXTENSIONS:
-            result = self._extract_with_pdf(file_path)
+            return self._extract_with_pdf(file_path)
+        elif image_url and image_url.startswith("https://"):
+            return self._extract_with_vision(image_url=image_url)
         else:
             base64_images = self._load_image_file(file_path)
             if not base64_images:
                 raise ValueError("No se pudo procesar el archivo")
-            result = self._extract_with_vision(base64_images)
+            return self._extract_with_vision(base64_images)
 
-        # Retry with reinforced prompt if CLABE is not 18 digits
-        if self._needs_clabe_retry(result):
-            bad_clabe = result.get("account_number", "")
-            logger.info("CLABE '%s' is not 18 digits, retrying...", bad_clabe)
-            original_prompt = self.prompt
-            self.prompt = self.prompt + "\n\n" + CLABE_RETRY_PROMPT
-            try:
-                if suffix in PDF_EXTENSIONS:
-                    retry_result = self._extract_with_pdf(file_path)
-                else:
-                    retry_result = self._extract_with_vision(base64_images)
-                retry_clabe = str(retry_result.get("account_number", ""))
-                retry_digits = re.sub(r"[^\d]", "", retry_clabe)
-                if len(retry_digits) == 18 and retry_digits != "0" * 18:
-                    logger.info("Retry fixed CLABE: %s", retry_digits)
-                    return retry_result
-                logger.info("Retry did not improve CLABE, keeping original")
-            except Exception as e:
-                logger.warning("Retry failed: %s", e)
-            finally:
-                self.prompt = original_prompt
 
-            # If prompt retry didn't help and it's a PDF, try with 90° rotation
-            if suffix in PDF_EXTENSIONS and self._needs_clabe_retry(result):
-                logger.info("Attempting rotation retry for PDF...")
-                img = self._pdf_to_image(file_path)
-                if img is not None:
-                    rotated = img.rotate(-90, expand=True)
-                    img_b64 = self._image_to_base64(rotated)
-                    try:
-                        rot_result = self._extract_with_vision([img_b64])
-                        rot_clabe = str(rot_result.get("account_number", ""))
-                        rot_digits = re.sub(r"[^\d]", "", rot_clabe)
-                        if len(rot_digits) == 18 and rot_digits != "0" * 18:
-                            logger.info("Rotation retry fixed CLABE: %s", rot_digits)
-                            return rot_result
-                        logger.info("Rotation retry did not improve CLABE")
-                    except Exception as e:
-                        logger.warning("Rotation retry failed: %s", e)
+def _needs_clabe_retry(result: dict) -> bool:
+    """Check if the CLABE needs a retry (not 18 digits and not default)."""
+    clabe = str(result.get("account_number", "000000000000000000"))
+    digits = re.sub(r"[^\d]", "", clabe)
+    if digits == "0" * 18:
+        return False
+    return len(digits) != 18
 
+
+def retry_bank_statement_clabe(
+    extractor: DocumentExtractor, file_path: Path, result: dict
+) -> dict:
+    """Retry extraction if CLABE is not 18 digits. Bank-statement-specific."""
+    if not _needs_clabe_retry(result):
         return result
+
+    suffix = file_path.suffix.lower()
+    bad_clabe = result.get("account_number", "")
+    logger.info("CLABE '%s' is not 18 digits, retrying...", bad_clabe)
+
+    # Stage 1: retry with reinforced prompt
+    original_prompt = extractor.prompt
+    extractor.prompt = extractor.prompt + "\n\n" + CLABE_RETRY_PROMPT
+    try:
+        if suffix in PDF_EXTENSIONS:
+            retry_result = extractor._extract_with_pdf(file_path)
+        else:
+            retry_result = extractor._extract_with_vision()
+        retry_clabe = str(retry_result.get("account_number", ""))
+        retry_digits = re.sub(r"[^\d]", "", retry_clabe)
+        if len(retry_digits) == 18 and retry_digits != "0" * 18:
+            logger.info("Retry fixed CLABE: %s", retry_digits)
+            return retry_result
+        logger.info("Retry did not improve CLABE, keeping original")
+    except Exception as e:
+        logger.warning("Retry failed: %s", e)
+    finally:
+        extractor.prompt = original_prompt
+
+    # Stage 2: try with 90° rotation (PDF only)
+    if suffix in PDF_EXTENSIONS and _needs_clabe_retry(result):
+        logger.info("Attempting rotation retry for PDF...")
+        img = extractor._pdf_to_image(file_path)
+        if img is not None:
+            rotated = img.rotate(-90, expand=True)
+            img_b64 = extractor._image_to_base64(rotated)
+            try:
+                rot_result = extractor._extract_with_vision([img_b64])
+                rot_clabe = str(rot_result.get("account_number", ""))
+                rot_digits = re.sub(r"[^\d]", "", rot_clabe)
+                if len(rot_digits) == 18 and rot_digits != "0" * 18:
+                    logger.info("Rotation retry fixed CLABE: %s", rot_digits)
+                    return rot_result
+                logger.info("Rotation retry did not improve CLABE")
+            except Exception as e:
+                logger.warning("Rotation retry failed: %s", e)
+
+    return result

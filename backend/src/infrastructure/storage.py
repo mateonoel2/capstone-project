@@ -32,6 +32,10 @@ class StorageBackend(ABC):
     @abstractmethod
     def download(self, key: str) -> bytes: ...
 
+    def generate_download_url(self, key: str) -> str | None:
+        """Return a presigned GET URL, or None if not supported."""
+        return None
+
     def configure_cors(self, allowed_origins: list[str]) -> None:
         """Configure CORS on the storage bucket. No-op by default."""
 
@@ -81,6 +85,13 @@ class S3Storage(StorageBackend):
     def download(self, key: str) -> bytes:
         response = self._client.get_object(Bucket=self._bucket, Key=key)
         return response["Body"].read()
+
+    def generate_download_url(self, key: str) -> str | None:
+        return self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": key},
+            ExpiresIn=PRESIGNED_URL_EXPIRY,
+        )
 
     def configure_cors(self, allowed_origins: list[str]) -> None:
         cors_config = {

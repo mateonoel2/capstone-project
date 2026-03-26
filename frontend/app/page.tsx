@@ -199,9 +199,9 @@ export default function Home() {
           <Select
             value={selectedExtractorId?.toString() ?? ""}
             onValueChange={(v) => {
+              if (file && !window.confirm(t("extraction.confirmChangeExtractor"))) return;
+              resetStore();
               setSelectedExtractorId(v);
-              setExtracted(null);
-              setFormData({});
               setError(null);
               setSuccess(false);
             }}

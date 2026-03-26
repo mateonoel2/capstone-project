@@ -40,11 +40,11 @@ def main():
 
     experiment = ExperimentRunner(experiment_name="bank_extraction", output_dir=output_dir)
 
-    print("\nRunning StatementExtractor extraction...")
-    from src.infrastructure.extractors.statement_extractor import StatementExtractor
+    print("\nRunning DocumentExtractor extraction...")
+    from src.infrastructure.extractors.document_extractor import DocumentExtractor
 
-    statement_extractor = StatementExtractor()
-    experiment.run_experiment(statement_extractor, pdf_files, "statement_extractor")
+    extractor = DocumentExtractor()
+    experiment.run_experiment(extractor, pdf_files, "document_extractor")
 
     print("\n✓ Extraction complete!")
 

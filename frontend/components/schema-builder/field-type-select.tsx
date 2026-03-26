@@ -6,15 +6,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FIELD_TYPE_OPTIONS, SchemaField } from "./types";
-import { Type, Hash, ToggleLeft, List, Calendar } from "lucide-react";
+import { Type, Hash, ToggleLeft, List, Calendar, Table } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<string, typeof Type> = {
   string: Type,
   number: Hash,
   boolean: ToggleLeft,
   enum: List,
   date: Calendar,
+  array: Table,
 };
 
 interface FieldTypeSelectProps {

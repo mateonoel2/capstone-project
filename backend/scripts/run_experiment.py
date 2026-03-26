@@ -67,10 +67,10 @@ def digit_difference(pred: str, actual: str) -> int | None:
 # Extraction runner
 # ---------------------------------------------------------------------------
 def run_extraction(pdf_files: list[Path]) -> pd.DataFrame:
-    """Run StatementExtractor on a list of PDFs and return results DataFrame."""
-    from src.infrastructure.extractors.statement_extractor import StatementExtractor
+    """Run DocumentExtractor on a list of PDFs and return results DataFrame."""
+    from src.infrastructure.extractors.document_extractor import DocumentExtractor
 
-    extractor = StatementExtractor()
+    extractor = DocumentExtractor()
 
     results = []
     total = len(pdf_files)
