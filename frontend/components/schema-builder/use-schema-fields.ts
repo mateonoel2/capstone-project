@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { SchemaField, VALIDATION_FIELD } from "./types";
+import { SchemaField, ArraySubField, VALIDATION_FIELD } from "./types";
 
 let nextId = 1;
 function genId() {
@@ -26,10 +26,27 @@ export function toJsonSchema(fields: SchemaField[]): JsonSchema {
       properties[f.name] = { type: "string", enum: f.enumValues || [] };
     } else if (f.type === "date") {
       properties[f.name] = { type: "string", format: "date" };
+    } else if (f.type === "array") {
+      const itemProps: Record<string, { type: string; description?: string }> = {};
+      const itemRequired: string[] = [];
+      for (const sub of f.arrayFields || []) {
+        itemProps[sub.name] = { type: sub.type };
+        if (sub.description) itemProps[sub.name].description = sub.description;
+        itemRequired.push(sub.name);
+      }
+      properties[f.name] = {
+        type: "array",
+        description: f.description,
+        items: {
+          type: "object",
+          properties: itemProps,
+          required: itemRequired,
+        },
+      };
     } else {
       properties[f.name] = { type: f.type };
     }
-    if (f.description) {
+    if (f.description && f.type !== "array") {
       properties[f.name].description = f.description;
     }
     required.push(f.name);
@@ -68,6 +85,28 @@ export function fromJsonSchema(
           name: key,
           type: "date",
           description: (prop.description as string) || "",
+        });
+      } else if (fieldType === "array") {
+        const items = prop.items as
+          | { type?: string; properties?: Record<string, { type?: string; description?: string }>; }
+          | undefined;
+        const subFields: ArraySubField[] = [];
+        if (items?.type === "object" && items.properties) {
+          for (const [subKey, subProp] of Object.entries(items.properties)) {
+            const subType = subProp.type as "string" | "number" | "boolean" | undefined;
+            subFields.push({
+              name: subKey,
+              type: subType === "number" || subType === "boolean" ? subType : "string",
+              description: subProp.description || "",
+            });
+          }
+        }
+        fields.push({
+          id: genId(),
+          name: key,
+          type: "array",
+          description: (prop.description as string) || "",
+          arrayFields: subFields,
         });
       } else if (
         fieldType === "string" ||

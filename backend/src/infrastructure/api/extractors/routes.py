@@ -37,9 +37,9 @@ from src.infrastructure.api.extraction.dtos import (
 )
 from src.infrastructure.auth import UserDep
 from src.infrastructure.database import get_db
-from src.infrastructure.extractors.statement_extractor import (
+from src.infrastructure.extractors.document_extractor import (
     SUPPORTED_EXTENSIONS,
-    StatementExtractor,
+    DocumentExtractor,
 )
 from src.infrastructure.repository import (
     AiUsageLogRepository,
@@ -188,14 +188,15 @@ async def test_extract(request: TestExtractRequest, db: DbDep, user: UserDep):
     try:
         storage = get_storage()
         file_bytes = storage.download(request.s3_key)
+        download_url = storage.generate_download_url(request.s3_key)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_bytes)
             tmp_path = Path(tmp.name)
 
-        extractor = StatementExtractor(prompt=prompt, model=model, output_schema=output_schema)
+        extractor = DocumentExtractor(prompt=prompt, model=model, output_schema=output_schema)
         start = time.monotonic()
-        result = extractor.extract_file(tmp_path)
+        result = extractor.extract_file(tmp_path, image_url=download_url)
         elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
         log = test_log_repo.create(

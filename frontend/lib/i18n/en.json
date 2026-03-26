@@ -59,7 +59,8 @@
     "noFieldsConfigured": "This extractor has no configured fields.",
     "apiNote": "To integrate extraction into your systems, see the",
     "apiDocsLink": "API documentation",
-    "apiNoteSuffix": ". API extractions are tracked in your dashboard."
+    "apiNoteSuffix": ". API extractions are tracked in your dashboard.",
+    "confirmChangeExtractor": "Changing the extractor will reset the current document and results. Continue?"
   },
   "extractors": {
     "loading": "Loading extractors...",
@@ -159,7 +160,9 @@
   },
   "dynamicFields": {
     "aiExtracted": "AI extracted: {value}",
-    "empty": "(empty)"
+    "empty": "(empty)",
+    "noItems": "No items",
+    "addItem": "Add item"
   },
   "wizard": {
     "stepIdentity": "Identity",
@@ -289,7 +292,9 @@
     "willBeUsedAs": "will be used as: {slug}",
     "type": "Type",
     "aiInstruction": "AI instruction",
-    "aiInstructionPlaceholder": "Describe what the AI should extract..."
+    "aiInstructionPlaceholder": "Describe what the AI should extract...",
+    "arrayColumns": "List columns",
+    "addColumn": "Add column"
   },
   "validationField": {
     "title": "Document validation",
@@ -307,7 +312,8 @@
     "number": "Number",
     "boolean": "Yes/No",
     "enum": "Options",
-    "date": "Date"
+    "date": "Date",
+    "array": "List"
   },
   "tokens": {
     "title": "API Tokens",

@@ -1,9 +1,16 @@
+export interface ArraySubField {
+  name: string;
+  type: "string" | "number" | "boolean";
+  description: string;
+}
+
 export interface SchemaField {
   id: string;
   name: string;
-  type: "string" | "number" | "boolean" | "enum" | "date";
+  type: "string" | "number" | "boolean" | "enum" | "date" | "array";
   description: string;
   enumValues?: string[];
+  arrayFields?: ArraySubField[];
 }
 
 export const FIELD_TYPE_OPTIONS = [
@@ -12,6 +19,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "boolean" as const, label: "Sí/No" },
   { value: "enum" as const, label: "Opciones" },
   { value: "date" as const, label: "Fecha" },
+  { value: "array" as const, label: "Lista" },
 ];
 
 export const VALIDATION_FIELD: SchemaField = {

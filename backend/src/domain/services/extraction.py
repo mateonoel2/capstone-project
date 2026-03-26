@@ -6,9 +6,10 @@ from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_BANK, UNKNOWN_OWNER
 from src.domain.entities import ApiCallResult, ExtractionError, ExtractorConfigData
 from src.domain.schemas import BankAccount
 from src.domain.validators import validate_clabe
-from src.infrastructure.extractors.statement_extractor import (
+from src.infrastructure.extractors.document_extractor import (
     SUPPORTED_EXTENSIONS,
-    StatementExtractor,
+    DocumentExtractor,
+    retry_bank_statement_clabe,
 )
 
 ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
@@ -55,8 +56,8 @@ def apply_bank_statement_postprocessing(raw: dict) -> dict:
     }
 
 
-def _create_extractor(config: ExtractorConfigData) -> StatementExtractor:
-    return StatementExtractor(
+def _create_extractor(config: ExtractorConfigData) -> DocumentExtractor:
+    return DocumentExtractor(
         prompt=config.prompt,
         model=config.model,
         output_schema=config.output_schema,
@@ -69,6 +70,7 @@ class ExtractionService:
         file_bytes: bytes,
         filename: str,
         config: ExtractorConfigData | None = None,
+        image_url: str | None = None,
     ) -> tuple[dict, ApiCallResult, ExtractorConfigData | None]:
         if not filename:
             raise ValueError("No se proporcionó un archivo")
@@ -89,11 +91,11 @@ class ExtractionService:
             if config:
                 extractor = _create_extractor(config)
             else:
-                extractor = StatementExtractor()
+                extractor = DocumentExtractor()
 
             start = time.monotonic()
             try:
-                raw_result = extractor.extract_file(tmp_file_path)
+                raw_result = extractor.extract_file(tmp_file_path, image_url=image_url)
             except ValueError as e:
                 elapsed_ms = round((time.monotonic() - start) * 1000, 1)
                 call_result = ApiCallResult(
@@ -117,9 +119,10 @@ class ExtractionService:
 
             elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
-            # Apply bank statement postprocessing for default extractor
+            # Apply bank-statement-specific logic for default extractor
             is_default = config is None or config.is_default
             if is_default:
+                raw_result = retry_bank_statement_clabe(extractor, tmp_file_path, raw_result)
                 try:
                     raw_result = apply_bank_statement_postprocessing(raw_result)
                 except ValueError as e:

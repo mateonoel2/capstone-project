@@ -59,7 +59,8 @@
     "noFieldsConfigured": "Este extractor no tiene campos configurados.",
     "apiNote": "Para integrar la extracción en tus sistemas, consulta la",
     "apiDocsLink": "documentación de la API",
-    "apiNoteSuffix": ". Las extracciones vía API se registran en tu dashboard."
+    "apiNoteSuffix": ". Las extracciones vía API se registran en tu dashboard.",
+    "confirmChangeExtractor": "Cambiar de extractor reiniciará el documento y los resultados actuales. ¿Deseas continuar?"
   },
   "extractors": {
     "loading": "Cargando extractores...",
@@ -159,7 +160,9 @@
   },
   "dynamicFields": {
     "aiExtracted": "IA extrajo: {value}",
-    "empty": "(vacío)"
+    "empty": "(vacío)",
+    "noItems": "Sin elementos",
+    "addItem": "Agregar elemento"
   },
   "wizard": {
     "stepIdentity": "Identidad",
@@ -289,7 +292,9 @@
     "willBeUsedAs": "se usará como: {slug}",
     "type": "Tipo",
     "aiInstruction": "Instrucción para la IA",
-    "aiInstructionPlaceholder": "Describe qué debe extraer la IA..."
+    "aiInstructionPlaceholder": "Describe qué debe extraer la IA...",
+    "arrayColumns": "Columnas del listado",
+    "addColumn": "Agregar columna"
   },
   "validationField": {
     "title": "Validación del documento",
@@ -307,7 +312,8 @@
     "number": "Número",
     "boolean": "Sí/No",
     "enum": "Opciones",
-    "date": "Fecha"
+    "date": "Fecha",
+    "array": "Lista"
   },
   "tokens": {
     "title": "Tokens API",

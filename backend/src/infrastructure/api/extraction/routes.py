@@ -138,9 +138,12 @@ async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
     try:
         storage = get_storage()
         file_bytes = storage.download(request.s3_key)
+        download_url = storage.generate_download_url(request.s3_key)
 
         service = ExtractionService()
-        result, call_result, _ = service.extract(file_bytes, request.filename, config=config_data)
+        result, call_result, _ = service.extract(
+            file_bytes, request.filename, config=config_data, image_url=download_url
+        )
 
         api_repo.create(
             call_result,

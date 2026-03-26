@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Trash2, Plus, X } from "lucide-react";
 import { FieldTypeSelect } from "./field-type-select";
-import { SchemaField } from "./types";
+import { SchemaField, ArraySubField } from "./types";
 import { useT } from "@/lib/i18n";
 
 interface FieldCardProps {
@@ -94,6 +94,91 @@ function EnumOptionsEditor({
   );
 }
 
+const SUB_TYPE_OPTIONS = [
+  { value: "string", label: "Texto" },
+  { value: "number", label: "Número" },
+  { value: "boolean", label: "Sí/No" },
+];
+
+function ArrayFieldsEditor({
+  fields,
+  onChange,
+}: {
+  fields: ArraySubField[];
+  onChange: (fields: ArraySubField[]) => void;
+}) {
+  const t = useT();
+
+  const addSubField = () => {
+    onChange([...fields, { name: "", type: "string", description: "" }]);
+  };
+
+  const updateSubField = (idx: number, updates: Partial<ArraySubField>) => {
+    onChange(fields.map((f, i) => (i === idx ? { ...f, ...updates } : f)));
+  };
+
+  const removeSubField = (idx: number) => {
+    onChange(fields.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">
+        {t("fieldCard.arrayColumns")}
+      </Label>
+      <div className="space-y-2 pl-2 border-l-2 border-gray-200">
+        {fields.map((sub, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              value={sub.name}
+              onChange={(e) => updateSubField(i, { name: e.target.value })}
+              className="text-sm h-8 flex-1"
+              placeholder={t("fieldCard.namePlaceholder")}
+            />
+            <select
+              value={sub.type}
+              onChange={(e) =>
+                updateSubField(i, { type: e.target.value as ArraySubField["type"] })
+              }
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {SUB_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(`fieldTypes.${opt.value}`)}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={sub.description}
+              onChange={(e) => updateSubField(i, { description: e.target.value })}
+              className="text-sm h-8 flex-1"
+              placeholder={t("fieldCard.aiInstructionPlaceholder")}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-500 hover:text-red-600 flex-shrink-0"
+              onClick={() => removeSubField(i)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addSubField}
+      >
+        <Plus className="h-3.5 w-3.5 mr-1" />
+        {t("fieldCard.addColumn")}
+      </Button>
+    </div>
+  );
+}
+
 export function FieldCard({
   field,
   index,
@@ -170,8 +255,10 @@ export function FieldCard({
                   onChange={(type) =>
                     onUpdate(
                       type === "enum"
-                        ? { type, enumValues: field.enumValues || [] }
-                        : { type, enumValues: undefined }
+                        ? { type, enumValues: field.enumValues || [], arrayFields: undefined }
+                        : type === "array"
+                          ? { type, arrayFields: field.arrayFields || [], enumValues: undefined }
+                          : { type, enumValues: undefined, arrayFields: undefined }
                     )
                   }
                 />
@@ -195,6 +282,13 @@ export function FieldCard({
             <EnumOptionsEditor
               values={field.enumValues || []}
               onChange={(enumValues) => onUpdate({ enumValues })}
+            />
+          )}
+
+          {field.type === "array" && (
+            <ArrayFieldsEditor
+              fields={field.arrayFields || []}
+              onChange={(arrayFields) => onUpdate({ arrayFields })}
             />
           )}
         </div>
