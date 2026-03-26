@@ -83,9 +83,7 @@ def upgrade() -> None:
     # =========================================================================
 
     for table in ALL_TABLES:
-        op.execute(
-            sa.text(f"UPDATE {table} SET new_id = gen_random_uuid() WHERE new_id IS NULL")
-        )
+        op.execute(sa.text(f"UPDATE {table} SET new_id = gen_random_uuid() WHERE new_id IS NULL"))
 
     # =========================================================================
     # Step 3: Backfill FK UUID columns via JOINs (dependency order)

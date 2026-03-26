@@ -44,9 +44,7 @@ class ExtractorConfigService:
             self._clear_default()
         return self.repository.create(data, user_id=user_id)
 
-    def update(
-        self, config_id: uuid.UUID, data: ExtractorConfigData
-    ) -> ExtractorConfigData | None:
+    def update(self, config_id: uuid.UUID, data: ExtractorConfigData) -> ExtractorConfigData | None:
         if data.status == "draft":
             data.is_default = False
         if data.is_default:
