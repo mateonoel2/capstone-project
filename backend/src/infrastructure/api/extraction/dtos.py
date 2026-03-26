@@ -44,6 +44,7 @@ class ExtractionLogResponse(BaseModel):
     final_fields: dict[str, Any] = {}
     corrected_fields: dict[str, bool] = {}
     extractor_config_version_id: int | None = None
+    extractor_config_name: str | None = None
 
     @field_validator("timestamp", mode="before")
     @classmethod

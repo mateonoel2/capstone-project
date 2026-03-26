@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from src.domain.entities import ApiCallResult, MetricsData
+from src.infrastructure.models import ExtractionLog
 
 
 class TestGetBanks:
@@ -97,7 +98,7 @@ class TestSubmitExtraction:
 
 class TestGetLogs:
     def test_returns_paginated_response(self, client):
-        mock_log = MagicMock()
+        mock_log = MagicMock(spec=ExtractionLog)
         mock_log.id = 1
         mock_log.filename = "test.pdf"
         mock_log.extracted_fields = {}
@@ -105,13 +106,15 @@ class TestGetLogs:
         mock_log.corrected_fields = {}
         mock_log.timestamp = "2026-01-01T00:00:00"
         mock_log.extractor_config_version_id = None
+        mock_log.extractor_config_id = None
         with (
             patch("src.infrastructure.api.extraction.routes._get_repository"),
             patch("src.infrastructure.api.extraction.routes.SubmissionService") as MockService,
+            patch("src.infrastructure.api.extraction.routes.ExtractorConfigRepository"),
         ):
             MockService.return_value.get_extraction_logs.return_value = ([mock_log], 1, 1)
             resp = client.get("/extraction/logs")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.json()
         data = resp.json()
         assert "logs" in data
         assert "pagination" in data

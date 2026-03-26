@@ -85,6 +85,7 @@ export interface ExtractionLog {
   extracted_fields: Record<string, string>;
   final_fields: Record<string, string>;
   corrected_fields: Record<string, boolean>;
+  extractor_config_name: string | null;
 }
 
 export interface Metrics {

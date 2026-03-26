@@ -24,7 +24,11 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 def _create_default_extractor(db: Session, user_id: int) -> None:
     """Crea el extractor default de boletas para un usuario nuevo."""
-    service = ExtractorConfigService(ExtractorConfigRepository(db))
+    repo = ExtractorConfigRepository(db)
+    existing = repo.get_all(user_id=user_id)
+    if any(c.name == DEFAULT_RECEIPT_EXTRACTOR.name for c in existing):
+        return
+    service = ExtractorConfigService(repo)
     service.create(replace(DEFAULT_RECEIPT_EXTRACTOR), user_id=user_id)
 
 
