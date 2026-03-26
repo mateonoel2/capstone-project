@@ -44,6 +44,7 @@ GROUPS = [
     ("tokens", "Tokens"),
     ("extractors", "Extractores"),
     ("extraction", "Extraccion"),
+    ("privacy", "Privacidad"),
 ]
 
 ENDPOINTS: list[Endpoint] = [
@@ -721,6 +722,153 @@ curl {API_BASE}/extraction/banks \\
   -H "Authorization: Bearer {TOKEN_PLACEHOLDER}" """,
             ),
         ],
+    ),
+    # ── Privacy ──────────────────────────────────────────────────────────
+    Endpoint(
+        method="GET",
+        path="/privacy/consents",
+        slug="list-consents",
+        title="Ver consentimientos",
+        group="privacy",
+        description="Devuelve los consentimientos activos del usuario autenticado.",
+        response_body="""\
+[
+  {
+    "id": 1,
+    "consent_type": "data_processing",
+    "granted": true,
+    "granted_at": "2026-01-15 10:30:00",
+    "revoked_at": null,
+    "policy_version": "1.0"
+  }
+]""",
+        examples=[
+            CodeExample(
+                "curl",
+                "cURL",
+                f"""\
+curl {API_BASE}/privacy/consents \\
+  -H "Authorization: Bearer {TOKEN_PLACEHOLDER}" """,
+            ),
+        ],
+    ),
+    Endpoint(
+        method="POST",
+        path="/privacy/consents",
+        slug="grant-consent",
+        title="Otorgar consentimiento",
+        group="privacy",
+        description=(
+            "Registra el consentimiento del usuario para un tipo de procesamiento de datos. "
+            "Cumple con los requisitos de consentimiento informado de la LFPDPPP."
+        ),
+        params=[
+            Param(
+                "consent_type",
+                "body",
+                "string",
+                True,
+                'Tipo de consentimiento (ej: "data_processing")',
+            ),
+            Param(
+                "policy_version",
+                "body",
+                "string",
+                False,
+                'Version de la politica aceptada (default: "1.0")',
+            ),
+        ],
+        request_body="""\
+{
+  "consent_type": "data_processing",
+  "policy_version": "1.0"
+}""",
+        response_body="""\
+{
+  "id": 1,
+  "consent_type": "data_processing",
+  "granted": true,
+  "granted_at": "2026-03-26 14:00:00",
+  "revoked_at": null,
+  "policy_version": "1.0"
+}""",
+        examples=[
+            CodeExample(
+                "curl",
+                "cURL",
+                f"""\
+curl -X POST {API_BASE}/privacy/consents \\
+  -H "Authorization: Bearer {TOKEN_PLACEHOLDER}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"consent_type": "data_processing", "policy_version": "1.0"}}'""",
+            ),
+        ],
+    ),
+    Endpoint(
+        method="DELETE",
+        path="/privacy/consents/{consent_type}",
+        slug="revoke-consent",
+        title="Revocar consentimiento",
+        group="privacy",
+        description=("Revoca un consentimiento activo. Cumple con el derecho de oposicion (ARCO)."),
+        params=[
+            Param("consent_type", "path", "string", True, "Tipo de consentimiento a revocar"),
+        ],
+        response_body='{ "detail": "Consentimiento revocado exitosamente" }',
+        examples=[
+            CodeExample(
+                "curl",
+                "cURL",
+                f"""\
+curl -X DELETE {API_BASE}/privacy/consents/data_processing \\
+  -H "Authorization: Bearer {TOKEN_PLACEHOLDER}" """,
+            ),
+        ],
+    ),
+    Endpoint(
+        method="DELETE",
+        path="/privacy/my-data",
+        slug="delete-my-data",
+        title="Eliminar mis datos",
+        group="privacy",
+        description=(
+            "Elimina todos los datos personales de extraccion del usuario (registros de "
+            "extraccion y pruebas). Cumple con el derecho de cancelacion (ARCO). "
+            "Esta accion es irreversible."
+        ),
+        response_body="""\
+{
+  "extraction_logs_deleted": 42,
+  "test_logs_deleted": 5
+}""",
+        examples=[
+            CodeExample(
+                "curl",
+                "cURL",
+                f"""\
+curl -X DELETE {API_BASE}/privacy/my-data \\
+  -H "Authorization: Bearer {TOKEN_PLACEHOLDER}" """,
+            ),
+            CodeExample(
+                "python",
+                "Python",
+                f"""\
+import requests
+
+resp = requests.delete(
+    "{API_BASE}/privacy/my-data",
+    headers={{"Authorization": "Bearer {TOKEN_PLACEHOLDER}"}},
+)
+data = resp.json()
+print(f"Eliminados: {{data['extraction_logs_deleted']}} extracciones, "
+      f"{{data['test_logs_deleted']}} pruebas")""",
+            ),
+        ],
+        notes=(
+            "Solo elimina registros de extraccion y pruebas. La cuenta de usuario, "
+            "extractores y tokens no se eliminan. Para eliminar la cuenta completa, "
+            "contacta al administrador."
+        ),
     ),
 ]
 
