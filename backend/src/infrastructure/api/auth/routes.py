@@ -1,9 +1,12 @@
+from dataclasses import replace
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.domain.constants import DEFAULT_RECEIPT_EXTRACTOR
+from src.domain.services.extractor_config import ExtractorConfigService
 from src.domain.services.quota import QuotaService
 from src.infrastructure.auth import UserDep, create_access_token, validate_github_token
 from src.infrastructure.database import get_db
@@ -17,6 +20,12 @@ from src.infrastructure.repository import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 DbDep = Annotated[Session, Depends(get_db)]
+
+
+def _create_default_extractor(db: Session, user_id: int) -> None:
+    """Crea el extractor default de boletas para un usuario nuevo."""
+    service = ExtractorConfigService(ExtractorConfigRepository(db))
+    service.create(replace(DEFAULT_RECEIPT_EXTRACTOR), user_id=user_id)
 
 
 class LoginRequest(BaseModel):
@@ -55,6 +64,7 @@ async def login(request: LoginRequest, db: DbDep):
         if not user:
             # Auto-register as guest
             user = repo.create(github_username=github_username, role="guest")
+            _create_default_extractor(db, user.id)
         # First login — fill in github_id and profile info
         repo.update_login_info(user.id, github_id, email, avatar_url)
         user = repo.get_by_id(user.id)
