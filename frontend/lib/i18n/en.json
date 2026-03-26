@@ -54,6 +54,9 @@
     "uploading": "Uploading file...",
     "extractionFailed": "Extraction failed",
     "submissionFailed": "Submission failed",
+    "fieldsToExtract": "Fields to extract",
+    "requiredField": "required",
+    "noFieldsConfigured": "This extractor has no configured fields.",
     "apiNote": "To integrate extraction into your systems, see the",
     "apiDocsLink": "API documentation",
     "apiNoteSuffix": ". API extractions are tracked in your dashboard."

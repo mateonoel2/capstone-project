@@ -218,6 +218,38 @@ export default function Home() {
               ))}
             </SelectContent>
           </Select>
+
+          {selectedConfig && (() => {
+            const schema = selectedConfig.output_schema as { properties?: Record<string, { type?: string; description?: string }>; required?: string[] };
+            const properties = schema?.properties || {};
+            const required = new Set(schema?.required || []);
+            const fieldNames = Object.keys(properties).filter((k) => k !== "is_valid_document");
+            if (fieldNames.length === 0) return null;
+            return (
+              <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
+                {selectedConfig.description && (
+                  <p className="text-sm text-gray-600 mb-2">{selectedConfig.description}</p>
+                )}
+                <p className="text-xs font-medium text-gray-500 mb-2">{t("extraction.fieldsToExtract")}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {fieldNames.map((field) => (
+                    <span
+                      key={field}
+                      className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700"
+                      title={properties[field]?.description || ""}
+                    >
+                      {field.replace(/_/g, " ")}
+                      {required.has(field) && (
+                        <span className="text-[10px] text-blue-600 font-medium">
+                          ({t("extraction.requiredField")})
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {!file ? (
