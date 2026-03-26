@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Politica de Privacidad</h2>
+
+<p>
+  Extracto procesa documentos que pueden contener informacion personal y financiera.
+  Este documento describe como se recopilan, almacenan, protegen y eliminan los datos
+  de los usuarios, en cumplimiento con la legislacion mexicana aplicable.
+</p>
+
+<h3>Marco legal</h3>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Regulacion</th>
+        <th>Descripcion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>LFPDPPP</strong></td>
+        <td>Ley Federal de Proteccion de Datos Personales en Posesion de los Particulares. Establece principios para el tratamiento de datos personales, incluyendo derechos ARCO (Acceso, Rectificacion, Cancelacion y Oposicion)</td>
+      </tr>
+      <tr>
+        <td><strong>INAI</strong></td>
+        <td>Lineamientos del Aviso de Privacidad. Define como informar a los usuarios sobre el uso de sus datos</td>
+      </tr>
+      <tr>
+        <td><strong>CNBV</strong></td>
+        <td>Estandares de seguridad de la Comision Nacional Bancaria y de Valores para informacion financiera sensible</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Datos que se recopilan</h3>
+
+<p>Al usar Extracto, se procesan los siguientes tipos de datos:</p>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Dato</th>
+        <th>Sensibilidad</th>
+        <th>Medidas de proteccion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Documentos subidos</strong> (PDF, imagenes)</td>
+        <td>Alta</td>
+        <td>Almacenamiento cifrado en S3, URLs pre-firmadas con expiracion</td>
+      </tr>
+      <tr>
+        <td><strong>Campos extraidos</strong> (CLABE, nombres, etc.)</td>
+        <td>Alta</td>
+        <td>Cifrado en reposo con Fernet (AES-CBC + HMAC-SHA256)</td>
+      </tr>
+      <tr>
+        <td><strong>Campos corregidos por el usuario</strong></td>
+        <td>Alta</td>
+        <td>Cifrado en reposo con Fernet (AES-CBC + HMAC-SHA256)</td>
+      </tr>
+      <tr>
+        <td><strong>Cuenta de GitHub</strong> (nombre, email)</td>
+        <td>Media</td>
+        <td>Obtenido via OAuth, no se almacena la contrasena</td>
+      </tr>
+      <tr>
+        <td><strong>Registros de uso</strong> (timestamps, acciones)</td>
+        <td>Baja</td>
+        <td>Registros de auditoria con acceso restringido</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Cifrado de datos</h3>
+
+<p>Extracto implementa cifrado en dos niveles:</p>
+
+<ul style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+  <li>
+    <strong style="color: var(--text);">En transito:</strong>
+    HTTPS/TLS con cabeceras de seguridad (HSTS, X-Content-Type-Options, X-Frame-Options, CSP)
+  </li>
+  <li>
+    <strong style="color: var(--text);">En reposo:</strong>
+    Cifrado a nivel de campo con Fernet (AES-CBC + HMAC-SHA256) para los campos sensibles
+    de los registros de extraccion (<code>extracted_fields</code> y <code>final_fields</code>)
+  </li>
+</ul>
+
+<h3>Control de acceso</h3>
+
+<ul style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+  <li>
+    <strong style="color: var(--text);">RBAC</strong> con tres roles: <code>user</code>, <code>admin</code>, <code>guest</code>
+  </li>
+  <li>
+    <strong style="color: var(--text);">Autenticacion:</strong> GitHub OAuth + JWT para sesiones web, tokens API (<code>exto_</code>) para acceso programatico
+  </li>
+  <li>
+    <strong style="color: var(--text);">Aislamiento:</strong> cada usuario solo accede a sus propios datos (extractores, extracciones, tokens)
+  </li>
+  <li>
+    <strong style="color: var(--text);">URLs pre-firmadas:</strong> acceso temporal a documentos en S3 con expiracion automatica
+  </li>
+</ul>
+
+<h3>Procesamiento con modelos de IA</h3>
+
+<p>
+  Los documentos se envian a la API de Claude (Anthropic) para extraer los campos
+  definidos por el extractor. Anthropic no usa los datos enviados via API para
+  entrenar sus modelos. Los documentos se procesan en tiempo real y no se almacenan
+  en los servidores de Anthropic despues del procesamiento.
+</p>
+
+<p>
+  Para evaluaciones internas y analisis, el sistema incluye un modulo de anonimizacion
+  que transforma la informacion personal antes de su uso:
+</p>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Campo</th>
+        <th>Tecnica</th>
+        <th>Ejemplo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>CLABE / cuenta</td>
+        <td>Tokenizacion (hash SHA-256)</td>
+        <td><code>012345678901234567</code> &rarr; <code>839172650483927156</code></td>
+      </tr>
+      <tr>
+        <td>Titular / nombre</td>
+        <td>Pseudonimizacion</td>
+        <td><code>Juan Perez</code> &rarr; <code>TITULAR_A3F8C2D1</code></td>
+      </tr>
+      <tr>
+        <td>RFC</td>
+        <td>Enmascaramiento parcial</td>
+        <td><code>ABCD123456XYZ</code> &rarr; <code>ABCD******XYZ</code></td>
+      </tr>
+      <tr>
+        <td>CURP</td>
+        <td>Enmascaramiento parcial</td>
+        <td><code>ABCD123456HDFRRL01</code> &rarr; <code>ABCD************01</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Derechos ARCO</h3>
+
+<p>
+  Los usuarios pueden ejercer sus derechos de Acceso, Rectificacion, Cancelacion
+  y Oposicion sobre sus datos personales a traves de la API:
+</p>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table class="params-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>Derecho</th>
+        <th>Endpoint</th>
+        <th>Descripcion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Acceso</strong></td>
+        <td><code><a href="/api/docs/list-consents">GET /privacy/consents</a></code></td>
+        <td>Ver consentimientos otorgados</td>
+      </tr>
+      <tr>
+        <td><strong>Oposicion</strong></td>
+        <td><code><a href="/api/docs/revoke-consent">DELETE /privacy/consents/{tipo}</a></code></td>
+        <td>Revocar un consentimiento</td>
+      </tr>
+      <tr>
+        <td><strong>Cancelacion</strong></td>
+        <td><code><a href="/api/docs/delete-my-data">DELETE /privacy/my-data</a></code></td>
+        <td>Eliminar todos los datos de extraccion</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Retencion de datos</h3>
+
+<ul style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+  <li>
+    <strong style="color: var(--text);">Politica de retencion:</strong>
+    5 anos (cumplimiento fiscal mexicano), despues de lo cual los datos se eliminan automaticamente
+  </li>
+  <li>
+    <strong style="color: var(--text);">Eliminacion anticipada:</strong>
+    el usuario puede solicitar la eliminacion de sus datos en cualquier momento
+    via <a href="/api/docs/delete-my-data">DELETE /privacy/my-data</a>
+  </li>
+  <li>
+    <strong style="color: var(--text);">Purga administrativa:</strong>
+    los administradores pueden ejecutar la purga de datos expirados
+  </li>
+</ul>
+
+<h3>Auditoria</h3>
+
+<p>
+  Todas las acciones sensibles se registran automaticamente en un log de auditoria
+  que incluye: usuario, accion, recurso afectado, direccion IP y timestamp.
+  Las acciones auditadas incluyen: otorgamiento/revocacion de consentimientos,
+  eliminacion de datos y purgas administrativas.
+</p>
+
+{% endblock %}

@@ -363,6 +363,7 @@
   </div>
 
   <a href="/api/docs" {% if active_slug == "index" %}class="active"{% endif %}>Inicio</a>
+  <a href="/api/docs/privacy-policy" {% if active_slug == "privacy-policy" %}class="active"{% endif %}>Politica de privacidad</a>
   <a href="/api/openapi.json" target="_blank">OpenAPI JSON</a>
 
   {% for group_id, group_label, endpoints in groups %}

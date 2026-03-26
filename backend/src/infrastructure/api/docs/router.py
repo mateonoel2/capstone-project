@@ -46,6 +46,16 @@ async def docs_index(request: Request):
     return _render("index.html", request, title="Inicio", **_common_context("index"))
 
 
+@router.get("/privacy-policy", response_class=HTMLResponse)
+async def docs_privacy_policy(request: Request):
+    return _render(
+        "privacy-policy.html",
+        request,
+        title="Politica de privacidad",
+        **_common_context("privacy-policy"),
+    )
+
+
 @router.get("/{slug}", response_class=HTMLResponse)
 async def docs_endpoint(slug: str, request: Request):
     ep = _ENDPOINT_MAP.get(slug)

@@ -220,6 +220,10 @@ CLIENT_ENDPOINT_WHITELIST = {
     ("GET", "/tokens"),
     ("POST", "/tokens"),
     ("DELETE", "/tokens/{token_id}"),
+    ("GET", "/privacy/consents"),
+    ("POST", "/privacy/consents"),
+    ("DELETE", "/privacy/consents/{consent_type}"),
+    ("DELETE", "/privacy/my-data"),
 }
 
 
