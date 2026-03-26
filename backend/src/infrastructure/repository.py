@@ -159,7 +159,10 @@ class ExtractorConfigRepository:
     def count_by_user(self, user_id: int) -> int:
         return (
             self.session.query(func.count(ExtractorConfig.id))
-            .filter(ExtractorConfig.user_id == user_id)
+            .filter(
+                ExtractorConfig.user_id == user_id,
+                ExtractorConfig.status != "deleted",
+            )
             .scalar()
             or 0
         )
@@ -230,30 +233,10 @@ class ExtractorConfigRepository:
 
     def delete(self, config_id: int) -> bool:
         config = self._get_orm_by_id(config_id)
-        if not config or config.is_default:
+        if not config:
             return False
-        # Nullify FK references in logs before deleting
-        self.session.query(ExtractionLog).filter(
-            ExtractionLog.extractor_config_id == config_id
-        ).update(
-            {
-                ExtractionLog.extractor_config_id: None,
-                ExtractionLog.extractor_config_version_id: None,
-            }
-        )
-        self.session.query(ApiCallLog).filter(ApiCallLog.extractor_config_id == config_id).update(
-            {
-                ApiCallLog.extractor_config_id: None,
-                ApiCallLog.extractor_config_version_id: None,
-            }
-        )
-        self.session.query(TestExtractionLog).filter(
-            TestExtractionLog.extractor_config_id == config_id
-        ).update({TestExtractionLog.extractor_config_id: None})
-        self.session.query(ExtractorConfigVersion).filter(
-            ExtractorConfigVersion.extractor_config_id == config_id
-        ).delete()
-        self.session.delete(config)
+        config.status = "deleted"
+        config.is_default = False
         self.session.commit()
         return True
 

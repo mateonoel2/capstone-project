@@ -11,9 +11,10 @@ interface ExtractionTableProps {
   logs: ExtractionLog[];
   pagination: PaginationMeta;
   onPageChange: (page: number) => void;
+  showExtractor?: boolean;
 }
 
-export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTableProps) {
+export function ExtractionTable({ logs, pagination, onPageChange, showExtractor = false }: ExtractionTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const t = useT();
 
@@ -24,17 +25,14 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
   }, [logs, searchTerm]);
 
   const fieldKeys = useMemo(() => {
+    if (showExtractor) return [];
     const keys = new Set<string>();
     for (const log of logs) {
-      for (const key of Object.keys(log.final_fields || {})) {
-        keys.add(key);
-      }
-      for (const key of Object.keys(log.extracted_fields || {})) {
-        keys.add(key);
-      }
+      for (const key of Object.keys(log.final_fields || {})) keys.add(key);
+      for (const key of Object.keys(log.extracted_fields || {})) keys.add(key);
     }
     return Array.from(keys);
-  }, [logs]);
+  }, [logs, showExtractor]);
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -49,6 +47,12 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
 
   const formatFieldName = (field: string) => {
     return field.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const formatValue = (value: unknown): string => {
+    if (value == null) return "";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
   };
 
   const CorrectionBadge = ({ corrected }: { corrected: boolean }) => {
@@ -99,30 +103,82 @@ export function ExtractionTable({ logs, pagination, onPageChange }: ExtractionTa
               <th className="px-4 py-3 text-left font-medium text-gray-700">
                 {t("extractionTable.date")}
               </th>
-              {fieldKeys.map((field) => (
-                <th key={field} className="px-4 py-3 text-left font-medium text-gray-700">
-                  {formatFieldName(field)}
-                </th>
-              ))}
+              {showExtractor ? (
+                <>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    {t("extractionTable.extractor")}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    {t("extractionTable.fields")}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    {t("extractionTable.status")}
+                  </th>
+                </>
+              ) : (
+                fieldKeys.map((field) => (
+                  <th key={field} className="px-4 py-3 text-left font-medium text-gray-700">
+                    {formatFieldName(field)}
+                  </th>
+                ))
+              )}
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filteredLogs.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-900">{log.filename}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {formatDate(log.timestamp)}
-                </td>
-                {fieldKeys.map((field) => (
-                  <td key={field} className="px-4 py-3">
-                    <div className="space-y-1">
-                      <div className="text-gray-900">{(log.final_fields || {})[field] ?? ""}</div>
-                      <CorrectionBadge corrected={(log.corrected_fields || {})[field] ?? false} />
-                    </div>
+            {filteredLogs.map((log) => {
+              const corrected = log.corrected_fields || {};
+              const totalFields = Object.keys(corrected).length;
+              const correctedCount = Object.values(corrected).filter(Boolean).length;
+              const allAccurate = correctedCount === 0;
+
+              return (
+                <tr key={log.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-900 font-medium max-w-xs truncate">
+                    {log.filename}
                   </td>
-                ))}
-              </tr>
-            ))}
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatDate(log.timestamp)}
+                  </td>
+                  {showExtractor ? (
+                    <>
+                      <td className="px-4 py-3 text-gray-600">
+                        {log.extractor_config_name ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {totalFields}
+                      </td>
+                      <td className="px-4 py-3">
+                        {allAccurate ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3" />
+                            {t("extractionTable.accurate")}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                            <AlertCircle className="h-3 w-3" />
+                            {t("extractionTable.correctedCount", {
+                              count: String(correctedCount),
+                              total: String(totalFields),
+                            })}
+                          </span>
+                        )}
+                      </td>
+                    </>
+                  ) : (
+                    fieldKeys.map((field) => (
+                      <td key={field} className="px-4 py-3">
+                        <div className="space-y-1">
+                          <div className="text-gray-900">
+                            {formatValue((log.final_fields || {})[field])}
+                          </div>
+                          <CorrectionBadge corrected={(corrected)[field] ?? false} />
+                        </div>
+                      </td>
+                    ))
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

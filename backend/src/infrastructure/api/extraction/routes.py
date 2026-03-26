@@ -230,7 +230,19 @@ async def get_extraction_logs(
             page, page_size, extractor_config_id, user_id=user_filter
         )
 
-        logs_data = [ExtractionLogResponse.model_validate(log) for log in logs]
+        config_repo = ExtractorConfigRepository(db)
+        config_ids = {log.extractor_config_id for log in logs if log.extractor_config_id}
+        config_names: dict[int, str] = {}
+        for cid in config_ids:
+            cfg = config_repo.get_by_id(cid)
+            if cfg:
+                config_names[cid] = cfg.name
+
+        logs_data = []
+        for log in logs:
+            entry = ExtractionLogResponse.model_validate(log)
+            entry.extractor_config_name = config_names.get(log.extractor_config_id)
+            logs_data.append(entry)
 
         return LogsResponse(
             logs=logs_data,

@@ -148,7 +148,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {metrics?.field_accuracies && Object.keys(metrics.field_accuracies).length > 0 && (
+        {selectedConfigId !== "all" && metrics?.field_accuracies && Object.keys(metrics.field_accuracies).length > 0 && (
           <div className={`grid grid-cols-1 ${{1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4"}[Math.min(Object.keys(metrics.field_accuracies).length, 4)] ?? "md:grid-cols-4"} gap-6 mb-8`}>
             {Object.entries(metrics.field_accuracies).map(([field, accuracy], idx) => {
               const colors = ["text-blue-500", "text-green-500", "text-purple-500", "text-orange-500", "text-pink-500"];
@@ -264,6 +264,7 @@ export default function Dashboard() {
               logs={logs}
               pagination={pagination}
               onPageChange={handlePageChange}
+              showExtractor={selectedConfigId === "all"}
             />
           </CardContent>
         </Card>
