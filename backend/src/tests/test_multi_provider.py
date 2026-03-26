@@ -216,9 +216,7 @@ class TestExtractFileWithImageUrl:
         ext = DocumentExtractor(model="claude-haiku-4-5-20251001", api_key="fake")
 
         with patch.object(ext, "_extract_with_pdf", return_value={"field": "value"}) as mock_pdf:
-            ext.extract_file(
-                Path("/fake/file.pdf"), image_url="https://s3.example.com/file.pdf"
-            )
+            ext.extract_file(Path("/fake/file.pdf"), image_url="https://s3.example.com/file.pdf")
 
         mock_pdf.assert_called_once()
 

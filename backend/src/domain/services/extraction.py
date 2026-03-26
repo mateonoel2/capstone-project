@@ -122,9 +122,7 @@ class ExtractionService:
             # Apply bank-statement-specific logic for default extractor
             is_default = config is None or config.is_default
             if is_default:
-                raw_result = retry_bank_statement_clabe(
-                    extractor, tmp_file_path, raw_result
-                )
+                raw_result = retry_bank_statement_clabe(extractor, tmp_file_path, raw_result)
                 try:
                     raw_result = apply_bank_statement_postprocessing(raw_result)
                 except ValueError as e:

@@ -348,9 +348,7 @@ def _needs_clabe_retry(result: dict) -> bool:
     return len(digits) != 18
 
 
-def retry_bank_statement_clabe(
-    extractor: DocumentExtractor, file_path: Path, result: dict
-) -> dict:
+def retry_bank_statement_clabe(extractor: DocumentExtractor, file_path: Path, result: dict) -> dict:
     """Retry extraction if CLABE is not 18 digits. Bank-statement-specific."""
     if not _needs_clabe_retry(result):
         return result
