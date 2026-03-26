@@ -1,6 +1,9 @@
+import uuid
 from unittest.mock import patch
 
 from src.tests.conftest import make_user
+
+USER_UUID_10 = uuid.UUID("00000000-0000-0000-0000-00000000000a")
 
 
 class TestGetMe:
@@ -8,7 +11,7 @@ class TestGetMe:
         resp = client.get("/auth/me")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["id"] == fake_user.id
+        assert data["id"] == str(fake_user.id)
         assert data["github_username"] == fake_user.github_username
         assert data["role"] == fake_user.role
 
@@ -52,7 +55,7 @@ class TestLogin:
             "email": "new@example.com",
             "avatar_url": "https://github.com/avatar.png",
         }
-        user = make_user(user_id=10, github_username="newuser")
+        user = make_user(user_id=USER_UUID_10, github_username="newuser")
         with (
             patch(
                 "src.infrastructure.api.auth.routes.validate_github_token",

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -6,9 +7,9 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 class ExtractionResponse(BaseModel):
     fields: dict[str, Any] = {}
-    extractor_config_id: int | None = None
+    extractor_config_id: uuid.UUID | None = None
     extractor_config_name: str = ""
-    extractor_config_version_id: int | None = None
+    extractor_config_version_id: uuid.UUID | None = None
     extractor_config_version_number: int | None = None
 
 
@@ -16,13 +17,13 @@ class SubmissionRequest(BaseModel):
     filename: str
     extracted_fields: dict[str, str]
     final_fields: dict[str, str]
-    extractor_config_id: int | None = None
-    extractor_config_version_id: int | None = None
+    extractor_config_id: uuid.UUID | None = None
+    extractor_config_version_id: uuid.UUID | None = None
 
 
 class SubmissionResponse(BaseModel):
     message: str
-    id: int
+    id: uuid.UUID
 
 
 class Bank(BaseModel):
@@ -37,13 +38,13 @@ class BanksResponse(BaseModel):
 class ExtractionLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     timestamp: str | None
     filename: str
     extracted_fields: dict[str, Any] = {}
     final_fields: dict[str, Any] = {}
     corrected_fields: dict[str, bool] = {}
-    extractor_config_version_id: int | None = None
+    extractor_config_version_id: uuid.UUID | None = None
     extractor_config_name: str | None = None
 
     @field_validator("timestamp", mode="before")
@@ -147,7 +148,7 @@ class ExtractorConfigUpdateRequest(BaseModel):
 class ExtractorConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     name: str
     description: str | None
     prompt: str
@@ -173,7 +174,7 @@ class ExtractorConfigListResponse(BaseModel):
 class ExtractorConfigVersionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     version_number: int
     prompt: str
     model: str
@@ -223,7 +224,7 @@ class UpdatePromptRequest(BaseModel):
 class TestExtractResponse(BaseModel):
     fields: dict[str, Any]
     response_time_ms: float
-    test_log_id: int | None = None
+    test_log_id: uuid.UUID | None = None
 
 
 class SetActiveRequest(BaseModel):
@@ -244,17 +245,17 @@ class UploadUrlResponse(BaseModel):
 class ExtractRequest(BaseModel):
     s3_key: str
     filename: str
-    extractor_config_id: int | None = None
+    extractor_config_id: uuid.UUID | None = None
 
 
 class TestExtractionLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     timestamp: str | None
     filename: str
     s3_key: str
-    extractor_config_id: int | None
+    extractor_config_id: uuid.UUID | None
     prompt_snapshot: str
     model: str
     output_schema_snapshot: dict[str, Any]
@@ -275,4 +276,4 @@ class TestExtractRequest(BaseModel):
     s3_key: str
     filename: str
     config: dict[str, Any]
-    extractor_config_id: int | None = None
+    extractor_config_id: uuid.UUID | None = None

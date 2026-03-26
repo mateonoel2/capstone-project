@@ -199,7 +199,7 @@ export default function Home() {
           <Select
             value={selectedExtractorId?.toString() ?? ""}
             onValueChange={(v) => {
-              setSelectedExtractorId(Number(v));
+              setSelectedExtractorId(v);
               setExtracted(null);
               setFormData({});
               setError(null);

@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,8 +11,10 @@ from src.domain.services.quota import (
     QuotaService,
 )
 
+USER_UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
-def _make_user(role: str = "guest", user_id: int = 1) -> UserData:
+
+def _make_user(role: str = "guest", user_id: uuid.UUID = USER_UUID) -> UserData:
     return UserData(
         id=user_id,
         github_id=None,

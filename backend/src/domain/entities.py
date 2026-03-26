@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass, field
 
 
@@ -39,7 +40,7 @@ class SubmissionData:
 
 @dataclass
 class ExtractorConfigData:
-    id: int | None
+    id: uuid.UUID | None
     name: str
     description: str
     prompt: str
@@ -47,15 +48,15 @@ class ExtractorConfigData:
     output_schema: dict
     is_default: bool
     status: str = "active"
-    user_id: int | None = None
+    user_id: uuid.UUID | None = None
     created_at: object | None = None
     updated_at: object | None = None
 
 
 @dataclass
 class ExtractorConfigVersionData:
-    id: int
-    extractor_config_id: int
+    id: uuid.UUID
+    extractor_config_id: uuid.UUID
     version_number: int
     prompt: str
     model: str
@@ -66,7 +67,7 @@ class ExtractorConfigVersionData:
 
 @dataclass
 class UserData:
-    id: int | None
+    id: uuid.UUID | None
     github_id: int | None
     github_username: str
     email: str | None
@@ -77,8 +78,8 @@ class UserData:
 
 @dataclass
 class ApiTokenData:
-    id: int
-    user_id: int
+    id: uuid.UUID
+    user_id: uuid.UUID
     name: str
     created_at: object | None = None
     expires_at: object | None = None

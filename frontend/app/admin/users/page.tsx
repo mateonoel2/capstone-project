@@ -38,15 +38,15 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleToggleActive = async (userId: number, currentActive: boolean) => {
+  const handleToggleActive = async (userId: string, currentActive: boolean) => {
     await updateUserMutation.mutateAsync({ id: userId, data: { is_active: !currentActive } });
   };
 
-  const handleChangeRole = async (userId: number, newRole: string) => {
+  const handleChangeRole = async (userId: string, newRole: string) => {
     await updateUserMutation.mutateAsync({ id: userId, data: { role: newRole } });
   };
 
-  const handleDelete = async (userId: number, username: string) => {
+  const handleDelete = async (userId: string, username: string) => {
     if (!confirm(t("admin.confirmDelete", { username }))) return;
     await deleteUserMutation.mutateAsync(userId);
   };

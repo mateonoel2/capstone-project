@@ -21,7 +21,7 @@ export default function Dashboard() {
   const t = useT();
 
   const configIdParam = useMemo(
-    () => selectedConfigId === "all" ? undefined : Number(selectedConfigId),
+    () => selectedConfigId === "all" ? undefined : selectedConfigId,
     [selectedConfigId]
   );
 

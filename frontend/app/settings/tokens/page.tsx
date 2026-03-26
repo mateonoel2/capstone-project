@@ -83,7 +83,7 @@ export default function TokensPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRevoke = async (tokenId: number, name: string) => {
+  const handleRevoke = async (tokenId: string, name: string) => {
     if (!confirm(t("tokens.confirmRevoke", { name }))) return;
     await revokeMutation.mutateAsync(tokenId);
   };

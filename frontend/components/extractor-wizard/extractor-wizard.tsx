@@ -27,7 +27,7 @@ interface WizardState {
 }
 
 interface DraftData {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   model: string;
@@ -90,7 +90,7 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
   const [error, setError] = useState<string | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [schemaVersion, setSchemaVersion] = useState(0);
-  const [draftId, setDraftId] = useState<number | null>(initialDraft?.id ?? null);
+  const [draftId, setDraftId] = useState<string | null>(initialDraft?.id ?? null);
   const draftCreating = useRef(false);
 
   const createConfig = useCreateExtractorConfig();
@@ -113,7 +113,7 @@ export function ExtractorWizard({ onSave, onCancel, onDraftActivated, initialDra
   }, []);
 
   const saveDraft = useCallback(
-    async (currentState: WizardState, existingDraftId: number | null) => {
+    async (currentState: WizardState, existingDraftId: string | null) => {
       if (existingDraftId) {
         try {
           await updateConfig.mutateAsync({

@@ -1,7 +1,11 @@
+import uuid
 from unittest.mock import MagicMock, patch
 
 from src.domain.entities import ApiCallResult, MetricsData
 from src.infrastructure.models import ExtractionLog
+from src.tests.conftest import CONFIG_UUID, LOG_UUID
+
+CONFIG_UUID_999 = uuid.UUID("00000000-0000-0000-0000-000000000999")
 
 
 class TestGetBanks:
@@ -17,7 +21,7 @@ class TestGetBanks:
 class TestExtractFromFile:
     def test_successful_extraction(self, client):
         config_data = MagicMock()
-        config_data.id = 1
+        config_data.id = CONFIG_UUID
         config_data.name = "test-config"
         config_data.output_schema = {"properties": {"field": {}}}
         config_data.is_default = False
@@ -52,7 +56,7 @@ class TestExtractFromFile:
                 json={
                     "s3_key": "test/file.pdf",
                     "filename": "file.pdf",
-                    "extractor_config_id": 1,
+                    "extractor_config_id": str(CONFIG_UUID),
                 },
             )
         assert resp.status_code == 200
@@ -74,7 +78,7 @@ class TestExtractFromFile:
                 json={
                     "s3_key": "test/file.pdf",
                     "filename": "file.pdf",
-                    "extractor_config_id": 999,
+                    "extractor_config_id": str(CONFIG_UUID_999),
                 },
             )
         assert resp.status_code == 404
@@ -83,14 +87,14 @@ class TestExtractFromFile:
 class TestSubmitExtraction:
     def test_records_submission(self, client):
         with patch("src.infrastructure.api.extraction.routes.ExtractionRepository") as MockRepo:
-            MockRepo.return_value.create.return_value = MagicMock(id=42)
+            MockRepo.return_value.create.return_value = MagicMock(id=LOG_UUID)
             resp = client.post(
                 "/extraction/submit",
                 json={
                     "filename": "test.pdf",
                     "extracted_fields": {"name": "Alice"},
                     "final_fields": {"name": "Alice"},
-                    "extractor_config_id": 1,
+                    "extractor_config_id": str(CONFIG_UUID),
                 },
             )
         assert resp.status_code == 200
@@ -99,7 +103,7 @@ class TestSubmitExtraction:
 class TestGetLogs:
     def test_returns_paginated_response(self, client):
         mock_log = MagicMock(spec=ExtractionLog)
-        mock_log.id = 1
+        mock_log.id = LOG_UUID
         mock_log.filename = "test.pdf"
         mock_log.extracted_fields = {}
         mock_log.final_fields = {}

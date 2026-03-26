@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
@@ -15,15 +16,18 @@ from src.infrastructure.auth import (
     get_current_user,
     hash_token,
 )
-from src.tests.conftest import make_user
+from src.tests.conftest import USER_UUID, make_user
+
+USER_UUID_42 = uuid.UUID("00000000-0000-0000-0000-000000000042")
+USER_UUID_5 = uuid.UUID("00000000-0000-0000-0000-000000000005")
 
 
 class TestCreateAccessToken:
     def test_valid_jwt_with_correct_claims(self):
-        user = make_user(role="user", user_id=42)
+        user = make_user(role="user", user_id=USER_UUID_42)
         token = create_access_token(user)
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        assert payload["user_id"] == 42
+        assert payload["user_id"] == str(USER_UUID_42)
         assert payload["role"] == "user"
         assert "exp" in payload
         assert "iat" in payload
@@ -56,19 +60,24 @@ class TestGenerateApiToken:
 
 
 class TestAuthenticateJwt:
-    def _make_token(self, user_id=1, role="user", expired=False):
+    def _make_token(self, user_id=USER_UUID, role="user", expired=False):
         exp = datetime.now(timezone.utc) + (timedelta(hours=-1) if expired else timedelta(hours=24))
-        payload = {"user_id": user_id, "role": role, "exp": exp, "iat": datetime.now(timezone.utc)}
+        payload = {
+            "user_id": str(user_id),
+            "role": role,
+            "exp": exp,
+            "iat": datetime.now(timezone.utc),
+        }
         return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
     def test_valid_token_returns_user(self):
-        token = self._make_token(user_id=5)
+        token = self._make_token(user_id=USER_UUID_5)
         db = MagicMock()
-        user = make_user(user_id=5)
+        user = make_user(user_id=USER_UUID_5)
         with patch("src.infrastructure.auth.UserRepository") as MockRepo:
             MockRepo.return_value.get_by_id.return_value = user
             result = _authenticate_jwt(token, db)
-        assert result.id == 5
+        assert result.id == USER_UUID_5
 
     def test_expired_token_raises_401(self):
         token = self._make_token(expired=True)
@@ -82,9 +91,9 @@ class TestAuthenticateJwt:
         assert exc_info.value.status_code == 401
 
     def test_inactive_user_raises_403(self):
-        token = self._make_token(user_id=5)
+        token = self._make_token(user_id=USER_UUID_5)
         db = MagicMock()
-        user = make_user(user_id=5, is_active=False)
+        user = make_user(user_id=USER_UUID_5, is_active=False)
         with patch("src.infrastructure.auth.UserRepository") as MockRepo:
             MockRepo.return_value.get_by_id.return_value = user
             with pytest.raises(HTTPException) as exc_info:

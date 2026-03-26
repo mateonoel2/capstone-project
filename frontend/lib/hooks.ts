@@ -35,11 +35,11 @@ import {
 export const queryKeys = {
   banks: ["banks"] as const,
   extractorConfigs: ["extractorConfigs"] as const,
-  extractorConfig: (id: number) => ["extractorConfig", id] as const,
-  extractorVersions: (id: number) => ["extractorVersions", id] as const,
-  metrics: (configId?: number | null) => ["metrics", configId] as const,
-  apiCallMetrics: (configId?: number | null) => ["apiCallMetrics", configId] as const,
-  extractionLogs: (page: number, pageSize: number, configId?: number | null) =>
+  extractorConfig: (id: string) => ["extractorConfig", id] as const,
+  extractorVersions: (id: string) => ["extractorVersions", id] as const,
+  metrics: (configId?: string | null) => ["metrics", configId] as const,
+  apiCallMetrics: (configId?: string | null) => ["apiCallMetrics", configId] as const,
+  extractionLogs: (page: number, pageSize: number, configId?: string | null) =>
     ["extractionLogs", page, pageSize, configId] as const,
   availableModels: ["availableModels"] as const,
   apiTokens: ["apiTokens"] as const,
@@ -70,7 +70,7 @@ export function useExtractorConfigs(status?: string) {
   });
 }
 
-export function useExtractorConfig(id: number, options?: { enabled?: boolean }) {
+export function useExtractorConfig(id: string, options?: { enabled?: boolean }) {
   const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractorConfig(id),
@@ -79,7 +79,7 @@ export function useExtractorConfig(id: number, options?: { enabled?: boolean }) 
   });
 }
 
-export function useExtractorVersions(configId: number) {
+export function useExtractorVersions(configId: string) {
   const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractorVersions(configId),
@@ -88,7 +88,7 @@ export function useExtractorVersions(configId: number) {
   });
 }
 
-export function useMetrics(configId?: number | null) {
+export function useMetrics(configId?: string | null) {
   const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.metrics(configId),
@@ -97,7 +97,7 @@ export function useMetrics(configId?: number | null) {
   });
 }
 
-export function useApiCallMetrics(configId?: number | null) {
+export function useApiCallMetrics(configId?: string | null) {
   const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.apiCallMetrics(configId),
@@ -106,7 +106,7 @@ export function useApiCallMetrics(configId?: number | null) {
   });
 }
 
-export function useExtractionLogs(page: number, pageSize: number, configId?: number | null) {
+export function useExtractionLogs(page: number, pageSize: number, configId?: string | null) {
   const authed = useIsAuthenticated();
   return useQuery({
     queryKey: queryKeys.extractionLogs(page, pageSize, configId),
@@ -150,7 +150,7 @@ export function useExtract() {
     }: {
       s3Key: string;
       filename: string;
-      extractorConfigId?: number | null;
+      extractorConfigId?: string | null;
     }) => {
       return extractFromFile(s3Key, filename, extractorConfigId);
     },
@@ -175,7 +175,7 @@ export function useSubmitExtraction() {
 export function useDeleteExtractorConfig() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => deleteExtractorConfig(id),
+    mutationFn: (id: string) => deleteExtractorConfig(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.extractorConfigs });
     },
@@ -208,7 +208,7 @@ export function useUpdateExtractorConfig() {
       id,
       config,
     }: {
-      id: number;
+      id: string;
       config: {
         name?: string;
         description?: string;
@@ -235,8 +235,8 @@ export function useToggleVersionActive() {
       versionId,
       isActive,
     }: {
-      configId: number;
-      versionId: number;
+      configId: string;
+      versionId: string;
       isActive: boolean;
     }) => toggleVersionActive(configId, versionId, isActive),
     onSuccess: (_, { configId }) => {
@@ -254,7 +254,7 @@ export function useTestExtract() {
     }: {
       file: File;
       config: { prompt: string; model: string; output_schema: Record<string, unknown> };
-      extractorConfigId?: number | null;
+      extractorConfigId?: string | null;
     }) => {
       const { s3_key, filename } = await uploadFile(file);
       return testExtract(s3_key, filename, config, extractorConfigId);
@@ -330,7 +330,7 @@ export function useCreateApiToken() {
 export function useRevokeApiToken() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => revokeApiToken(id),
+    mutationFn: (id: string) => revokeApiToken(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
     },
@@ -361,7 +361,7 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { role?: string; is_active?: boolean } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { role?: string; is_active?: boolean } }) =>
       updateUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
@@ -372,7 +372,7 @@ export function useUpdateUser() {
 export function useDeleteUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => deleteUser(id),
+    mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
     },

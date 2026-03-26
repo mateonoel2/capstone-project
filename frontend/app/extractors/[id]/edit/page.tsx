@@ -15,7 +15,7 @@ import { useT } from "@/lib/i18n";
 export default function EditExtractorPage() {
   const params = useParams();
   const router = useRouter();
-  const configId = Number(params.id);
+  const configId = params.id as string;
   const t = useT();
 
   const { data: config, isLoading, error: loadError, refetch } = useExtractorConfig(configId);

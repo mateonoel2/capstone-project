@@ -13,7 +13,7 @@ interface StepTestProps {
   prompt: string;
   model: string;
   schema: Record<string, unknown>;
-  extractorConfigId?: number | null;
+  extractorConfigId?: string | null;
 }
 
 export function StepTest({ prompt, model, schema, extractorConfigId }: StepTestProps) {

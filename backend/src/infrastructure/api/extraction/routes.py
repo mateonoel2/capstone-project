@@ -1,4 +1,5 @@
 import random
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -51,7 +52,7 @@ def _get_repository(db: Session) -> ExtractionRepository:
     return ExtractionRepository(db)
 
 
-def _load_config(db: Session, config_id: int | None) -> ExtractorConfigData | None:
+def _load_config(db: Session, config_id: uuid.UUID | None) -> ExtractorConfigData | None:
     if config_id is None:
         return None
     repo = ExtractorConfigRepository(db)
@@ -63,7 +64,7 @@ def _load_config(db: Session, config_id: int | None) -> ExtractorConfigData | No
 
 def _select_variant(
     config: ExtractorConfigData, active_versions: list[ExtractorConfigVersionData]
-) -> tuple[ExtractorConfigData, int | None, int | None]:
+) -> tuple[ExtractorConfigData, uuid.UUID | None, int | None]:
     """Pick a variant randomly from current config + active versions.
 
     Returns (config_to_use, version_id, version_number).
@@ -221,7 +222,7 @@ async def get_extraction_logs(
     user: UserDep,
     page: int = 1,
     page_size: int = 50,
-    extractor_config_id: int | None = None,
+    extractor_config_id: uuid.UUID | None = None,
 ):
     try:
         user_filter = None if user.role == "admin" else user.id
@@ -232,7 +233,7 @@ async def get_extraction_logs(
 
         config_repo = ExtractorConfigRepository(db)
         config_ids = {log.extractor_config_id for log in logs if log.extractor_config_id}
-        config_names: dict[int, str] = {}
+        config_names: dict[uuid.UUID, str] = {}
         for cid in config_ids:
             cfg = config_repo.get_by_id(cid)
             if cfg:
@@ -260,7 +261,7 @@ async def get_extraction_logs(
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics(db: DbDep, user: UserDep, extractor_config_id: int | None = None):
+async def get_metrics(db: DbDep, user: UserDep, extractor_config_id: uuid.UUID | None = None):
     try:
         user_filter = None if user.role == "admin" else user.id
         service = MetricsService(_get_repository(db))
@@ -272,7 +273,7 @@ async def get_metrics(db: DbDep, user: UserDep, extractor_config_id: int | None 
 
 
 @router.get("/api-metrics", response_model=ApiCallMetricsResponse)
-async def get_api_metrics(db: DbDep, user: UserDep, extractor_config_id: int | None = None):
+async def get_api_metrics(db: DbDep, user: UserDep, extractor_config_id: uuid.UUID | None = None):
     try:
         user_filter = None if user.role == "admin" else user.id
         service = ApiMetricsService(ApiCallRepository(db))

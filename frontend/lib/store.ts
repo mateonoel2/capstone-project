@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { ExtractionResult } from "./api";
 
 interface AuthUser {
-  id: number;
+  id: string;
   github_username: string;
   email: string | null;
   avatar_url: string | null;
@@ -22,7 +22,7 @@ interface ExtractionState {
   uploadResult: UploadResult | null;
   extracted: ExtractionResult | null;
   formData: Record<string, string>;
-  selectedExtractorId: number | null;
+  selectedExtractorId: string | null;
   backendToken: string | null;
   backendUser: AuthUser | null;
   setFile: (file: File | null) => void;
@@ -30,7 +30,7 @@ interface ExtractionState {
   setExtracted: (extracted: ExtractionResult | null) => void;
   setFormData: (formData: Record<string, string>) => void;
   updateFormField: (field: string, value: string) => void;
-  setSelectedExtractorId: (id: number | null) => void;
+  setSelectedExtractorId: (id: string | null) => void;
   setBackendAuth: (token: string, user: AuthUser) => void;
   clearBackendAuth: () => void;
   reset: () => void;
@@ -43,7 +43,7 @@ const initialState = {
   uploadResult: null,
   extracted: null,
   formData: {} as Record<string, string>,
-  selectedExtractorId: null as number | null,
+  selectedExtractorId: null as string | null,
   backendToken: null as string | null,
   backendUser: null as AuthUser | null,
 };
@@ -99,7 +99,7 @@ export const useExtractionStore = create<ExtractionState>()(
         })),
     }),
     {
-      name: "extraction-storage",
+      name: "extraction-storage-v2",
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         fileName: state.fileName,

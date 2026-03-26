@@ -1,3 +1,5 @@
+import uuid
+
 from src.domain.entities import SubmissionData
 from src.infrastructure.models import ExtractionLog
 from src.infrastructure.repository import ExtractionRepository
@@ -10,10 +12,10 @@ class SubmissionService:
     def submit_extraction(
         self,
         submission: SubmissionData,
-        extractor_config_id: int | None = None,
-        extractor_config_version_id: int | None = None,
-        user_id: int | None = None,
-    ) -> int:
+        extractor_config_id: uuid.UUID | None = None,
+        extractor_config_version_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+    ) -> uuid.UUID:
         log_entry = ExtractionLog(
             filename=submission.filename,
             extracted_fields=submission.extracted_fields,
@@ -24,14 +26,14 @@ class SubmissionService:
         )
 
         created_log = self.repository.create(log_entry)
-        return int(created_log.id)  # type: ignore[arg-type]
+        return created_log.id  # type: ignore[return-value]
 
     def get_extraction_logs(
         self,
         page: int,
         page_size: int,
-        extractor_config_id: int | None = None,
-        user_id: int | None = None,
+        extractor_config_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> tuple[list[ExtractionLog], int, int]:
         if page < 1:
             raise ValueError("Page must be >= 1")

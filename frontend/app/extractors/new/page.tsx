@@ -29,11 +29,11 @@ function NewExtractorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftIdParam = searchParams.get("draft");
-  const draftId = draftIdParam ? Number(draftIdParam) : null;
+  const draftId = draftIdParam ?? null;
   const createMutation = useCreateExtractorConfig();
   const t = useT();
 
-  const { data: draftConfig, isLoading: draftLoading } = useExtractorConfig(draftId ?? 0, {
+  const { data: draftConfig, isLoading: draftLoading } = useExtractorConfig(draftId ?? "", {
     enabled: draftId !== null,
   });
 
