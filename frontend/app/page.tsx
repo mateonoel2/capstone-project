@@ -71,7 +71,11 @@ export default function Home() {
   }, [extractorConfigs, selectedExtractorId, setSelectedExtractorId]);
 
   const selectedConfig = extractorConfigs.find((c) => c.id === selectedExtractorId);
-  const isDefaultExtractor = selectedConfig?.is_default ?? true;
+  const isBankStatementExtractor =
+    (selectedConfig?.is_default ?? true) &&
+    !!(selectedConfig?.output_schema as Record<string, unknown> | undefined)?.properties &&
+    "account_number" in
+      ((selectedConfig?.output_schema as Record<string, Record<string, unknown>>)?.properties ?? {});
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -286,7 +290,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>{t("extraction.extractedInfo")}</CardTitle>
                   <CardDescription>
-                    {isDefaultExtractor
+                    {isBankStatementExtractor
                       ? t("extraction.reviewDefault")
                       : `${t("extraction.extractor")}: ${selectedConfig?.name}`}
                     {extracted?.extractor_config_version_number != null && (
@@ -355,7 +359,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                      {isDefaultExtractor ? (
+                      {isBankStatementExtractor ? (
                         <>
                           <div className="space-y-2">
                             <Label htmlFor="owner">{t("extraction.owner")}</Label>
