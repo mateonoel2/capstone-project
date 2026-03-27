@@ -132,6 +132,7 @@ class DocumentExtractor:
         if isinstance(output_schema, dict) and "title" not in output_schema:
             output_schema = {"title": "extraction_output", **output_schema}
         self.structured_llm = self.llm.with_structured_output(output_schema)
+        self._ocr_cache: dict[str, str | None] = {}
 
     def _image_content(self, *, b64: str | None = None, url: str | None = None) -> dict:
         """Build the image content block in the correct format for the current provider."""
@@ -234,12 +235,18 @@ class DocumentExtractor:
             return 0
 
     def _ocr_pdf(self, pdf_path: Path) -> str | None:
-        """Run OCR on the first page of a PDF via pytesseract."""
+        """Run OCR on the first page of a PDF via pytesseract. Results are cached."""
+        cache_key = str(pdf_path)
+        if cache_key in self._ocr_cache:
+            _logger().info("OCR cache hit for %s", pdf_path.name)
+            return self._ocr_cache[cache_key]
+
         try:
             import pytesseract
 
             img = self._pdf_to_image(pdf_path)
             if img is None:
+                self._ocr_cache[cache_key] = None
                 return None
             # Resize large images to avoid tesseract memory issues
             max_dim = 2048
@@ -251,10 +258,13 @@ class DocumentExtractor:
             text = pytesseract.image_to_string(img)
             if text and text.strip():
                 _logger().info("OCR extracted %d chars from PDF", len(text))
+                self._ocr_cache[cache_key] = text.strip()
                 return text.strip()
+            self._ocr_cache[cache_key] = None
             return None
         except Exception as e:
             _logger().warning("OCR failed: %s", e)
+            self._ocr_cache[cache_key] = None
             return None
 
     def _extract_with_pdf(self, pdf_path: Path) -> dict:
