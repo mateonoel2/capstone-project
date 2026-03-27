@@ -240,25 +240,71 @@ class TestPdfFallbackForNonAnthropicProviders:
 
 class TestExtractFileWithImageUrl:
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
-    def test_image_url_skips_base64(self, mock_create):
+    def test_image_url_uses_url_when_no_rotation(self, mock_create):
         mock_llm = MagicMock()
-        mock_llm.with_structured_output.return_value.invoke.return_value = {
-            "is_valid_document": True,
-            "owner": "Test",
-            "account_number": "012345678901234567",
-            "bank_name": "BBVA",
-        }
+        mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
         ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
 
-        with patch.object(ext, "_load_image_file") as mock_load:
+        fake_img = MagicMock()
+        fake_img.mode = "RGB"
+        fake_img.width = 100
+        fake_img.height = 100
+        fake_img.save = MagicMock(side_effect=lambda buf, **kw: buf.write(b"\xff\xd8fake"))
+
+        with (
+            patch(
+                "src.infrastructure.extractors.document_extractor.Image.open",
+                return_value=fake_img,
+            ),
+            patch.object(ext, "_check_orientation", return_value=0) as mock_orient,
+        ):
             result = ext.extract_file(
                 Path("/fake/file.jpg"), image_url="https://s3.example.com/file.jpg"
             )
 
-        mock_load.assert_not_called()
-        assert result["owner"] == "Test"
+        mock_orient.assert_called_once()
+        # Should use URL path, not base64
+        call_args = ext.structured_llm.invoke.call_args[0][0][0]
+        img_block = call_args.content[0]
+        assert img_block["image_url"]["url"] == "https://s3.example.com/file.jpg"
+        assert result == {"field": "value"}
+
+    @patch("src.infrastructure.extractors.document_extractor._create_llm")
+    def test_image_url_uses_base64_when_rotated(self, mock_create):
+        mock_llm = MagicMock()
+        mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
+        mock_create.return_value = mock_llm
+
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
+
+        fake_img = MagicMock()
+        fake_img.mode = "RGB"
+        fake_img.width = 100
+        fake_img.height = 100
+        fake_img.save = MagicMock(side_effect=lambda buf, **kw: buf.write(b"\xff\xd8fake"))
+        fake_img.rotate.return_value = fake_img
+
+        with (
+            patch(
+                "src.infrastructure.extractors.document_extractor.Image.open",
+                return_value=fake_img,
+            ),
+            patch.object(ext, "_check_orientation", return_value=90) as mock_orient,
+        ):
+            result = ext.extract_file(
+                Path("/fake/file.jpg"), image_url="https://s3.example.com/file.jpg"
+            )
+
+        mock_orient.assert_called_once()
+        fake_img.rotate.assert_called_once_with(-90, expand=True)
+        # Should use base64 path since image was rotated
+        call_args = ext.structured_llm.invoke.call_args[0][0][0]
+        img_block = call_args.content[0]
+        assert img_block["type"] == "image_url"
+        assert img_block["image_url"]["url"].startswith("data:image/jpeg;base64,")
+        assert result == {"field": "value"}
 
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
     def test_pdf_ignores_image_url(self, mock_create):
