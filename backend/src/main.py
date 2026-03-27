@@ -116,6 +116,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Configure root logger so app loggers are visible in Docker logs
     run_migrations()
     storage = get_storage()
     allowed = _get_allowed_origins()

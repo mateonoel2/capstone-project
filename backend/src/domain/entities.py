@@ -48,6 +48,7 @@ class ExtractorConfigData:
     output_schema: dict
     is_default: bool
     status: str = "active"
+    postprocessor: str | None = None
     user_id: uuid.UUID | None = None
     created_at: object | None = None
     updated_at: object | None = None

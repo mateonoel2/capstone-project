@@ -3,25 +3,30 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-_handler: logging.Handler | None = None
+
+class _FlushHandler(logging.StreamHandler):
+    """StreamHandler that flushes after every emit (needed for Docker)."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        super().emit(record)
+        self.flush()
 
 
-def _get_handler() -> logging.Handler:
-    global _handler
-    if _handler is None:
-        _handler = logging.StreamHandler(sys.stderr)
-        _handler.setLevel(logging.INFO)
-        fmt = "%(asctime)s %(levelname)s %(name)s — %(message)s"
-        _handler.setFormatter(logging.Formatter(fmt, datefmt="%H:%M:%S"))
-    return _handler
+def _make_handler() -> logging.Handler:
+    handler = _FlushHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    fmt = "%(levelname)s  [%(name)s] %(message)s"
+    handler.setFormatter(logging.Formatter(fmt))
+    return handler
 
 
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
-    logger.propagate = False  # Don't let root logger (WARNING) filter our messages
-    if not logger.handlers:
-        logger.addHandler(_get_handler())
+    logger.propagate = False
+    # Always ensure a fresh handler pointing to current sys.stdout
+    logger.handlers.clear()
+    logger.addHandler(_make_handler())
     return logger
 
 

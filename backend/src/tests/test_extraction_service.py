@@ -1,6 +1,6 @@
 import pytest
 
-from src.domain.services.extraction import apply_bank_statement_postprocessing
+from src.domain.postprocessors.mexican_bank_statement import apply_bank_statement_postprocessing
 
 
 class TestApplyBankStatementPostprocessing:

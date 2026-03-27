@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/file-upload";
 import { FileViewer } from "@/components/file-viewer";
-import { BankCombobox } from "@/components/bank-combobox";
 import { DynamicFieldsForm } from "@/components/dynamic-fields-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -24,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { toStr } from "@/lib/utils";
 import { useExtractionStore } from "@/lib/store";
-import { useBanks, useExtractorConfigs, useUploadFile, useExtract, useSubmitExtraction, useUsageQuota } from "@/lib/hooks";
+import { useExtractorConfigs, useUploadFile, useExtract, useSubmitExtraction, useUsageQuota } from "@/lib/hooks";
 import { Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
@@ -48,7 +46,6 @@ export default function Home() {
   const [success, setSuccess] = useState(false);
   const t = useT();
 
-  const { data: banks = [] } = useBanks();
   const { data: extractorConfigs = [] } = useExtractorConfigs("active");
   const { data: quota } = useUsageQuota();
 
@@ -71,10 +68,6 @@ export default function Home() {
   }, [extractorConfigs, selectedExtractorId, setSelectedExtractorId]);
 
   const selectedConfig = extractorConfigs.find((c) => c.id === selectedExtractorId);
-  const isBankStatementExtractor =
-    (selectedConfig?.is_default ?? true) &&
-    "account_number" in
-      ((selectedConfig?.output_schema as Record<string, Record<string, unknown>>)?.properties ?? {});
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -289,9 +282,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>{t("extraction.extractedInfo")}</CardTitle>
                   <CardDescription>
-                    {isBankStatementExtractor
-                      ? t("extraction.reviewDefault")
-                      : `${t("extraction.extractor")}: ${selectedConfig?.name}`}
+                    {`${t("extraction.extractor")}: ${selectedConfig?.name}`}
                     {extracted?.extractor_config_version_number != null && (
                       <span className="ml-2 text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
                         {t("extraction.version", { number: String(extracted.extractor_config_version_number) })}
@@ -358,94 +349,17 @@ export default function Home() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                      {isBankStatementExtractor ? (
-                        <>
-                          <div className="space-y-2">
-                            <Label htmlFor="owner">{t("extraction.owner")}</Label>
-                            <Input
-                              id="owner"
-                              value={formData.owner || ""}
-                              onChange={(e) =>
-                                updateFormField("owner", e.target.value)
-                              }
-                              placeholder={t("extraction.ownerPlaceholder")}
-                              className={
-                                extracted && formData.owner !== toStr(extracted.fields?.owner)
-                                  ? "border-yellow-400"
-                                  : ""
-                              }
-                            />
-                            {extracted && formData.owner !== toStr(extracted.fields?.owner) && (
-                              <p className="text-xs text-yellow-600">
-                                {t("extraction.aiExtracted", { value: toStr(extracted.fields?.owner) || t("extraction.empty") })}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="bank_name">{t("extraction.bank")}</Label>
-                            <BankCombobox
-                              banks={banks}
-                              value={formData.bank_name || ""}
-                              onChange={(value) =>
-                                updateFormField("bank_name", value)
-                              }
-                              className={
-                                extracted &&
-                                formData.bank_name !== toStr(extracted.fields?.bank_name)
-                                  ? "border-yellow-400"
-                                  : ""
-                              }
-                            />
-                            {extracted &&
-                              formData.bank_name !== toStr(extracted.fields?.bank_name) && (
-                                <p className="text-xs text-yellow-600">
-                                  {t("extraction.aiExtracted", { value: toStr(extracted.fields?.bank_name) || t("extraction.empty") })}
-                                </p>
-                              )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="account_number">
-                              {t("extraction.accountNumber")}
-                            </Label>
-                            <Input
-                              id="account_number"
-                              value={formData.account_number || ""}
-                              onChange={(e) =>
-                                updateFormField("account_number", e.target.value)
-                              }
-                              placeholder={t("extraction.accountPlaceholder")}
-                              className={
-                                extracted &&
-                                formData.account_number !==
-                                  toStr(extracted.fields?.account_number)
-                                  ? "border-yellow-400"
-                                  : ""
-                              }
-                            />
-                            {extracted &&
-                              formData.account_number !==
-                                toStr(extracted.fields?.account_number) && (
-                                <p className="text-xs text-yellow-600">
-                                  {t("extraction.aiExtracted", { value: toStr(extracted.fields?.account_number) || t("extraction.empty") })}
-                                </p>
-                              )}
-                          </div>
-                        </>
-                      ) : (
-                        <DynamicFieldsForm
-                          schema={
-                            selectedConfig?.output_schema as Record<
-                              string,
-                              unknown
-                            >
-                          }
-                          values={formData}
-                          extracted={extracted?.fields as Record<string, unknown>}
-                          onChange={updateFormField}
-                        />
-                      )}
+                      <DynamicFieldsForm
+                        schema={
+                          selectedConfig?.output_schema as Record<
+                            string,
+                            unknown
+                          >
+                        }
+                        values={formData}
+                        extracted={extracted?.fields as Record<string, unknown>}
+                        onChange={updateFormField}
+                      />
 
                       {error && (
                         <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded">

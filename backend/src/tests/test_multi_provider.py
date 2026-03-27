@@ -9,6 +9,19 @@ from src.infrastructure.extractors.document_extractor import (
     _resolve_provider,
 )
 
+TEST_PROMPT = "Extract fields from this document."
+TEST_SCHEMA = {
+    "type": "object",
+    "properties": {"field": {"type": "string"}},
+    "required": ["field"],
+}
+
+
+def _make_extractor(**kwargs):
+    kwargs.setdefault("prompt", TEST_PROMPT)
+    kwargs.setdefault("output_schema", TEST_SCHEMA)
+    return DocumentExtractor(**kwargs)
+
 
 class TestResolveProvider:
     @pytest.mark.parametrize(
@@ -46,27 +59,27 @@ class TestDocumentExtractorInit:
     def test_anthropic_uses_anthropic_key(self, mock_create):
         mock_create.return_value = MagicMock()
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-ant-test"}):
-            ext = DocumentExtractor(model="claude-haiku-4-5-20251001")
+            ext = _make_extractor(model="claude-haiku-4-5-20251001")
         assert ext.api_key == "sk-ant-test"
 
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
     def test_openai_uses_openai_key(self, mock_create):
         mock_create.return_value = MagicMock()
         with patch.dict("os.environ", {"OPENAI_KEY": "sk-openai-test"}):
-            ext = DocumentExtractor(model="gpt-4o-mini")
+            ext = _make_extractor(model="gpt-4o-mini")
         assert ext.api_key == "sk-openai-test"
 
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
     def test_google_uses_google_key(self, mock_create):
         mock_create.return_value = MagicMock()
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "goog-test"}):
-            ext = DocumentExtractor(model="gemini-2.0-flash")
+            ext = _make_extractor(model="gemini-2.0-flash")
         assert ext.api_key == "goog-test"
 
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
     def test_explicit_api_key_overrides_env(self, mock_create):
         mock_create.return_value = MagicMock()
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="explicit-key")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="explicit-key")
         assert ext.api_key == "explicit-key"
 
 
@@ -77,7 +90,7 @@ class TestExtractWithVision:
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="claude-haiku-4-5-20251001", api_key="fake")
+        ext = _make_extractor(model="claude-haiku-4-5-20251001", api_key="fake")
         result = ext._extract_with_vision(["abc123base64data"])
 
         call_args = ext.structured_llm.invoke.call_args[0][0][0]
@@ -93,7 +106,7 @@ class TestExtractWithVision:
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
         ext._extract_with_vision(["abc123base64data"])
 
         call_args = ext.structured_llm.invoke.call_args[0][0][0]
@@ -107,7 +120,7 @@ class TestExtractWithVision:
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
         result = ext._extract_with_vision(image_url="https://s3.example.com/file.jpg")
 
         call_args = ext.structured_llm.invoke.call_args[0][0][0]
@@ -118,7 +131,7 @@ class TestExtractWithVision:
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
     def test_raises_when_no_image_source(self, mock_create):
         mock_create.return_value = MagicMock()
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
         with pytest.raises(ValueError, match="Se requiere"):
             ext._extract_with_vision()
 
@@ -130,16 +143,22 @@ class TestPdfFallbackForNonAnthropicProviders:
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
         fake_img = MagicMock()
         fake_img.width = 100
         fake_img.height = 100
         fake_img.rotate.return_value = fake_img
         fake_img.save = MagicMock(side_effect=lambda buf, **kw: buf.write(b"\xff\xd8fake"))
 
-        with patch.object(ext, "_pdf_to_image", return_value=fake_img) as mock_pdf:
-            with patch.object(ext, "_check_orientation", return_value=0):
-                result = ext._extract_with_pdf(Path("/fake/file.pdf"))
+        fake_stat = MagicMock()
+        fake_stat.st_size = 500_000
+
+        with (
+            patch.object(ext, "_pdf_to_image", return_value=fake_img) as mock_pdf,
+            patch.object(ext, "_check_orientation", return_value=0),
+            patch("pathlib.Path.stat", return_value=fake_stat),
+        ):
+            result = ext._extract_with_pdf(Path("/fake/file.pdf"))
 
         mock_pdf.assert_called()
         assert result == {"field": "value"}
@@ -150,34 +169,69 @@ class TestPdfFallbackForNonAnthropicProviders:
         mock_llm.with_structured_output.return_value = MagicMock()
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
 
-        with patch.object(ext, "_pdf_to_image", return_value=None):
-            with patch.object(ext, "_check_orientation", return_value=0):
-                with pytest.raises(ValueError, match="No se pudo convertir el PDF"):
-                    ext._extract_with_pdf(Path("/fake/file.pdf"))
+        fake_stat = MagicMock()
+        fake_stat.st_size = 500_000
+
+        with (
+            patch.object(ext, "_pdf_to_image", return_value=None),
+            patch("pathlib.Path.stat", return_value=fake_stat),
+        ):
+            with pytest.raises(ValueError, match="No se pudo convertir el PDF"):
+                ext._extract_with_pdf(Path("/fake/file.pdf"))
 
     @patch("src.infrastructure.extractors.document_extractor._create_llm")
-    def test_anthropic_uses_native_pdf(self, mock_create):
+    def test_anthropic_always_uses_native_pdf(self, mock_create):
+        """Anthropic always sends raw PDF (native support)."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="claude-haiku-4-5-20251001", api_key="fake")
+        ext = _make_extractor(model="claude-haiku-4-5-20251001", api_key="fake")
 
         fake_img = MagicMock()
         fake_img.width = 100
         fake_img.height = 100
         fake_img.save = MagicMock(side_effect=lambda buf, **kw: buf.write(b"\xff\xd8fake"))
 
+        fake_stat = MagicMock()
+        fake_stat.st_size = 5_000_000  # Even for heavy PDFs
+
         with (
             patch.object(ext, "_pdf_to_image", return_value=fake_img),
             patch.object(ext, "_check_orientation", return_value=0),
+            patch("pathlib.Path.stat", return_value=fake_stat),
             patch("pathlib.Path.read_bytes", return_value=b"%PDF-fake"),
         ):
             ext._extract_with_pdf(Path("/fake/file.pdf"))
 
-        # Should call structured_llm.invoke with native PDF content, not vision
+        call_args = ext.structured_llm.invoke.call_args[0][0][0]
+        content = call_args.content
+        assert content[0]["type"] == "file"
+        assert content[0]["mime_type"] == "application/pdf"
+
+    @patch("src.infrastructure.extractors.document_extractor._create_llm")
+    def test_anthropic_falls_back_to_raw_pdf_when_image_fails(self, mock_create):
+        """When image conversion fails, Anthropic still sends native PDF."""
+        mock_llm = MagicMock()
+        mock_llm.with_structured_output.return_value.invoke.return_value = {
+            "field": "value",
+        }
+        mock_create.return_value = mock_llm
+
+        ext = _make_extractor(model="claude-haiku-4-5-20251001", api_key="fake")
+
+        fake_stat = MagicMock()
+        fake_stat.st_size = 500_000
+
+        with (
+            patch.object(ext, "_pdf_to_image", return_value=None),
+            patch("pathlib.Path.stat", return_value=fake_stat),
+            patch("pathlib.Path.read_bytes", return_value=b"%PDF-fake"),
+        ):
+            ext._extract_with_pdf(Path("/fake/file.pdf"))
+
         call_args = ext.structured_llm.invoke.call_args[0][0][0]
         content = call_args.content
         assert content[0]["type"] == "file"
@@ -196,7 +250,7 @@ class TestExtractFileWithImageUrl:
         }
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="gpt-4o-mini", api_key="fake")
+        ext = _make_extractor(model="gpt-4o-mini", api_key="fake")
 
         with patch.object(ext, "_load_image_file") as mock_load:
             result = ext.extract_file(
@@ -213,7 +267,7 @@ class TestExtractFileWithImageUrl:
         mock_llm.with_structured_output.return_value.invoke.return_value = {"field": "value"}
         mock_create.return_value = mock_llm
 
-        ext = DocumentExtractor(model="claude-haiku-4-5-20251001", api_key="fake")
+        ext = _make_extractor(model="claude-haiku-4-5-20251001", api_key="fake")
 
         with patch.object(ext, "_extract_with_pdf", return_value={"field": "value"}) as mock_pdf:
             ext.extract_file(Path("/fake/file.pdf"), image_url="https://s3.example.com/file.pdf")

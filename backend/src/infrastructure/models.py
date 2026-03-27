@@ -60,6 +60,7 @@ class ExtractorConfig(Base):
     model = Column(String(100), nullable=False, default="claude-haiku-4-5-20251001")
     output_schema = Column(JSON, nullable=False)
     is_default = Column(Boolean, default=False)
+    postprocessor = Column(String(100), nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     status = Column(String(20), nullable=False, default="active")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

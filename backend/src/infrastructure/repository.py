@@ -130,6 +130,7 @@ class ExtractorConfigRepository:
             output_schema=config.output_schema,
             is_default=config.is_default,
             status=config.status,
+            postprocessor=config.postprocessor,
             user_id=config.user_id,
             created_at=config.created_at,
             updated_at=config.updated_at,
@@ -194,6 +195,7 @@ class ExtractorConfigRepository:
             output_schema=data.output_schema,
             is_default=data.is_default,
             status=data.status,
+            postprocessor=data.postprocessor,
             user_id=user_id,
         )
         self.session.add(config)
@@ -228,6 +230,7 @@ class ExtractorConfigRepository:
         config.output_schema = data.output_schema
         config.is_default = data.is_default
         config.status = data.status
+        config.postprocessor = data.postprocessor
 
         self.session.commit()
         self.session.refresh(config)

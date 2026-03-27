@@ -2,55 +2,27 @@ import tempfile
 import time
 from pathlib import Path
 
-from src.domain.constants import UNKNOWN_ACCOUNT, UNKNOWN_BANK, UNKNOWN_OWNER
 from src.domain.entities import ApiCallResult, ExtractionError, ExtractorConfigData
-from src.domain.schemas import BankAccount
-from src.domain.validators import validate_clabe
+from src.domain.postprocessors.mexican_bank_statement import (
+    postprocess as postprocess_mexican_bank,
+)
 from src.infrastructure.extractors.document_extractor import (
     SUPPORTED_EXTENSIONS,
     DocumentExtractor,
-    retry_bank_statement_clabe,
 )
+
+
+def _logger():
+    from src.core.logger import get_logger
+
+    return get_logger(__name__)
+
 
 ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
-
-def apply_bank_statement_postprocessing(raw: dict) -> dict:
-    owner = raw.get("owner", "Unknown")
-    if owner == "Unknown":
-        owner = UNKNOWN_OWNER
-
-    account_number = raw.get("account_number", "000000000000000000")
-    # Strip spaces/dashes (Banorte formats CLABE as "072 691 00844421773 3")
-    account_number = "".join(c for c in account_number if c.isdigit())
-    # Take first 18 digits if extra check digit was included
-    if len(account_number) > 18:
-        account_number = account_number[:18]
-    if account_number == "000000000000000000":
-        account_number = UNKNOWN_ACCOUNT
-
-    bank_name = raw.get("bank_name", "Unknown")
-    if bank_name == "Unknown":
-        bank_name = UNKNOWN_BANK
-
-    if not validate_clabe(account_number):
-        account_number = UNKNOWN_ACCOUNT
-
-    # Normalize bank name
-    bank_account = BankAccount(owner=owner, account_number=account_number, bank_name=bank_name)
-    bank_name = bank_account.bank_name
-
-    if bank_name == UNKNOWN_BANK and account_number == UNKNOWN_ACCOUNT:
-        raise ValueError(
-            "No se encontró información bancaria útil en el documento. "
-            "Verifica que sea un estado de cuenta o carátula bancaria."
-        )
-
-    return {
-        "owner": owner,
-        "account_number": account_number,
-        "bank_name": bank_name,
-    }
+POSTPROCESSORS = {
+    "mexican_bank_statement": postprocess_mexican_bank,
+}
 
 
 def _create_extractor(config: ExtractorConfigData) -> DocumentExtractor:
@@ -66,9 +38,9 @@ class ExtractionService:
         self,
         file_bytes: bytes,
         filename: str,
-        config: ExtractorConfigData | None = None,
+        config: ExtractorConfigData,
         image_url: str | None = None,
-    ) -> tuple[dict, ApiCallResult, ExtractorConfigData | None]:
+    ) -> tuple[dict, ApiCallResult, ExtractorConfigData]:
         if not filename:
             raise ValueError("No se proporcionó un archivo")
 
@@ -85,12 +57,16 @@ class ExtractionService:
                 tmp_file.write(file_bytes)
                 tmp_file_path = Path(tmp_file.name)
 
-            if config:
-                extractor = _create_extractor(config)
-            else:
-                extractor = DocumentExtractor()
+            extractor = _create_extractor(config)
 
             start = time.monotonic()
+            _logger().info(
+                "Calling extract_file (model=%s, postprocessor=%s)",
+                extractor.model_name,
+                config.postprocessor,
+            )
+            _logger().info("Prompt: %s", config.prompt[:300])
+            _logger().info("Output schema: %s", config.output_schema)
             try:
                 raw_result = extractor.extract_file(tmp_file_path, image_url=image_url)
             except ValueError as e:
@@ -118,7 +94,7 @@ class ExtractionService:
 
             # Validate document type if model flagged it as invalid
             if raw_result.get("is_valid_document") is False:
-                desc = config.description if config else "estado de cuenta bancario"
+                desc = config.description
                 call_result = ApiCallResult(
                     model=extractor.model_name,
                     success=False,
@@ -129,16 +105,15 @@ class ExtractionService:
                 raise ExtractionError(f"El documento no corresponde al tipo: {desc}", call_result)
             # Remove is_valid_document from result before returning
             raw_result.pop("is_valid_document", None)
+            _logger().info("Raw extraction result: %s", raw_result)
 
-            # Apply bank-statement-specific logic only for bank statement extractors
-            is_default = config is None or config.is_default
-            has_bank_fields = config is None or "account_number" in config.output_schema.get(
-                "properties", {}
-            )
-            if is_default and has_bank_fields:
-                raw_result = retry_bank_statement_clabe(extractor, tmp_file_path, raw_result)
+            # Apply postprocessor if configured
+            postprocessor_fn = POSTPROCESSORS.get(config.postprocessor or "")
+            if postprocessor_fn:
+                _logger().info("Applying postprocessor: %s", config.postprocessor)
                 try:
-                    raw_result = apply_bank_statement_postprocessing(raw_result)
+                    raw_result = postprocessor_fn(extractor, tmp_file_path, raw_result)
+                    _logger().info("After postprocessor: %s", raw_result)
                 except ValueError as e:
                     call_result = ApiCallResult(
                         model=extractor.model_name,
