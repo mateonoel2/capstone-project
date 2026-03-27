@@ -356,6 +356,17 @@ class DocumentExtractor:
         if suffix in PDF_EXTENSIONS:
             return self._extract_with_pdf(file_path)
         elif image_url and image_url.startswith("https://"):
+            # Check orientation before deciding whether to use URL or base64
+            image = Image.open(file_path)
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+            image_b64 = self._image_to_base64(image)
+            rotation = self._check_orientation(image_b64)
+            if rotation != 0:
+                _logger().info("Image rotated %d°, sending as base64 instead of URL", rotation)
+                image = image.rotate(-rotation, expand=True)
+                image_b64 = self._image_to_base64(image)
+                return self._extract_with_vision([image_b64])
             return self._extract_with_vision(image_url=image_url)
         else:
             base64_images = self._load_image_file(file_path)
