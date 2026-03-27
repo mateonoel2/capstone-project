@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from src.infrastructure.auth import UserDep, generate_api_token, hash_token
@@ -15,6 +15,13 @@ router = APIRouter(prefix="/tokens", tags=["tokens"])
 class CreateTokenRequest(BaseModel):
     name: str
     expires_at: datetime | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def expires_at_must_be_future(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v < datetime.now(timezone.utc):
+            raise ValueError("La fecha de expiración debe ser en el futuro")
+        return v
 
 
 class TokenResponse(BaseModel):
