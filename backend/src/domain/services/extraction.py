@@ -119,9 +119,12 @@ class ExtractionService:
 
             elapsed_ms = round((time.monotonic() - start) * 1000, 1)
 
-            # Apply bank-statement-specific logic for default extractor
+            # Apply bank-statement-specific logic only for bank statement extractors
             is_default = config is None or config.is_default
-            if is_default:
+            has_bank_fields = config is None or "account_number" in config.output_schema.get(
+                "properties", {}
+            )
+            if is_default and has_bank_fields:
                 raw_result = retry_bank_statement_clabe(extractor, tmp_file_path, raw_result)
                 try:
                     raw_result = apply_bank_statement_postprocessing(raw_result)
