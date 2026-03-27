@@ -241,6 +241,13 @@ class DocumentExtractor:
             img = self._pdf_to_image(pdf_path)
             if img is None:
                 return None
+            # Resize large images to avoid tesseract memory issues
+            max_dim = 2048
+            if img.width > max_dim or img.height > max_dim:
+                ratio = min(max_dim / img.width, max_dim / img.height)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                _logger().info("Resizing for OCR: %dx%d → %dx%d", img.width, img.height, *new_size)
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
             text = pytesseract.image_to_string(img)
             if text and text.strip():
                 _logger().info("OCR extracted %d chars from PDF", len(text))
