@@ -169,6 +169,7 @@ export default function TokensPage() {
               <input
                 type="datetime-local"
                 value={expiresAt}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => setExpiresAt(e.target.value)}
                 className="mt-1 block rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
