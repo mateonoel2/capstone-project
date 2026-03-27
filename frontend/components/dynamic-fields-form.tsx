@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { EnumCombobox } from "@/components/enum-combobox";
 import { toStr } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { Plus, Trash2 } from "lucide-react";
@@ -10,6 +11,7 @@ import { Plus, Trash2 } from "lucide-react";
 interface SchemaProperty {
   type?: string;
   description?: string;
+  enum?: string[];
   items?: {
     type?: string;
     properties?: Record<string, { type?: string; description?: string }>;
@@ -183,6 +185,14 @@ export function DynamicFieldsForm({
                   {prop.description}
                 </span>
               </div>
+            ) : Array.isArray(prop.enum) && prop.enum.length > 0 ? (
+              <EnumCombobox
+                options={prop.enum}
+                value={currentValue}
+                onChange={(v) => onChange(key, v)}
+                placeholder={prop.description}
+                className={isModified ? "border-yellow-400" : ""}
+              />
             ) : prop.type === "number" || prop.type === "integer" ? (
               <Input
                 id={`field-${key}`}

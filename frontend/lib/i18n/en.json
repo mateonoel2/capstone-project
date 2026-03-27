@@ -158,6 +158,11 @@
     "searchBank": "Search bank...",
     "noResults": "No bank found."
   },
+  "enumCombobox": {
+    "select": "Select...",
+    "search": "Search...",
+    "noResults": "No results."
+  },
   "dynamicFields": {
     "aiExtracted": "AI extracted: {value}",
     "empty": "(empty)",

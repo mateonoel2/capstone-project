@@ -286,6 +286,7 @@ async def create_extractor_config(request: ExtractorConfigCreateRequest, db: DbD
         model=request.model,
         output_schema=request.output_schema,
         is_default=request.is_default,
+        postprocessor=request.postprocessor,
         status=request.status,
     )
     config = service.create(data, user_id=user.id)
@@ -314,6 +315,9 @@ async def update_extractor_config(
         if request.output_schema is not None
         else existing.output_schema,
         is_default=request.is_default if request.is_default is not None else existing.is_default,
+        postprocessor=request.postprocessor
+        if request.postprocessor is not None
+        else existing.postprocessor,
         status=request.status if request.status is not None else existing.status,
     )
     config = service.update(config_id, data)

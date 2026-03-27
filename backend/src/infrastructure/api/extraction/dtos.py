@@ -106,6 +106,7 @@ class ExtractorConfigCreateRequest(BaseModel):
     model: str = "claude-haiku-4-5-20251001"
     output_schema: dict[str, Any] = {"type": "object", "properties": {}, "required": []}
     is_default: bool = False
+    postprocessor: str | None = None
     status: str = "active"
 
     @field_validator("output_schema")
@@ -132,6 +133,7 @@ class ExtractorConfigUpdateRequest(BaseModel):
     model: str | None = None
     output_schema: dict[str, Any] | None = None
     is_default: bool | None = None
+    postprocessor: str | None = None
     status: str | None = None
 
     @field_validator("output_schema")
@@ -155,6 +157,7 @@ class ExtractorConfigResponse(BaseModel):
     model: str
     output_schema: dict[str, Any]
     is_default: bool
+    postprocessor: str | None = None
     status: str = "active"
     created_at: str | None
     updated_at: str | None

@@ -5,13 +5,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from src.domain.constants import BANK_DICT_KUSHKI
 from src.domain.entities import (
     ExtractionError,
     ExtractorConfigData,
     ExtractorConfigVersionData,
     SubmissionData,
 )
+from src.domain.postprocessors.mexican_bank_statement import BANK_DICT_KUSHKI
 from src.domain.services.api_metrics import ApiMetricsService
 from src.domain.services.extraction import ExtractionService
 from src.domain.services.metrics import MetricsService
@@ -52,13 +52,18 @@ def _get_repository(db: Session) -> ExtractionRepository:
     return ExtractionRepository(db)
 
 
-def _load_config(db: Session, config_id: uuid.UUID | None) -> ExtractorConfigData | None:
-    if config_id is None:
-        return None
+def _load_config(db: Session, config_id: uuid.UUID | None) -> ExtractorConfigData:
     repo = ExtractorConfigRepository(db)
-    config = repo.get_by_id(config_id)
+    if config_id is not None:
+        config = repo.get_by_id(config_id)
+        if not config:
+            raise HTTPException(
+                status_code=404, detail=f"Extractor config {config_id} no encontrado"
+            )
+        return config
+    config = repo.get_default()
     if not config:
-        raise HTTPException(status_code=404, detail=f"Extractor config {config_id} no encontrado")
+        raise HTTPException(status_code=500, detail="No hay extractor por defecto configurado")
     return config
 
 
@@ -88,6 +93,7 @@ def _select_variant(
         model=chosen.model,
         output_schema=chosen.output_schema,
         is_default=config.is_default,
+        postprocessor=config.postprocessor,
     )
     return version_config, chosen.id, chosen.version_number
 
@@ -117,6 +123,10 @@ async def upload_file(file: Annotated[UploadFile, File()], user: UserDep):
 
 @router.post("/extract", response_model=ExtractionResponse)
 async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
+    from src.core.logger import get_logger
+
+    log = get_logger("extraction.route")
+    log.info("=== /extract: file=%s config=%s ===", request.filename, request.extractor_config_id)
     quota = QuotaService(
         api_call_repo=ApiCallRepository(db),
         extractor_repo=ExtractorConfigRepository(db),
@@ -130,7 +140,7 @@ async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
     # Select A/B variant if active versions exist
     version_id = None
     version_number = None
-    if config_data and config_data.id is not None:
+    if config_data.id is not None:
         ec_repo = ExtractorConfigRepository(db)
         active_versions = ec_repo.get_active_versions(config_data.id)
         config_data, version_id, version_number = _select_variant(config_data, active_versions)
@@ -141,9 +151,11 @@ async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
         download_url = storage.generate_download_url(request.s3_key)
 
         service = ExtractionService()
+        log.info("Starting extraction, file size: %.1f KB", len(file_bytes) / 1024)
         result, call_result, _ = service.extract(
             file_bytes, request.filename, config=config_data, image_url=download_url
         )
+        log.info("Extraction result: %s", result)
 
         api_repo.create(
             call_result,
@@ -153,20 +165,10 @@ async def extract_from_file(request: ExtractRequest, db: DbDep, user: UserDep):
             user_id=user.id,
         )
 
-        # Determine extractor config info for the response
-        if config_data:
-            ec_id = request.extractor_config_id or config_data.id
-            ec_name = config_data.name
-        else:
-            ec_repo = ExtractorConfigRepository(db)
-            default_config = ec_repo.get_default()
-            ec_id = default_config.id if default_config else None
-            ec_name = default_config.name if default_config else "Default"
-
         return ExtractionResponse(
             fields=result,
-            extractor_config_id=ec_id,
-            extractor_config_name=ec_name,
+            extractor_config_id=config_data.id,
+            extractor_config_name=config_data.name,
             extractor_config_version_id=version_id,
             extractor_config_version_number=version_number,
         )

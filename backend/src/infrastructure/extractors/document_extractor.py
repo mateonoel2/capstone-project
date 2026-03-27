@@ -1,53 +1,21 @@
 import base64
 import io
 import os
-import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage
 from PIL import Image
 
-from src.core.logger import get_logger
 
-logger = get_logger(__name__)
+def _logger():
+    from src.core.logger import get_logger
+
+    return get_logger(__name__)
+
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PDF_EXTENSIONS = {".pdf"}
 SUPPORTED_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS
-
-EXTRACTION_PROMPT = """Analiza este documento y determina si es un estado de
-cuenta o carátula bancaria mexicana.
-
-Si ES un estado de cuenta o carátula bancaria, extrae:
-
-1. Titular/Owner: Nombre completo del titular de la cuenta (persona o empresa).
-   Busca el nombre que aparece en la sección de datos del cliente, NO el nombre
-   del asesor, ejecutivo, o personas mencionadas en transacciones.
-
-2. CLABE Interbancaria: Número de EXACTAMENTE 18 dígitos.
-   IMPORTANTE — Distingue entre estos campos que son DIFERENTES:
-   - CLABE Interbancaria: SIEMPRE tiene 18 dígitos. Busca etiquetas como
-     "CLABE", "CLABE Interbancaria", "No. Cuenta CLABE", "Cuenta CLABE".
-   - Número de cuenta: Típicamente 10-11 dígitos. NO es la CLABE.
-   - Número de cliente: Típicamente 7-8 dígitos. NO es la CLABE.
-   La CLABE aparece inmediatamente al costado o debajo de su etiqueta
-   "CLABE Interbancaria". Lee el número que está junto a esa etiqueta.
-   La CLABE puede aparecer con espacios (ej: "072 691 00844421773 3").
-   Elimina todos los espacios y devuelve SOLO los 18 dígitos consecutivos.
-   Lee cada dígito individualmente con cuidado, no agrupes ni asumas.
-   Si ves la CLABE en la sección "PRODUCTOS DE VISTA" o "RESUMEN INTEGRAL",
-   usa ese valor.
-
-3. Banco: Nombre del banco (debe ser uno de: BBVA MEXICO, SANTANDER, BANAMEX,
-   BANORTE, HSBC, SCOTIABANK, AFIRME, BAJIO, BANREGIO, MIFEL, BMONEX, INBURSA)
-
-Si NO es un estado de cuenta bancario (por ejemplo: facturas, contratos, recibos,
-comprobantes de transferencia, documentos legales, etc.), marca is_valid_document
-como false.
-
-Si no encuentras algún campo, usa "Unknown" para owner y bank_name,
-y "000000000000000000" para account_number.
-NO inventes información. Solo extrae lo que está claramente visible en el documento."""
 
 ORIENTATION_CHECK_PROMPT = (
     "Look at the main text in this document image. "
@@ -74,15 +42,6 @@ ORIENTATION_SCHEMA = {
     },
     "required": ["text_direction"],
 }
-
-CLABE_RETRY_PROMPT = """El valor de CLABE que extrajiste NO tiene 18 dígitos.
-Revisa el documento nuevamente. La CLABE interbancaria:
-- SIEMPRE tiene EXACTAMENTE 18 dígitos
-- Aparece etiquetada como "CLABE", "CLABE Interbancaria" o "No. Cuenta CLABE"
-- NO es el número de cuenta (10-13 dígitos) ni el número de cliente (7-8 dígitos)
-- Puede estar en la sección "PRODUCTOS DE VISTA" o "RESUMEN INTEGRAL"
-
-Extrae nuevamente TODOS los campos del documento."""
 
 # Map detected text direction to clockwise rotation needed to correct it
 DIRECTION_TO_ROTATION = {
@@ -154,7 +113,7 @@ def _create_llm(model: str, api_key: str, max_tokens: int):
 class DocumentExtractor:
     def __init__(
         self,
-        prompt: str = EXTRACTION_PROMPT,
+        prompt: str,
         model: str = "claude-haiku-4-5-20251001",
         output_schema: dict | None = None,
         api_key: str | None = None,
@@ -170,14 +129,9 @@ class DocumentExtractor:
         self.prompt = prompt
         self.output_schema = output_schema
         self.llm = _create_llm(model, self.api_key, max_tokens)
-        if output_schema:
-            if isinstance(output_schema, dict) and "title" not in output_schema:
-                output_schema = {"title": "extraction_output", **output_schema}
-            self.structured_llm = self.llm.with_structured_output(output_schema)
-        else:
-            from src.domain.schemas import ExtractionOutput
-
-            self.structured_llm = self.llm.with_structured_output(ExtractionOutput)
+        if isinstance(output_schema, dict) and "title" not in output_schema:
+            output_schema = {"title": "extraction_output", **output_schema}
+        self.structured_llm = self.llm.with_structured_output(output_schema)
 
     def _image_content(self, *, b64: str | None = None, url: str | None = None) -> dict:
         """Build the image content block in the correct format for the current provider."""
@@ -201,15 +155,14 @@ class DocumentExtractor:
         # OpenAI / others format
         return {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
 
-    def _image_to_base64(self, image: Image.Image) -> str:
-        max_dimension = 2048
+    def _image_to_base64(self, image: Image.Image, max_dimension: int = 4096) -> str:
         if image.width > max_dimension or image.height > max_dimension:
             ratio = min(max_dimension / image.width, max_dimension / image.height)
             new_size = (int(image.width * ratio), int(image.height * ratio))
             image = image.resize(new_size, Image.Resampling.LANCZOS)
 
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=90)
+        image.save(buffer, format="JPEG", quality=95)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     def _check_orientation(self, image_b64: str) -> int:
@@ -227,10 +180,10 @@ class DocumentExtractor:
                 result = result.model_dump()
             direction = result.get("text_direction", "normal")
             rotation = DIRECTION_TO_ROTATION.get(direction, 0)
-            logger.info("Orientation check: %s → rotation %d°", direction, rotation)
+            _logger().info("Orientation check: %s → rotation %d°", direction, rotation)
             return rotation
         except Exception as e:
-            logger.warning("Orientation check failed, assuming normal: %s", e)
+            _logger().warning("Orientation check failed, assuming normal: %s", e)
             return 0
 
     def _load_image_file(self, image_path: Path) -> list[str]:
@@ -243,7 +196,7 @@ class DocumentExtractor:
         rotation = self._check_orientation(image_b64)
 
         if rotation != 0:
-            logger.info("Rotating image %d° clockwise", rotation)
+            _logger().info("Rotating image %d° clockwise", rotation)
             # PIL rotate is counterclockwise, so negate
             image = image.rotate(-rotation, expand=True)
             image_b64 = self._image_to_base64(image)
@@ -251,41 +204,111 @@ class DocumentExtractor:
         return [image_b64]
 
     def _pdf_to_image(self, pdf_path: Path) -> Image.Image | None:
-        """Convert first page of PDF to PIL Image for orientation check."""
+        """Convert first page of PDF to PIL Image."""
         try:
+            import PIL
+
+            # Allow large images from high-res scans
+            PIL.Image.MAX_IMAGE_PIXELS = 200_000_000
+
             from pdf2image import convert_from_path
 
             images = convert_from_path(str(pdf_path), first_page=1, last_page=1, dpi=200)
-            return images[0] if images else None
+            if not images:
+                return None
+            img = images[0]
+            _logger().info("PDF to image: %dx%d pixels", img.width, img.height)
+            return img
         except Exception as e:
-            logger.warning("PDF to image conversion failed: %s", e)
+            _logger().warning("PDF to image conversion failed: %s", e)
+            return None
+
+    def _pdf_page_count(self, pdf_path: Path) -> int:
+        """Return the number of pages in a PDF."""
+        try:
+            import pdfplumber
+
+            with pdfplumber.open(pdf_path) as pdf:
+                return len(pdf.pages)
+        except Exception:
+            return 0
+
+    def _ocr_pdf(self, pdf_path: Path) -> str | None:
+        """Run OCR on the first page of a PDF via pytesseract."""
+        try:
+            import pytesseract
+
+            img = self._pdf_to_image(pdf_path)
+            if img is None:
+                return None
+            text = pytesseract.image_to_string(img)
+            if text and text.strip():
+                _logger().info("OCR extracted %d chars from PDF", len(text))
+                return text.strip()
+            return None
+        except Exception as e:
+            _logger().warning("OCR failed: %s", e)
             return None
 
     def _extract_with_pdf(self, pdf_path: Path) -> dict:
-        logger.info("=== PDF extraction ===")
-        logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
+        pdf_size = pdf_path.stat().st_size
+        page_count = self._pdf_page_count(pdf_path)
+        _logger().info(
+            "=== PDF extraction === size=%.1fKB pages=%d model=%s",
+            pdf_size / 1024,
+            page_count,
+            self.model_name,
+        )
 
-        # Check orientation by converting first page to image
+        # Heavy single-page PDFs (>1MB): try OCR first (much cheaper)
+        if page_count == 1 and pdf_size > 1_000_000:
+            ocr_text = self._ocr_pdf(pdf_path)
+            if ocr_text:
+                return self._extract_with_text(ocr_text)
+            _logger().info("OCR produced no text, falling back to PDF/image")
+
+        # Light PDFs, multi-page, or OCR failed:
+
+        # Providers with native PDF support send the file directly
+        if self.provider["native_pdf"]:
+            return self._extract_raw_pdf(pdf_path)
+
+        # Non-native: convert to image, check orientation, then use vision
         img = self._pdf_to_image(pdf_path)
-        if img is not None:
-            img_b64 = self._image_to_base64(img)
-            rotation = self._check_orientation(img_b64)
-            if rotation != 0:
-                logger.info("PDF is rotated %d°, using vision extraction instead", rotation)
-                img = img.rotate(-rotation, expand=True)
-                img_b64 = self._image_to_base64(img)
-                return self._extract_with_vision([img_b64])
+        if img is None:
+            raise ValueError("No se pudo convertir el PDF a imagen")
 
-        # Non-Anthropic models don't support native PDF — use vision
-        if not self.provider["native_pdf"]:
-            if img is None:
-                img = self._pdf_to_image(pdf_path)
-            if img is None:
-                raise ValueError("No se pudo convertir el PDF a imagen")
+        img_b64 = self._image_to_base64(img)
+        rotation = self._check_orientation(img_b64)
+        if rotation != 0:
+            _logger().info("PDF is rotated %d°, rotating image", rotation)
+            img = img.rotate(-rotation, expand=True)
             img_b64 = self._image_to_base64(img)
-            return self._extract_with_vision([img_b64])
 
+        return self._extract_with_vision([img_b64])
+
+    def _extract_with_text(self, text: str) -> dict:
+        """Extract data from plain text — no PDF or image needed."""
+        _logger().info("=== Text-only extraction === text_len=%d", len(text))
+        prompt_with_text = (
+            f"{self.prompt}\n\n--- TEXTO DEL DOCUMENTO ---\n{text}\n--- FIN DEL TEXTO ---"
+        )
+        message = HumanMessage(content=prompt_with_text)
+        result = self.structured_llm.invoke([message])
+        if hasattr(result, "model_dump"):
+            result = result.model_dump()
+        _logger().info("Text extraction result: %s", result)
+        return result
+
+    def _extract_raw_pdf(self, pdf_path: Path) -> dict:
+        """Send the raw PDF bytes to providers with native PDF support."""
         pdf_data = pdf_path.read_bytes()
+        pdf_b64_len = len(base64.b64encode(pdf_data))
+        _logger().info(
+            "=== Raw PDF extraction (native) === pdf_bytes=%d b64_len=%d",
+            len(pdf_data),
+            pdf_b64_len,
+        )
         pdf_base64 = base64.b64encode(pdf_data).decode("utf-8")
         content = [
             {
@@ -297,21 +320,23 @@ class DocumentExtractor:
             {"type": "text", "text": self.prompt},
         ]
         message = HumanMessage(content=content)
+        _logger().info("Invoking structured_llm (model=%s)", self.model_name)
         result = self.structured_llm.invoke([message])
+        _logger().info("Raw LLM response type: %s", type(result).__name__)
         if hasattr(result, "model_dump"):
             result = result.model_dump()
-        logger.info("Extraction result: %s", result)
+        _logger().info("Parsed extraction result: %s", result)
         return result
 
     def _extract_with_vision(
         self, base64_images: list[str] | None = None, *, image_url: str | None = None
     ) -> dict:
-        logger.info("=== Vision extraction ===")
-        logger.info("Model: %s, prompt length: %d", self.model_name, len(self.prompt))
         if image_url:
-            logger.info("Using direct URL (no base64 encoding)")
+            _logger().info("=== Vision extraction === mode=url")
             img_block = self._image_content(url=image_url)
         elif base64_images:
+            b64_kb = len(base64_images[0]) // 1024
+            _logger().info("=== Vision extraction === mode=b64 (%dKB)", b64_kb)
             img_block = self._image_content(b64=base64_images[0])
         else:
             raise ValueError("Se requiere base64_images o image_url")
@@ -320,7 +345,7 @@ class DocumentExtractor:
         result = self.structured_llm.invoke([message])
         if hasattr(result, "model_dump"):
             result = result.model_dump()
-        logger.info("Extraction result: %s", result)
+        _logger().info("Extraction result: %s", result)
         return result
 
     def extract_file(self, file_path: Path, *, image_url: str | None = None) -> dict:
@@ -337,61 +362,3 @@ class DocumentExtractor:
             if not base64_images:
                 raise ValueError("No se pudo procesar el archivo")
             return self._extract_with_vision(base64_images)
-
-
-def _needs_clabe_retry(result: dict) -> bool:
-    """Check if the CLABE needs a retry (not 18 digits and not default)."""
-    clabe = str(result.get("account_number", "000000000000000000"))
-    digits = re.sub(r"[^\d]", "", clabe)
-    if digits == "0" * 18:
-        return False
-    return len(digits) != 18
-
-
-def retry_bank_statement_clabe(extractor: DocumentExtractor, file_path: Path, result: dict) -> dict:
-    """Retry extraction if CLABE is not 18 digits. Bank-statement-specific."""
-    if not _needs_clabe_retry(result):
-        return result
-
-    suffix = file_path.suffix.lower()
-    bad_clabe = result.get("account_number", "")
-    logger.info("CLABE '%s' is not 18 digits, retrying...", bad_clabe)
-
-    # Stage 1: retry with reinforced prompt
-    original_prompt = extractor.prompt
-    extractor.prompt = extractor.prompt + "\n\n" + CLABE_RETRY_PROMPT
-    try:
-        if suffix in PDF_EXTENSIONS:
-            retry_result = extractor._extract_with_pdf(file_path)
-        else:
-            retry_result = extractor._extract_with_vision()
-        retry_clabe = str(retry_result.get("account_number", ""))
-        retry_digits = re.sub(r"[^\d]", "", retry_clabe)
-        if len(retry_digits) == 18 and retry_digits != "0" * 18:
-            logger.info("Retry fixed CLABE: %s", retry_digits)
-            return retry_result
-        logger.info("Retry did not improve CLABE, keeping original")
-    except Exception as e:
-        logger.warning("Retry failed: %s", e)
-    finally:
-        extractor.prompt = original_prompt
-
-    # Stage 2: try with 90° rotation (PDF only)
-    if suffix in PDF_EXTENSIONS and _needs_clabe_retry(result):
-        logger.info("Attempting rotation retry for PDF...")
-        img = extractor._pdf_to_image(file_path)
-        if img is not None:
-            rotated = img.rotate(-90, expand=True)
-            img_b64 = extractor._image_to_base64(rotated)
-            try:
-                rot_result = extractor._extract_with_vision([img_b64])
-                rot_clabe = str(rot_result.get("account_number", ""))
-                rot_digits = re.sub(r"[^\d]", "", rot_clabe)
-                if len(rot_digits) == 18 and rot_digits != "0" * 18:
-                    logger.info("Rotation retry fixed CLABE: %s", rot_digits)
-                    return rot_result
-                logger.info("Rotation retry did not improve CLABE")
-            except Exception as e:
-                logger.warning("Rotation retry failed: %s", e)
-
-    return result
