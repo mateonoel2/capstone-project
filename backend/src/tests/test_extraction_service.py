@@ -1,9 +1,6 @@
 import pytest
 
-from src.domain.services.extraction import (
-    _inject_valid_document_field,
-    apply_bank_statement_postprocessing,
-)
+from src.domain.services.extraction import apply_bank_statement_postprocessing
 
 
 class TestApplyBankStatementPostprocessing:
@@ -46,35 +43,3 @@ class TestApplyBankStatementPostprocessing:
         }
         result = apply_bank_statement_postprocessing(raw)
         assert len(result["account_number"]) == 18
-
-
-class TestInjectValidDocumentField:
-    def test_adds_is_valid_document_when_missing(self):
-        schema = {
-            "type": "object",
-            "properties": {
-                "comercio": {"type": "string"},
-            },
-        }
-        result = _inject_valid_document_field(schema)
-        assert "is_valid_document" in result["properties"]
-        assert result["properties"]["comercio"] == {"type": "string"}
-
-    def test_does_not_overwrite_existing(self):
-        schema = {
-            "type": "object",
-            "properties": {
-                "is_valid_document": {"type": "boolean", "description": "custom"},
-            },
-        }
-        result = _inject_valid_document_field(schema)
-        assert result["properties"]["is_valid_document"]["description"] == "custom"
-
-    def test_does_not_mutate_original(self):
-        schema = {
-            "type": "object",
-            "properties": {"a": {"type": "string"}},
-        }
-        result = _inject_valid_document_field(schema)
-        assert "is_valid_document" not in schema["properties"]
-        assert "is_valid_document" in result["properties"]

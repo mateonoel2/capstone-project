@@ -53,31 +53,11 @@ def apply_bank_statement_postprocessing(raw: dict) -> dict:
     }
 
 
-def _inject_valid_document_field(schema: dict) -> dict:
-    """Add is_valid_document to the schema so the model can flag invalid documents."""
-    props = schema.get("properties", {})
-    if "is_valid_document" in props:
-        return schema
-    schema = {**schema}
-    schema["properties"] = {
-        "is_valid_document": {
-            "type": "boolean",
-            "description": (
-                "True si el documento corresponde al tipo de documento que se está extrayendo, "
-                "False si es otro tipo de documento"
-            ),
-        },
-        **props,
-    }
-    return schema
-
-
 def _create_extractor(config: ExtractorConfigData) -> DocumentExtractor:
-    schema = _inject_valid_document_field(config.output_schema)
     return DocumentExtractor(
         prompt=config.prompt,
         model=config.model,
-        output_schema=schema,
+        output_schema=config.output_schema,
     )
 
 
