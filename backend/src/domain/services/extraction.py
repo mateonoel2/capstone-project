@@ -16,9 +16,6 @@ ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
 
 def apply_bank_statement_postprocessing(raw: dict) -> dict:
-    if not raw.get("is_valid_document"):
-        raise ValueError("El documento no es un estado de cuenta bancario")
-
     owner = raw.get("owner", "Unknown")
     if owner == "Unknown":
         owner = UNKNOWN_OWNER
@@ -118,6 +115,20 @@ class ExtractionService:
                 raise ExtractionError(str(e), call_result)
 
             elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+
+            # Validate document type if model flagged it as invalid
+            if raw_result.get("is_valid_document") is False:
+                desc = config.description if config else "estado de cuenta bancario"
+                call_result = ApiCallResult(
+                    model=extractor.model_name,
+                    success=False,
+                    response_time_ms=elapsed_ms,
+                    error_type="InvalidDocument",
+                    error_message=f"El documento no corresponde al tipo: {desc}",
+                )
+                raise ExtractionError(f"El documento no corresponde al tipo: {desc}", call_result)
+            # Remove is_valid_document from result before returning
+            raw_result.pop("is_valid_document", None)
 
             # Apply bank-statement-specific logic only for bank statement extractors
             is_default = config is None or config.is_default

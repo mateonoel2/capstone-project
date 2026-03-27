@@ -6,7 +6,6 @@ from src.domain.services.extraction import apply_bank_statement_postprocessing
 class TestApplyBankStatementPostprocessing:
     def test_valid_bank_statement(self):
         raw = {
-            "is_valid_document": True,
             "owner": "Juan Pérez",
             "account_number": "012345678901234567",
             "bank_name": "BBVA",
@@ -15,15 +14,10 @@ class TestApplyBankStatementPostprocessing:
         assert result["owner"] == "Juan Pérez"
         assert result["account_number"] == "012345678901234567"
 
-    def test_non_bank_statement_raises(self):
-        with pytest.raises(ValueError, match="no es un estado de cuenta"):
-            apply_bank_statement_postprocessing({"is_valid_document": False})
-
     def test_unknown_bank_and_account_raises(self):
         with pytest.raises(ValueError, match="No se encontró información bancaria"):
             apply_bank_statement_postprocessing(
                 {
-                    "is_valid_document": True,
                     "owner": "Juan",
                     "account_number": "000000000000000000",
                     "bank_name": "Unknown",
@@ -32,7 +26,6 @@ class TestApplyBankStatementPostprocessing:
 
     def test_clabe_with_spaces_stripped(self):
         raw = {
-            "is_valid_document": True,
             "owner": "Ana",
             "account_number": "072 691 00844421773 3",
             "bank_name": "BANORTE",
@@ -44,7 +37,6 @@ class TestApplyBankStatementPostprocessing:
 
     def test_clabe_truncated_to_18_digits(self):
         raw = {
-            "is_valid_document": True,
             "owner": "Ana",
             "account_number": "0123456789012345678",  # 19 digits
             "bank_name": "BBVA",
